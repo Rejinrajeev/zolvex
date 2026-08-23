@@ -90,3 +90,41 @@ describe("ApprovableResourceService.softDelete / restore", () => {
     ).rejects.toThrow(SlugConflictError);
   });
 });
+
+describe("ApprovableResourceService.approve / reject", () => {
+  it("approve() publishes a pending record and writes a publish audit row", async () => {
+    const record = await services.create(
+      { id: editorId, role: "editor" },
+      { name: "Office Cleaning", slug: "office-cleaning", shortDescription: "s", fullDescription: "f" }
+    );
+    expect(record.approvalStatus).toBe("pending_approval");
+
+    const approved = await services.approve({ id: superadminId, role: "superadmin" }, record.id);
+    expect(approved.approvalStatus).toBe("published");
+    expect(approved.approvedBy).toBe(superadminId);
+
+    const logs = await prisma.auditLog.findMany({
+      where: { entityId: record.id, action: "publish" },
+    });
+    expect(logs).toHaveLength(1);
+  });
+
+  it("reject() requires a non-empty reason and records it", async () => {
+    const record = await services.create(
+      { id: editorId, role: "editor" },
+      { name: "Gutter Cleaning", slug: "gutter-cleaning", shortDescription: "s", fullDescription: "f" }
+    );
+
+    await expect(
+      services.reject({ id: superadminId, role: "superadmin" }, record.id, "")
+    ).rejects.toThrow(/rejectionReason is required/);
+
+    const rejected = await services.reject(
+      { id: superadminId, role: "superadmin" },
+      record.id,
+      "Photo quality too low"
+    );
+    expect(rejected.approvalStatus).toBe("rejected");
+    expect(rejected.rejectionReason).toBe("Photo quality too low");
+  });
+});

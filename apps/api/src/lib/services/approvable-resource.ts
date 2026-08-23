@@ -126,4 +126,60 @@ export class ApprovableResourceService {
       return record;
     });
   }
+
+  async approve(actor: Actor, id: string) {
+    return this.prisma.$transaction(async (tx) => {
+      const before = await this.delegate(tx).findUnique({ where: { id } });
+      if (!before) throw new Error(`${this.entityName} ${id} not found`);
+
+      const record = await this.delegate(tx).update({
+        where: { id },
+        data: { approvalStatus: "published", approvedBy: actor.id, approvedAt: new Date() },
+      });
+
+      await tx.auditLog.create({
+        data: {
+          adminId: actor.id,
+          action: "publish",
+          entity: this.entityName,
+          entityId: id,
+          diff: {
+            before: { approvalStatus: before.approvalStatus },
+            after: { approvalStatus: "published" },
+          },
+        },
+      });
+      return record;
+    });
+  }
+
+  async reject(actor: Actor, id: string, reason: string) {
+    if (!reason || reason.trim().length === 0) {
+      throw new Error("rejectionReason is required");
+    }
+
+    return this.prisma.$transaction(async (tx) => {
+      const before = await this.delegate(tx).findUnique({ where: { id } });
+      if (!before) throw new Error(`${this.entityName} ${id} not found`);
+
+      const record = await this.delegate(tx).update({
+        where: { id },
+        data: { approvalStatus: "rejected", rejectionReason: reason },
+      });
+
+      await tx.auditLog.create({
+        data: {
+          adminId: actor.id,
+          action: "reject",
+          entity: this.entityName,
+          entityId: id,
+          diff: {
+            before: { approvalStatus: before.approvalStatus },
+            after: { approvalStatus: "rejected", rejectionReason: reason },
+          },
+        },
+      });
+      return record;
+    });
+  }
 }
