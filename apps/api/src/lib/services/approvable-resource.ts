@@ -9,6 +9,24 @@ export interface Actor {
 
 type DelegateName = "service" | "blogPost" | "testimonial" | "faq" | "place";
 
+const WORKFLOW_FIELDS = [
+  "id",
+  "approvalStatus",
+  "submittedBy",
+  "approvedBy",
+  "approvedAt",
+  "rejectionReason",
+  "deletedAt",
+] as const;
+
+function stripWorkflowFields(data: Record<string, unknown>): Record<string, unknown> {
+  const clean: Record<string, unknown> = { ...data };
+  for (const field of WORKFLOW_FIELDS) {
+    delete clean[field];
+  }
+  return clean;
+}
+
 export class ApprovableResourceService {
   constructor(
     private prisma: PrismaClient,
@@ -26,10 +44,11 @@ export class ApprovableResourceService {
 
   async create(actor: Actor, data: Record<string, unknown>) {
     const approvalStatus = this.statusFor(actor);
+    const cleanData = stripWorkflowFields(data);
 
     return this.prisma.$transaction(async (tx) => {
       const record = await this.delegate(tx).create({
-        data: { ...data, approvalStatus, submittedBy: actor.id },
+        data: { ...cleanData, approvalStatus, submittedBy: actor.id },
       });
       await tx.auditLog.create({
         data: {
@@ -37,7 +56,7 @@ export class ApprovableResourceService {
           action: "create",
           entity: this.entityName,
           entityId: record.id,
-          diff: { after: data },
+          diff: { after: record },
         },
       });
       return record;
@@ -45,6 +64,8 @@ export class ApprovableResourceService {
   }
 
   async update(actor: Actor, id: string, data: Record<string, unknown>) {
+    const cleanData = stripWorkflowFields(data);
+
     return this.prisma.$transaction(async (tx) => {
       const before = await this.delegate(tx).findUnique({ where: { id } });
       if (!before) throw new Error(`${this.entityName} ${id} not found`);
@@ -52,7 +73,7 @@ export class ApprovableResourceService {
       const approvalStatus = this.statusFor(actor);
       const record = await this.delegate(tx).update({
         where: { id },
-        data: { ...data, approvalStatus, submittedBy: actor.id },
+        data: { ...cleanData, approvalStatus, submittedBy: actor.id },
       });
 
       await tx.auditLog.create({
@@ -61,7 +82,7 @@ export class ApprovableResourceService {
           action: "update",
           entity: this.entityName,
           entityId: id,
-          diff: { before, after: data },
+          diff: { before, after: record },
         },
       });
       return record;
@@ -128,9 +149,18 @@ export class ApprovableResourceService {
   }
 
   async approve(actor: Actor, id: string) {
+    if (actor.role !== "superadmin") {
+      throw new Error("Only superadmin can approve/reject");
+    }
+
     return this.prisma.$transaction(async (tx) => {
       const before = await this.delegate(tx).findUnique({ where: { id } });
       if (!before) throw new Error(`${this.entityName} ${id} not found`);
+      if (before.approvalStatus !== "pending_approval") {
+        throw new Error(
+          `Cannot approve ${this.entityName} ${id}: not pending approval (current status: ${before.approvalStatus})`
+        );
+      }
 
       const record = await this.delegate(tx).update({
         where: { id },
@@ -154,6 +184,9 @@ export class ApprovableResourceService {
   }
 
   async reject(actor: Actor, id: string, reason: string) {
+    if (actor.role !== "superadmin") {
+      throw new Error("Only superadmin can approve/reject");
+    }
     if (!reason || reason.trim().length === 0) {
       throw new Error("rejectionReason is required");
     }
@@ -161,6 +194,11 @@ export class ApprovableResourceService {
     return this.prisma.$transaction(async (tx) => {
       const before = await this.delegate(tx).findUnique({ where: { id } });
       if (!before) throw new Error(`${this.entityName} ${id} not found`);
+      if (before.approvalStatus !== "pending_approval") {
+        throw new Error(
+          `Cannot reject ${this.entityName} ${id}: not pending approval (current status: ${before.approvalStatus})`
+        );
+      }
 
       const record = await this.delegate(tx).update({
         where: { id },

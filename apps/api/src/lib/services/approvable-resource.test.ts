@@ -59,6 +59,51 @@ describe("ApprovableResourceService.create", () => {
   });
 });
 
+describe("ApprovableResourceService mass-assignment protection", () => {
+  it("strips workflow-control fields from create() and update() data before writing", async () => {
+    const created = await services.create(
+      { id: editorId, role: "editor" },
+      {
+        name: "Pool Cleaning",
+        slug: "pool-cleaning",
+        shortDescription: "s",
+        fullDescription: "f",
+        approvalStatus: "published",
+        submittedBy: "attacker-id",
+        approvedBy: "attacker-id",
+        approvedAt: new Date().toISOString(),
+        rejectionReason: "hacked",
+        deletedAt: new Date().toISOString(),
+      }
+    );
+
+    expect(created.approvalStatus).toBe("pending_approval");
+    expect(created.submittedBy).toBe(editorId);
+    expect(created.approvedBy).toBeNull();
+    expect(created.approvedAt).toBeNull();
+    expect(created.rejectionReason).toBeNull();
+    expect(created.deletedAt).toBeNull();
+
+    const updated = await services.update({ id: editorId, role: "editor" }, created.id, {
+      name: "Pool Cleaning Updated",
+      approvedBy: superadminId,
+      approvedAt: new Date().toISOString(),
+      approvalStatus: "published",
+      deletedAt: new Date().toISOString(),
+    });
+
+    expect(updated.name).toBe("Pool Cleaning Updated");
+    expect(updated.approvalStatus).toBe("pending_approval");
+    expect(updated.approvedBy).toBeNull();
+    expect(updated.deletedAt).toBeNull();
+
+    const logs = await prisma.auditLog.findMany({
+      where: { entityId: created.id, action: "create" },
+    });
+    expect((logs[0].diff as { after: { approvedBy: string | null } }).after.approvedBy).toBeNull();
+  });
+});
+
 describe("ApprovableResourceService.softDelete / restore", () => {
   it("soft-deletes, then restores cleanly when no slug conflict exists", async () => {
     const record = await services.create(
@@ -126,5 +171,36 @@ describe("ApprovableResourceService.approve / reject", () => {
     );
     expect(rejected.approvalStatus).toBe("rejected");
     expect(rejected.rejectionReason).toBe("Photo quality too low");
+  });
+
+  it("refuses approve()/reject() from a non-superadmin actor", async () => {
+    const record = await services.create(
+      { id: editorId, role: "editor" },
+      { name: "Roof Cleaning", slug: "roof-cleaning", shortDescription: "s", fullDescription: "f" }
+    );
+
+    await expect(
+      services.approve({ id: editorId, role: "editor" }, record.id)
+    ).rejects.toThrow(/Only superadmin/);
+
+    await expect(
+      services.reject({ id: editorId, role: "editor" }, record.id, "no")
+    ).rejects.toThrow(/Only superadmin/);
+  });
+
+  it("refuses to approve/reject a record that isn't pending_approval", async () => {
+    const record = await services.create(
+      { id: superadminId, role: "superadmin" },
+      { name: "Driveway Cleaning", slug: "driveway-cleaning", shortDescription: "s", fullDescription: "f" }
+    );
+    expect(record.approvalStatus).toBe("published");
+
+    await expect(
+      services.approve({ id: superadminId, role: "superadmin" }, record.id)
+    ).rejects.toThrow(/not pending approval/);
+
+    await expect(
+      services.reject({ id: superadminId, role: "superadmin" }, record.id, "reason")
+    ).rejects.toThrow(/not pending approval/);
   });
 });
