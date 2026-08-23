@@ -33,6 +33,16 @@ afterAll(async () => {
   await prisma.$disconnect();
 });
 
+describe("ApprovableResourceService DelegateName", () => {
+  it("does not allow 'place' as a delegate (Place has no approval workflow)", () => {
+    // @ts-expect-error - "place" is intentionally excluded from DelegateName:
+    // Place has no approvalStatus/submittedBy/approvedBy/approvedAt/
+    // rejectionReason columns and is not part of the approval workflow.
+    const placeAttempt = new ApprovableResourceService(prisma, "Place", "place");
+    expect(placeAttempt).toBeInstanceOf(ApprovableResourceService);
+  });
+});
+
 describe("ApprovableResourceService.create", () => {
   it("saves an editor's create as pending_approval and writes one audit row", async () => {
     const record = await services.create(
@@ -74,6 +84,8 @@ describe("ApprovableResourceService mass-assignment protection", () => {
         approvedAt: new Date().toISOString(),
         rejectionReason: "hacked",
         deletedAt: new Date().toISOString(),
+        createdAt: "2000-01-01T00:00:00.000Z",
+        updatedAt: "2000-01-01T00:00:00.000Z",
       }
     );
 
@@ -83,6 +95,7 @@ describe("ApprovableResourceService mass-assignment protection", () => {
     expect(created.approvedAt).toBeNull();
     expect(created.rejectionReason).toBeNull();
     expect(created.deletedAt).toBeNull();
+    expect(created.createdAt.getFullYear()).toBeGreaterThan(2020);
 
     const updated = await services.update({ id: editorId, role: "editor" }, created.id, {
       name: "Pool Cleaning Updated",
@@ -90,12 +103,16 @@ describe("ApprovableResourceService mass-assignment protection", () => {
       approvedAt: new Date().toISOString(),
       approvalStatus: "published",
       deletedAt: new Date().toISOString(),
+      createdAt: "2000-01-01T00:00:00.000Z",
+      updatedAt: "2000-01-01T00:00:00.000Z",
     });
 
     expect(updated.name).toBe("Pool Cleaning Updated");
     expect(updated.approvalStatus).toBe("pending_approval");
     expect(updated.approvedBy).toBeNull();
     expect(updated.deletedAt).toBeNull();
+    expect(updated.createdAt.getFullYear()).toBeGreaterThan(2020);
+    expect(updated.updatedAt.getFullYear()).toBeGreaterThan(2020);
 
     const logs = await prisma.auditLog.findMany({
       where: { entityId: created.id, action: "create" },
@@ -133,6 +150,24 @@ describe("ApprovableResourceService.softDelete / restore", () => {
     await expect(
       services.restore({ id: superadminId, role: "superadmin" }, original.id)
     ).rejects.toThrow(SlugConflictError);
+  });
+
+  it("refuses softDelete()/restore() from a non-superadmin actor", async () => {
+    const record = await services.create(
+      { id: superadminId, role: "superadmin" },
+      { name: "Balcony Cleaning", slug: "balcony-cleaning", shortDescription: "s", fullDescription: "f" }
+    );
+
+    await expect(
+      services.softDelete({ id: editorId, role: "editor" }, record.id)
+    ).rejects.toThrow(/Only superadmin/);
+
+    const deleted = await services.softDelete({ id: superadminId, role: "superadmin" }, record.id);
+    expect(deleted.deletedAt).not.toBeNull();
+
+    await expect(
+      services.restore({ id: editorId, role: "editor" }, record.id)
+    ).rejects.toThrow(/Only superadmin/);
   });
 });
 

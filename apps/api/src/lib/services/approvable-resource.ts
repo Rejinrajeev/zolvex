@@ -7,7 +7,11 @@ export interface Actor {
   role: "superadmin" | "editor";
 }
 
-type DelegateName = "service" | "blogPost" | "testimonial" | "faq" | "place";
+// "place" is deliberately excluded: Place has no approvalStatus/submittedBy/
+// approvedBy/approvedAt/rejectionReason columns and is not part of the
+// approval workflow (same as pageContent). It gets its own simple
+// non-approval CRUD handling in a later Gate task.
+type DelegateName = "service" | "blogPost" | "testimonial" | "faq";
 
 const WORKFLOW_FIELDS = [
   "id",
@@ -17,6 +21,8 @@ const WORKFLOW_FIELDS = [
   "approvedAt",
   "rejectionReason",
   "deletedAt",
+  "createdAt",
+  "updatedAt",
 ] as const;
 
 function stripWorkflowFields(data: Record<string, unknown>): Record<string, unknown> {
@@ -90,6 +96,10 @@ export class ApprovableResourceService {
   }
 
   async softDelete(actor: Actor, id: string) {
+    if (actor.role !== "superadmin") {
+      throw new Error("Only superadmin can delete/restore");
+    }
+
     return this.prisma.$transaction(async (tx) => {
       const before = await this.delegate(tx).findUnique({ where: { id } });
       if (!before) throw new Error(`${this.entityName} ${id} not found`);
@@ -114,6 +124,10 @@ export class ApprovableResourceService {
   }
 
   async restore(actor: Actor, id: string) {
+    if (actor.role !== "superadmin") {
+      throw new Error("Only superadmin can delete/restore");
+    }
+
     return this.prisma.$transaction(async (tx) => {
       const before = await this.delegate(tx).findUnique({ where: { id } });
       if (!before) throw new Error(`${this.entityName} ${id} not found`);
