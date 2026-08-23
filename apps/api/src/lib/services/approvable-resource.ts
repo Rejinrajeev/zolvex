@@ -67,4 +67,63 @@ export class ApprovableResourceService {
       return record;
     });
   }
+
+  async softDelete(actor: Actor, id: string) {
+    return this.prisma.$transaction(async (tx) => {
+      const before = await this.delegate(tx).findUnique({ where: { id } });
+      if (!before) throw new Error(`${this.entityName} ${id} not found`);
+      if (before.deletedAt) throw new Error(`${this.entityName} ${id} already deleted`);
+
+      const record = await this.delegate(tx).update({
+        where: { id },
+        data: { deletedAt: new Date() },
+      });
+
+      await tx.auditLog.create({
+        data: {
+          adminId: actor.id,
+          action: "delete",
+          entity: this.entityName,
+          entityId: id,
+          diff: { before: { deletedAt: before.deletedAt }, after: { deletedAt: record.deletedAt } },
+        },
+      });
+      return record;
+    });
+  }
+
+  async restore(actor: Actor, id: string) {
+    return this.prisma.$transaction(async (tx) => {
+      const before = await this.delegate(tx).findUnique({ where: { id } });
+      if (!before) throw new Error(`${this.entityName} ${id} not found`);
+      if (!before.deletedAt) throw new Error(`${this.entityName} ${id} is not deleted`);
+
+      if ("slug" in before && before.slug) {
+        const conflict = await this.delegate(tx).findFirst({
+          where: { slug: before.slug, deletedAt: null, NOT: { id } },
+        });
+        if (conflict) {
+          throw new SlugConflictError(
+            `Cannot restore ${this.entityName} ${id}: slug "${before.slug}" is in use by ${conflict.id}`
+          );
+        }
+      }
+
+      const record = await this.delegate(tx).update({
+        where: { id },
+        data: { deletedAt: null },
+      });
+
+      await tx.auditLog.create({
+        data: {
+          adminId: actor.id,
+          action: "restore",
+          entity: this.entityName,
+          entityId: id,
+          diff: { before: { deletedAt: before.deletedAt }, after: { deletedAt: null } },
+        },
+      });
+      return record;
+    });
+  }
 }

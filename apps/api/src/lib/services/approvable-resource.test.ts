@@ -58,3 +58,35 @@ describe("ApprovableResourceService.create", () => {
     expect(record.approvalStatus).toBe("published");
   });
 });
+
+describe("ApprovableResourceService.softDelete / restore", () => {
+  it("soft-deletes, then restores cleanly when no slug conflict exists", async () => {
+    const record = await services.create(
+      { id: superadminId, role: "superadmin" },
+      { name: "Window Cleaning", slug: "window-cleaning", shortDescription: "s", fullDescription: "f" }
+    );
+
+    const deleted = await services.softDelete({ id: superadminId, role: "superadmin" }, record.id);
+    expect(deleted.deletedAt).not.toBeNull();
+
+    const restored = await services.restore({ id: superadminId, role: "superadmin" }, record.id);
+    expect(restored.deletedAt).toBeNull();
+  });
+
+  it("refuses to restore when another live record has taken the same slug", async () => {
+    const original = await services.create(
+      { id: superadminId, role: "superadmin" },
+      { name: "Sofa Cleaning", slug: "sofa-cleaning", shortDescription: "s", fullDescription: "f" }
+    );
+    await services.softDelete({ id: superadminId, role: "superadmin" }, original.id);
+
+    await services.create(
+      { id: superadminId, role: "superadmin" },
+      { name: "New Sofa Cleaning", slug: "sofa-cleaning", shortDescription: "s2", fullDescription: "f2" }
+    );
+
+    await expect(
+      services.restore({ id: superadminId, role: "superadmin" }, original.id)
+    ).rejects.toThrow(SlugConflictError);
+  });
+});
