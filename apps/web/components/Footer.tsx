@@ -1,6 +1,6 @@
 import { IconPhone, IconInstagram } from "./icons";
 
-export function Footer() {
+export function Footer({ onBookNow }: { onBookNow: () => void }) {
   return (
     <footer className="punch-edge relative bg-ink px-5 pb-10 pt-16 sm:px-8 lg:px-12">
       <div className="mx-auto max-w-[90rem]">
@@ -9,7 +9,7 @@ export function Footer() {
             <a href="#top" className="font-display text-2xl font-semibold text-paper">
               Zolvex
             </a>
-            <p className="mt-3 max-w-xs font-body text-sm leading-relaxed text-paper/60">
+            <p className="mt-3 max-w-xs font-body text-sm leading-relaxed text-paper/70">
               Commercial cleaning, logged and on time — for offices, retail,
               and commercial spaces.
             </p>
@@ -22,7 +22,11 @@ export function Footer() {
             <ul className="mt-4 space-y-2.5 font-body text-sm text-paper/75">
               <li><a href="#about" className="hover:text-gold">About Us</a></li>
               <li><a href="#services" className="hover:text-gold">Services</a></li>
-              <li><a href="#top" className="hover:text-gold">Book Now</a></li>
+              <li>
+                <button type="button" onClick={onBookNow} className="text-left hover:text-gold">
+                  Book Now
+                </button>
+              </li>
             </ul>
           </div>
 
@@ -62,7 +66,7 @@ export function Footer() {
           </div>
         </div>
 
-        <div className="mt-14 flex flex-col items-start justify-between gap-3 border-t border-gold/10 pt-6 font-body text-xs text-paper/45 sm:flex-row sm:items-center">
+        <div className="mt-14 flex flex-col items-start justify-between gap-3 border-t border-gold/10 pt-6 font-body text-xs text-paper/70 sm:flex-row sm:items-center">
           <span>© {new Date().getFullYear()} Zolvex. All rights reserved.</span>
           <span className="font-stamp uppercase tracking-wide">Every visit, on the record.</span>
         </div>

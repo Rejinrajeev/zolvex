@@ -3,9 +3,11 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 
 /**
- * The site's one authored motion: content enters like a stamp landing on a
- * ledger page — a brief press-down (scale + settle) rather than a generic
- * fade/slide. Every section and card uses this same grammar.
+ * The site's one authored motion: a section arrives like a stamp coming
+ * down onto a ledger page — starting slightly oversized and dropping to
+ * rest, not a generic fade-up. Reserved for section-level entrances only
+ * (not every card/row inside a section) so it stays one authored moment
+ * rather than a repeated tic.
  */
 export function Stamped({
   children,
@@ -55,12 +57,12 @@ export function Stamped({
   return (
     <div
       ref={ref}
-      className={`transition-all duration-700 ${className}`}
+      className={`transition-all duration-500 ${className}`}
       style={{
-        transitionTimingFunction: "var(--ease-out-exp)",
+        transitionTimingFunction: "var(--ease-stamp)",
         transitionDelay: `${delayMs}ms`,
         opacity: visible ? 1 : 0,
-        transform: visible ? "scale(1) translateY(0)" : "scale(0.97) translateY(14px)",
+        transform: visible ? "scale(1) translateY(0)" : "scale(1.06) translateY(-10px)",
       }}
     >
       {children}

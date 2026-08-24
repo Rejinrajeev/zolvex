@@ -1,38 +1,44 @@
 "use client";
 
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
 import { IconClose, IconCheck } from "./icons";
 
 type Status = "idle" | "submitting" | "success" | "error";
 
 const PLACES = ["Downtown", "North Side", "Business District", "Industrial Park", "Other"];
 
+const FOCUSABLE_SELECTOR =
+  'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
 /**
  * UI-complete enquiry flow per the /plan-design-review state spec (inline
  * validation, spinner-on-submit, banner+retry on failure, confirmation on
- * success). The actual submit is a stub — the Foundation API this posts to
- * lives on a separate branch not yet merged here — wire the real endpoint in
- * when the two branches come together.
+ * success), hardened per /impeccable's finish review: a real Tab/Shift+Tab
+ * focus trap, focus restored to whatever opened the modal on close, errors
+ * connected to their fields via aria-describedby and announced via
+ * role="alert". The actual submit is a stub — the Foundation API this posts
+ * to lives on a separate branch not yet merged here — wire the real
+ * endpoint in when the two branches come together.
  */
 export function EnquiryModal({ open, onClose }: { open: boolean; onClose: () => void }) {
   const [status, setStatus] = useState<Status>("idle");
   const [errors, setErrors] = useState<Record<string, string>>({});
   const dialogRef = useRef<HTMLDivElement>(null);
   const firstFieldRef = useRef<HTMLInputElement>(null);
+  const openerRef = useRef<Element | null>(null);
 
   useEffect(() => {
     if (!open) return;
+    openerRef.current = document.activeElement;
     firstFieldRef.current?.focus();
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    document.addEventListener("keydown", onKey);
     document.body.style.overflow = "hidden";
     return () => {
-      document.removeEventListener("keydown", onKey);
       document.body.style.overflow = "";
+      if (openerRef.current instanceof HTMLElement) {
+        openerRef.current.focus();
+      }
     };
-  }, [open, onClose]);
+  }, [open]);
 
   useEffect(() => {
     if (open) {
@@ -42,6 +48,31 @@ export function EnquiryModal({ open, onClose }: { open: boolean; onClose: () => 
   }, [open]);
 
   if (!open) return null;
+
+  function handleKeyDown(e: KeyboardEvent<HTMLDivElement>) {
+    if (e.key === "Escape") {
+      onClose();
+      return;
+    }
+    if (e.key !== "Tab" || !dialogRef.current) return;
+
+    const focusable = Array.from(
+      dialogRef.current.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR)
+    ).filter((el) => el.offsetParent !== null);
+    if (focusable.length === 0) return;
+
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    const active = document.activeElement;
+
+    if (e.shiftKey && active === first) {
+      e.preventDefault();
+      last.focus();
+    } else if (!e.shiftKey && active === last) {
+      e.preventDefault();
+      first.focus();
+    }
+  }
 
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -83,22 +114,18 @@ export function EnquiryModal({ open, onClose }: { open: boolean; onClose: () => 
         role="dialog"
         aria-modal="true"
         aria-labelledby="enquiry-title"
-        className="max-h-[92svh] w-full max-w-lg overflow-y-auto border-t-2 border-gold bg-paper p-7 sm:border-2 sm:p-9"
+        onKeyDown={handleKeyDown}
+        className="relative max-h-[92svh] w-full max-w-lg overflow-y-auto border-t-2 border-gold bg-paper p-7 sm:border-2 sm:p-9"
       >
         <div className="flex items-start justify-between gap-4">
-          <div>
-            <p className="font-stamp text-xs uppercase tracking-[0.15em] text-slate">
-              New entry
-            </p>
-            <h2 id="enquiry-title" className="mt-1 font-display text-2xl font-semibold text-ink">
-              Book a visit
-            </h2>
-          </div>
+          <h2 id="enquiry-title" className="font-display text-2xl font-semibold text-ink">
+            Book a visit
+          </h2>
           <button
             type="button"
             onClick={onClose}
             aria-label="Close"
-            className="flex h-10 w-10 shrink-0 items-center justify-center text-ink transition-colors hover:text-olive"
+            className="flex h-11 w-11 shrink-0 items-center justify-center text-ink transition-colors hover:text-olive-ink"
           >
             <IconClose className="h-5 w-5" />
           </button>
@@ -106,20 +133,20 @@ export function EnquiryModal({ open, onClose }: { open: boolean; onClose: () => 
 
         {status === "success" ? (
           <div className="mt-8 flex flex-col items-start gap-4 py-6">
-            <span className="flex h-14 w-14 items-center justify-center rounded-full bg-olive/15 text-olive">
+            <span className="flex h-14 w-14 items-center justify-center rounded-full bg-olive/15 text-olive-ink">
               <IconCheck className="h-7 w-7" />
             </span>
             <div>
               <p className="font-display text-xl font-semibold text-ink">Logged.</p>
               <p className="mt-2 max-w-sm font-body text-slate">
-                Your enquiry is on the record. We’ll call within one
-                business day to confirm your schedule.
+                Your enquiry is on the record. We’ll call you to confirm
+                your schedule.
               </p>
             </div>
             <button
               type="button"
               onClick={onClose}
-              className="mt-2 font-body text-sm font-medium text-olive underline underline-offset-4"
+              className="mt-2 flex min-h-11 items-center font-body text-sm font-medium text-olive-ink underline underline-offset-4"
             >
               Close
             </button>
@@ -149,7 +176,8 @@ export function EnquiryModal({ open, onClose }: { open: boolean; onClose: () => 
                 name="place"
                 defaultValue=""
                 aria-invalid={Boolean(errors.place)}
-                className="mt-1.5 w-full border border-ink/20 bg-paper px-3.5 py-2.5 font-body text-ink focus:border-olive"
+                aria-describedby={errors.place ? "place-error" : undefined}
+                className="mt-1.5 h-11 w-full appearance-none border border-ink/20 bg-paper bg-[url('data:image/svg+xml;utf8,%3Csvg%20xmlns=%22http://www.w3.org/2000/svg%22%20viewBox=%220%200%2024%2024%22%20fill=%22none%22%20stroke=%22%23616054%22%20stroke-width=%221.5%22%3E%3Cpath%20d=%22M6%209l6%206%206-6%22/%3E%3C/svg%3E')] bg-[length:1.1rem] bg-[right_0.9rem_center] bg-no-repeat px-3.5 font-body text-ink focus:border-olive-ink"
               >
                 <option value="" disabled>
                   Select a location
@@ -161,7 +189,9 @@ export function EnquiryModal({ open, onClose }: { open: boolean; onClose: () => 
                 ))}
               </select>
               {errors.place && (
-                <p className="mt-1.5 font-body text-sm text-red-700">{errors.place}</p>
+                <p id="place-error" role="alert" className="mt-1.5 font-body text-sm text-ink">
+                  {errors.place}
+                </p>
               )}
             </div>
             <div>
@@ -172,17 +202,17 @@ export function EnquiryModal({ open, onClose }: { open: boolean; onClose: () => 
                 id="date"
                 name="date"
                 type="date"
-                className="mt-1.5 w-full border border-ink/20 bg-paper px-3.5 py-2.5 font-body text-ink focus:border-olive"
+                className="mt-1.5 h-11 w-full border border-ink/20 bg-paper px-3.5 font-body text-ink focus:border-olive-ink"
               />
             </div>
 
             {status === "error" && (
-              <div className="flex items-center justify-between gap-3 border border-red-700/30 bg-red-50 px-4 py-3 font-body text-sm text-red-800">
+              <div
+                role="alert"
+                className="flex items-center justify-between gap-3 border-2 border-ink bg-paper-dim px-4 py-3 font-body text-sm text-ink"
+              >
                 Something went wrong sending your enquiry.
-                <button
-                  type="submit"
-                  className="font-medium underline underline-offset-2"
-                >
+                <button type="submit" className="font-medium underline underline-offset-2">
                   Retry
                 </button>
               </div>
@@ -191,7 +221,7 @@ export function EnquiryModal({ open, onClose }: { open: boolean; onClose: () => 
             <button
               type="submit"
               disabled={status === "submitting"}
-              className="flex w-full items-center justify-center gap-2 bg-gold px-6 py-3.5 font-display font-semibold text-ink transition-transform active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-70"
+              className="flex min-h-12 w-full items-center justify-center gap-2 bg-gold px-6 py-3.5 font-display font-semibold text-ink transition-transform active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-70"
             >
               {status === "submitting" ? (
                 <>
@@ -227,6 +257,7 @@ function Field({
   autoComplete?: string;
   ref?: React.Ref<HTMLInputElement>;
 }) {
+  const errorId = `${name}-error`;
   return (
     <div>
       <label htmlFor={name} className="block font-body text-sm font-medium text-ink">
@@ -239,9 +270,14 @@ function Field({
         type={type}
         autoComplete={autoComplete}
         aria-invalid={Boolean(error)}
-        className="mt-1.5 w-full border border-ink/20 bg-paper px-3.5 py-2.5 font-body text-ink placeholder:text-slate/50 focus:border-olive"
+        aria-describedby={error ? errorId : undefined}
+        className="mt-1.5 h-11 w-full border border-ink/20 bg-paper px-3.5 font-body text-ink placeholder:text-slate focus:border-olive-ink"
       />
-      {error && <p className="mt-1.5 font-body text-sm text-red-700">{error}</p>}
+      {error && (
+        <p id={errorId} role="alert" className="mt-1.5 font-body text-sm text-ink">
+          {error}
+        </p>
+      )}
     </div>
   );
 }

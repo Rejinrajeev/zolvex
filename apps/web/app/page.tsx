@@ -15,21 +15,22 @@ import { EnquiryModal } from "@/components/EnquiryModal";
 
 export default function Home() {
   const [bookingOpen, setBookingOpen] = useState(false);
+  const openBooking = () => setBookingOpen(true);
 
   return (
     <>
       <Nav />
-      <main>
-        <Hero onBookNow={() => setBookingOpen(true)} />
+      <main id="main">
+        <Hero onBookNow={openBooking} />
         <Services />
         <WhyUs />
-        <FeaturedService />
+        <FeaturedService onBookNow={openBooking} />
         <Blog />
         <FAQ />
         <Testimonials />
         <InstagramFeed />
       </main>
-      <Footer />
+      <Footer onBookNow={openBooking} />
       <EnquiryModal open={bookingOpen} onClose={() => setBookingOpen(false)} />
     </>
   );

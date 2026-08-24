@@ -62,14 +62,22 @@ export function Testimonials() {
           </div>
         </Stamped>
 
-        <div className="mt-12 flex snap-x snap-mandatory gap-6 overflow-x-auto pb-4 [scrollbar-width:thin]">
+        <div
+          role="region"
+          aria-label="Client reviews, scroll horizontally for more"
+          tabIndex={0}
+          className="mt-12 flex snap-x snap-mandatory gap-6 overflow-x-auto pb-4 [scrollbar-width:thin] focus-visible:outline-2 focus-visible:outline-ink focus-visible:outline-offset-4"
+        >
           {PLACEHOLDER_REVIEWS.map((review, i) => (
             <Stamped
               key={review.role}
               delayMs={i * 80}
               className="w-80 shrink-0 snap-start sm:w-96"
             >
-              <figure className="flex h-full flex-col border border-ink/12 bg-paper p-6">
+              <figure
+                tabIndex={0}
+                className="flex h-full flex-col border border-ink/12 bg-paper p-6"
+              >
                 <Stars rating={review.rating} />
                 <blockquote className="mt-4 flex-1 font-body text-lg italic leading-relaxed text-ink">
                   “{review.quote}”

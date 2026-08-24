@@ -1,5 +1,6 @@
 import { Stamped } from "./Stamped";
 import { PlaceholderPhoto } from "./PlaceholderPhoto";
+import { IconArrow } from "./icons";
 
 const POSTS = [
   {
@@ -47,7 +48,8 @@ export function Blog() {
                   {post.excerpt}
                 </p>
                 <span className="mt-4 inline-flex w-fit items-center gap-1.5 font-body text-sm text-gold underline decoration-gold/30 underline-offset-4 transition-colors group-hover:decoration-gold">
-                  Read the entry →
+                  Read the entry
+                  <IconArrow aria-hidden className="h-3.5 w-3.5" />
                 </span>
               </article>
             </Stamped>

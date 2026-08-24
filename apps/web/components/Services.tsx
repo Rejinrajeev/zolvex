@@ -28,7 +28,12 @@ export function Services() {
           </h2>
         </Stamped>
 
-        <div className="mt-14 flex snap-x snap-mandatory gap-6 overflow-x-auto pb-4 [-ms-overflow-style:none] [scrollbar-width:thin]">
+        <div
+          role="region"
+          aria-label="Services, scroll horizontally for more"
+          tabIndex={0}
+          className="mt-14 flex snap-x snap-mandatory gap-6 overflow-x-auto pb-4 [-ms-overflow-style:none] [scrollbar-width:thin] focus-visible:outline-2 focus-visible:outline-gold focus-visible:outline-offset-4"
+        >
           {SERVICES.map((service, i) => {
             const Icon = service.icon;
             return (
@@ -37,7 +42,10 @@ export function Services() {
                 delayMs={i * 70}
                 className={`w-64 shrink-0 snap-start sm:w-72 ${service.rotate}`}
               >
-                <article className="group relative border border-gold/15 bg-ink-soft p-4 pt-6 transition-transform duration-300 hover:-translate-y-1 hover:rotate-0">
+                <article
+                  tabIndex={0}
+                  className="group relative border border-gold/15 bg-ink-soft p-4 pt-6 transition-transform duration-300 hover:-translate-y-1 hover:rotate-0 focus-visible:rotate-0"
+                >
                   {/* perforated tear edge at the top of the ticket */}
                   <span
                     aria-hidden

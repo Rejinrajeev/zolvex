@@ -19,10 +19,7 @@ export function WhyUs() {
         {/* Row 1 — What We Offer: statement + checklist ledger */}
         <Stamped className="grid gap-10 py-14 lg:grid-cols-[1fr_1fr] lg:gap-16">
           <div>
-            <p className="font-stamp text-xs uppercase tracking-[0.15em] text-slate">
-              What we offer
-            </p>
-            <h2 className="mt-3 max-w-md font-display text-4xl font-semibold leading-tight text-ink sm:text-5xl">
+            <h2 className="balance max-w-md font-display text-4xl font-semibold leading-tight text-ink sm:text-5xl">
               One crew, every line on the sheet.
             </h2>
             <p className="mt-5 max-w-md font-body text-lg leading-relaxed text-slate">
@@ -37,7 +34,7 @@ export function WhyUs() {
                 key={item}
                 className="flex items-start gap-3 border-b border-ink/10 pb-4 font-body text-ink"
               >
-                <IconCheck className="mt-0.5 h-5 w-5 shrink-0 text-olive" />
+                <IconCheck className="mt-0.5 h-5 w-5 shrink-0 text-olive-ink" />
                 {item}
               </li>
             ))}
@@ -46,10 +43,7 @@ export function WhyUs() {
 
         {/* Row 2 — Why Us: pull statement + stamped value tags */}
         <Stamped className="py-14">
-          <p className="font-stamp text-xs uppercase tracking-[0.15em] text-slate">
-            Why us
-          </p>
-          <p className="mt-3 max-w-3xl font-display text-3xl font-medium leading-snug text-ink sm:text-4xl">
+          <p className="balance max-w-3xl font-display text-3xl font-medium leading-snug text-ink sm:text-4xl">
             “Will they actually show up and do it right?” is the
             only question that matters. Ours is the crew you stop asking it
             about.
@@ -58,7 +52,7 @@ export function WhyUs() {
             {VALUES.map((value, i) => (
               <span
                 key={value}
-                className={`stamp-rotate inline-block rounded-sm border-2 border-olive/70 px-4 py-2 font-stamp text-sm uppercase tracking-wide text-slate ${
+                className={`stamp-rotate inline-block rounded-sm border-2 border-olive-ink/70 px-4 py-2 font-stamp text-sm uppercase tracking-wide text-slate ${
                   i % 2 === 1 ? "-rotate-2" : "rotate-1"
                 }`}
               >
@@ -85,17 +79,13 @@ export function WhyUs() {
             </span>
           </div>
           <div>
-            <p className="font-stamp text-xs uppercase tracking-[0.15em] text-slate">
-              Service quality
-            </p>
-            <h3 className="mt-3 max-w-lg font-display text-3xl font-semibold leading-tight text-ink sm:text-4xl">
+            <h3 className="balance max-w-lg font-display text-3xl font-semibold leading-tight text-ink sm:text-4xl">
               Every visit is checked against the same sheet.
             </h3>
             <p className="mt-4 max-w-lg font-body text-lg leading-relaxed text-slate">
               A standard checklist, followed the same way whether it’s
-              week one or week two hundred — so “consistent” is
-              something you can actually verify, not just a word on our
-              homepage.
+              week one or week two hundred — so consistency is something you
+              can actually verify, not just a word on our homepage.
             </p>
           </div>
         </Stamped>

@@ -138,6 +138,14 @@ export function IconCheck(props: SVGProps<SVGSVGElement>) {
   );
 }
 
+export function IconArrow(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...base} {...props}>
+      <path d="M5 12h14M13 6l6 6-6 6" />
+    </svg>
+  );
+}
+
 export function IconClock(props: SVGProps<SVGSVGElement>) {
   return (
     <svg {...base} {...props}>

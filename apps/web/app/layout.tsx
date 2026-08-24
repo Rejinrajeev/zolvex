@@ -54,6 +54,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           with the finish review, the verdict, DESIGN.md, and every shipping
           raster carrying its provenance.
         */}
+        <a href="#main" className="skip-link">
+          Skip to content
+        </a>
         {children}
       </body>
     </html>

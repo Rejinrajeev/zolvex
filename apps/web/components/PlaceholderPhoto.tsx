@@ -8,13 +8,16 @@
 export function PlaceholderPhoto({
   label,
   tone = "light",
+  size = "md",
   className = "",
 }: {
   label: string;
   tone?: "light" | "dark";
+  size?: "md" | "lg";
   className?: string;
 }) {
   const isDark = tone === "dark";
+  const isLarge = size === "lg";
   return (
     <div
       className={`relative flex aspect-[4/3] items-center justify-center overflow-hidden border ${
@@ -42,12 +45,14 @@ export function PlaceholderPhoto({
         />
       ))}
       <div
-        className={`stamp-rotate rounded-sm border-2 px-4 py-2 text-center font-stamp text-[0.7rem] tracking-wide uppercase ${
-          isDark ? "border-gold/70 text-gold" : "border-olive/70 text-slate"
-        }`}
+        className={`stamp-rotate rounded-sm border-2 text-center font-stamp uppercase ${
+          isLarge ? "px-6 py-3.5 text-sm" : "px-4 py-2 text-[0.7rem] tracking-wide"
+        } ${isDark ? "border-gold/70 text-gold" : "border-olive-ink/80 text-slate"}`}
       >
         On file — pending
-        <div className="mt-0.5 text-[0.62rem] normal-case opacity-80">{label}</div>
+        <div className={`mt-1 normal-case opacity-80 ${isLarge ? "text-xs" : "text-[0.62rem]"}`}>
+          {label}
+        </div>
       </div>
     </div>
   );
