@@ -28,6 +28,13 @@ enum AuditAction {
   reject
 }
 
+enum EnquiryStatus {
+  new
+  pushed_to_crm
+  failed
+  needs_manual_push
+}
+
 model Admin {
   id                  String    @id @default(cuid())
   name                String
@@ -66,10 +73,31 @@ model AdminSession {
 model Service {
   id               String         @id @default(cuid())
   name             String
-  // Not @unique: uniqueness is enforced only among live rows via a partial
-  // unique index (see migration `partial_slug_index`), which Prisma's schema
-  // DSL cannot express directly. Soft-deleted rows may share a slug with a
-  // live row so a new record can reuse a slug freed by a soft-deleted one.
+  // ==========================================================================
+  // !! MIGRATION HAZARD -- READ BEFORE RUNNING `prisma migrate dev` !!
+  // --------------------------------------------------------------------------
+  // Slug uniqueness is NOT enforced by anything in this file. The `@@index([slug])`
+  // below is a plain, NON-UNIQUE lookup index. The real constraint is the partial
+  // unique index `Service_slug_live_key`:
+  //
+  //     CREATE UNIQUE INDEX "Service_slug_live_key"
+  //       ON "Service"("slug") WHERE "deletedAt" IS NULL;
+  //
+  // It is hand-written in migration `20260823175559_partial_slug_index` because
+  // Prisma's schema DSL cannot express partial indexes. Consequence: Prisma sees
+  // that index as DRIFT against this schema and `prisma migrate dev` MAY PROPOSE
+  // A MIGRATION THAT DROPS IT -- silently removing slug-uniqueness enforcement
+  // with no warning.
+  //
+  // DO NOT accept such a migration without manually re-adding the CREATE UNIQUE
+  // INDEX statement above to the generated migration SQL. The regression test
+  // "rejects two live Services sharing a slug (partial unique index)" in
+  // `src/lib/services/approvable-resource.test.ts` turns this silent tooling
+  // regression into a red test -- if it fails, the partial index is gone.
+  //
+  // Soft-deleted rows are deliberately allowed to share a slug with a live row,
+  // so a new record can reuse a slug freed by a soft-deleted one.
+  // ==========================================================================
   slug             String
   shortDescription String
   fullDescription  String
@@ -90,9 +118,12 @@ model Service {
   createdAt        DateTime       @default(now())
   updatedAt        DateTime       @updatedAt
 
+  // NOT the uniqueness constraint -- see the MIGRATION HAZARD note on `slug` above.
   @@index([slug])
   @@index([approvalStatus])
   @@index([deletedAt])
+  // Hot public-read path: approvalStatus = 'published' AND deletedAt IS NULL.
+  @@index([approvalStatus, deletedAt])
 }
 
 model BlogPost {
@@ -113,6 +144,8 @@ model BlogPost {
 
   @@index([approvalStatus])
   @@index([deletedAt])
+  // Hot public-read path: approvalStatus = 'published' AND deletedAt IS NULL.
+  @@index([approvalStatus, deletedAt])
 }
 
 model Testimonial {
@@ -133,6 +166,8 @@ model Testimonial {
 
   @@index([approvalStatus])
   @@index([deletedAt])
+  // Hot public-read path: approvalStatus = 'published' AND deletedAt IS NULL.
+  @@index([approvalStatus, deletedAt])
 }
 
 model Faq {
@@ -152,6 +187,8 @@ model Faq {
 
   @@index([approvalStatus])
   @@index([deletedAt])
+  // Hot public-read path: approvalStatus = 'published' AND deletedAt IS NULL.
+  @@index([approvalStatus, deletedAt])
 }
 
 model Place {
@@ -160,31 +197,33 @@ model Place {
   isActive  Boolean   @default(true)
   order     Int       @default(0)
   deletedAt DateTime?
+  createdAt DateTime  @default(now())
 }
 
 model PageContent {
   id        String   @id @default(cuid())
   pageKey   String   @unique
   data      Json
+  createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   updatedBy String?
 }
 
 model Enquiry {
-  id            String    @id @default(cuid())
+  id            String        @id @default(cuid())
   serviceId     String?
   serviceName   String
   name          String
   phone         String
   place         String
   preferredDate DateTime?
-  status        String    @default("new")
+  status        EnquiryStatus @default(new)
   crmResponse   Json?
   claimedAt     DateTime?
-  attemptCount  Int       @default(0)
+  attemptCount  Int           @default(0)
   ipAddress     String?
   userAgent     String?
-  createdAt     DateTime  @default(now())
+  createdAt     DateTime      @default(now())
 
   @@index([status])
 }
@@ -201,4 +240,6 @@ model AuditLog {
   timestamp DateTime    @default(now())
 
   @@index([entity, entityId])
+  @@index([adminId])
+  @@index([timestamp])
 }
