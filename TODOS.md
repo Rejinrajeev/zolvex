@@ -39,3 +39,17 @@
 **Effort:** S (a few functions in the Gate 2 auth service, not a schema change)
 **Priority:** P1 — must land before any real admin account is created, i.e. before Gate 2 goes live, not before Foundation/Gate 1
 **Depends on:** Gate 2's admin-auth implementation task (2FA setup/login flow)
+
+## Design
+
+### Fill in the full per-feature interaction-state table
+
+**What:** Specify loading/empty/error/success/partial states for every remaining UI feature — `/plan-design-review` only locked in the two highest-risk flows (enquiry form, admin approvals queue); everything else (services listing, blog strip, testimonials, admin content CRUD screens, sessions/trash/audit-log views) still needs the same treatment.
+
+**Why:** Without this, an implementer defaults to bare "Loading..."/"No items found" placeholders per screen as they're built, rather than considered, on-brand states — the exact gap the design review's Pass 2 flagged (initial score 1/10).
+
+**Context:** Natural point to do this is once DESIGN.md exists (post `/design-consultation`, already recommended in the design review) and Gate 1/Gate 2 implementation plans are being written — fill in states screen-by-screen as each plan takes shape, rather than as one disconnected exercise now.
+
+**Effort:** M (spread across both Gate plans, not one big task)
+**Priority:** P2
+**Depends on:** `/design-consultation` (for tone/voice of empty-state copy), Gate 1 and Gate 2 plans being written
