@@ -1,0 +1,122 @@
+@import "tailwindcss";
+
+:root {
+  --color-ink: #161b1f;
+  --color-ink-soft: #232a30;
+  --color-paper: #fefefd;
+  --color-paper-dim: #f3f1ea;
+  --color-olive: #ada477;
+  --color-slate: #616054;
+  --color-gold: #eed77b;
+
+  --ledger-rule-dark: rgba(238, 215, 123, 0.14);
+  --ledger-rule-light: rgba(22, 27, 31, 0.1);
+
+  --ease-out-exp: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@theme inline {
+  --color-ink: var(--color-ink);
+  --color-ink-soft: var(--color-ink-soft);
+  --color-paper: var(--color-paper);
+  --color-paper-dim: var(--color-paper-dim);
+  --color-olive: var(--color-olive);
+  --color-slate: var(--color-slate);
+  --color-gold: var(--color-gold);
+
+  --font-display: var(--font-display);
+  --font-body: var(--font-body);
+  --font-stamp: var(--font-stamp);
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+body {
+  font-feature-settings: "tnum" 1;
+}
+
+::selection {
+  background: var(--color-gold);
+  color: var(--color-ink);
+}
+
+::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
+}
+::-webkit-scrollbar-track {
+  background: var(--color-paper-dim);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-olive);
+  border: 3px solid var(--color-paper-dim);
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-gold);
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-gold);
+  outline-offset: 3px;
+}
+
+a {
+  text-underline-offset: 3px;
+}
+a:visited {
+  color: var(--color-slate);
+}
+
+/* Ledger rule grid — the world's signature ground texture. */
+.ledger-ground-dark {
+  background-color: var(--color-ink);
+  background-image:
+    linear-gradient(var(--ledger-rule-dark) 1px, transparent 1px),
+    linear-gradient(90deg, var(--ledger-rule-dark) 1px, transparent 1px);
+  background-size: 100% 2.75rem, 6rem 100%;
+}
+
+.ledger-ground-light {
+  background-color: var(--color-paper);
+  background-image: linear-gradient(var(--ledger-rule-light) 1px, transparent 1px);
+  background-size: 100% 2.75rem;
+}
+
+/* Punch-perforation edge, used at section seams. */
+.punch-edge {
+  position: relative;
+}
+.punch-edge::before {
+  content: "";
+  position: absolute;
+  top: -1px;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background-image: radial-gradient(circle, var(--color-paper) 2.5px, transparent 2.6px);
+  background-size: 1.75rem 1px;
+  background-repeat: repeat-x;
+  background-position: center;
+}
+
+.stamp-rotate {
+  transform: rotate(-4deg);
+}
+
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
