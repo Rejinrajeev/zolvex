@@ -1,0 +1,64 @@
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+jobs:
+  test:
+    name: Typecheck, migrate and test
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: zolvex_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      # CI uses one throwaway database for both roles. Locally these are two
+      # separate databases (zolvex / zolvex_test) so the suite never touches dev
+      # data; in CI the whole container is discarded after the run, so a single
+      # database is simpler and equivalent.
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/zolvex_test?schema=public
+      DATABASE_URL_TEST: postgresql://postgres:postgres@localhost:5432/zolvex_test?schema=public
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Generate Prisma client
+        run: npm run prisma:generate --workspace=apps/api
+
+      - name: Apply migrations
+        run: npm run db:migrate:test --workspace=apps/api
+
+      - name: Typecheck
+        run: npm run typecheck --workspace=apps/api
+
+      - name: Test
+        run: npm run test --workspace=apps/api
+
+      - name: Audit dependencies
+        # Non-blocking: Foundation has no dependency policy yet, so this reports
+        # findings without failing the build. Tighten once a policy is agreed.
+        run: npm audit --production || true

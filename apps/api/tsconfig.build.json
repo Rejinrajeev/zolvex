@@ -1,0 +1,11 @@
+{
+  // Build config: same compiler options as tsconfig.json, minus the test files.
+  // `npm run build` uses this so *.test.ts never lands in dist/.
+  //
+  // The tests are deliberately still covered by the base tsconfig.json (and so
+  // by `npm run typecheck`) — approvable-resource.test.ts contains a
+  // `@ts-expect-error` assertion that only has meaning if something type-checks
+  // it.
+  "extends": "./tsconfig.json",
+  "exclude": ["**/*.test.ts", "src/test-setup.ts", "dist", "node_modules"]
+}
