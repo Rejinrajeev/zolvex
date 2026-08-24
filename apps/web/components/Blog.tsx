@@ -38,19 +38,22 @@ export function Blog() {
             <Stamped key={post.title} delayMs={i * 90}>
               <article className="group flex h-full flex-col">
                 <PlaceholderPhoto label={post.title} tone="dark" />
-                <span className="mt-5 font-stamp text-xs uppercase tracking-[0.15em] text-gold/80">
-                  {post.tag}
-                </span>
-                <h3 className="mt-2 font-display text-xl font-medium leading-snug text-paper">
+                <h3 className="mt-5 font-display text-xl font-medium leading-snug text-paper">
                   {post.title}
                 </h3>
                 <p className="mt-3 flex-1 font-body text-[0.95rem] leading-relaxed text-paper/70">
                   {post.excerpt}
                 </p>
-                <span className="mt-4 inline-flex w-fit items-center gap-1.5 font-body text-sm text-gold underline decoration-gold/30 underline-offset-4 transition-colors group-hover:decoration-gold">
-                  Read the entry
-                  <IconArrow aria-hidden className="h-3.5 w-3.5" />
-                </span>
+                <div className="mt-4 flex items-center gap-2.5">
+                  <span className="font-stamp text-[0.72rem] uppercase tracking-[0.15em] text-gold/80">
+                    {post.tag}
+                  </span>
+                  <span aria-hidden className="h-3 w-px bg-gold/25" />
+                  <span className="inline-flex w-fit items-center gap-1.5 font-body text-sm text-gold underline decoration-gold/30 underline-offset-4 transition-colors group-hover:decoration-gold">
+                    Read the entry
+                    <IconArrow aria-hidden className="h-3.5 w-3.5" />
+                  </span>
+                </div>
               </article>
             </Stamped>
           ))}
