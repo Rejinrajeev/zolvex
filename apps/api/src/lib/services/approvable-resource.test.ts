@@ -1,12 +1,17 @@
 import { describe, it, expect, beforeAll, afterEach, afterAll } from "vitest";
 import { PrismaClient } from "@prisma/client";
-import { ApprovableResourceService, SlugConflictError } from "./approvable-resource.js";
+import {
+  ApprovableResourceService,
+  SlugConflictError,
+  publicVisibilityWhere,
+  type AuditDiff,
+} from "./approvable-resource.js";
 
 const prisma = new PrismaClient({
   datasources: { db: { url: process.env.DATABASE_URL_TEST } },
 });
 
-const services = new ApprovableResourceService(prisma, "Service", "service");
+const services = new ApprovableResourceService(prisma, "service");
 
 let editorId: string;
 let superadminId: string;
@@ -38,7 +43,7 @@ describe("ApprovableResourceService DelegateName", () => {
     // @ts-expect-error - "place" is intentionally excluded from DelegateName:
     // Place has no approvalStatus/submittedBy/approvedBy/approvedAt/
     // rejectionReason columns and is not part of the approval workflow.
-    const placeAttempt = new ApprovableResourceService(prisma, "Place", "place");
+    const placeAttempt = new ApprovableResourceService(prisma, "place");
     expect(placeAttempt).toBeInstanceOf(ApprovableResourceService);
   });
 });
@@ -117,7 +122,283 @@ describe("ApprovableResourceService mass-assignment protection", () => {
     const logs = await prisma.auditLog.findMany({
       where: { entityId: created.id, action: "create" },
     });
-    expect((logs[0].diff as { after: { approvedBy: string | null } }).after.approvedBy).toBeNull();
+    const diff = logs[0].diff as AuditDiff;
+    expect(diff.approvedBy).toEqual({ old: null, new: null });
+    expect(diff.submittedBy).toEqual({ old: null, new: editorId });
+    expect(diff.approvalStatus).toEqual({ old: null, new: "pending_approval" });
+  });
+});
+
+describe("audit diff shape", () => {
+  it("records a per-field {old, new} diff of exactly what changed on update()", async () => {
+    const created = await services.create(
+      { id: editorId, role: "editor" },
+      { name: "Tile Cleaning", slug: "tile-cleaning", shortDescription: "s", fullDescription: "f" }
+    );
+
+    await services.update({ id: editorId, role: "editor" }, created.id, {
+      name: "Tile & Grout Cleaning",
+    });
+
+    const [log] = await prisma.auditLog.findMany({
+      where: { entityId: created.id, action: "update" },
+    });
+    const diff = log.diff as AuditDiff;
+
+    expect(diff.name).toEqual({ old: "Tile Cleaning", new: "Tile & Grout Cleaning" });
+    // Unchanged fields must be absent entirely (not dumped as whole records).
+    expect(diff.slug).toBeUndefined();
+    expect(diff.shortDescription).toBeUndefined();
+    expect(diff.fullDescription).toBeUndefined();
+    // No legacy before/after wrapper keys.
+    expect(diff.before).toBeUndefined();
+    expect(diff.after).toBeUndefined();
+  });
+
+  it("records a per-field diff for approve() and reject() too", async () => {
+    const a = await services.create(
+      { id: editorId, role: "editor" },
+      { name: "Awning Cleaning", slug: "awning-cleaning", shortDescription: "s", fullDescription: "f" }
+    );
+    await services.approve({ id: superadminId, role: "superadmin" }, a.id);
+    const [publishLog] = await prisma.auditLog.findMany({
+      where: { entityId: a.id, action: "publish" },
+    });
+    const publishDiff = publishLog.diff as AuditDiff;
+    expect(publishDiff.approvalStatus).toEqual({ old: "pending_approval", new: "published" });
+    expect(publishDiff.approvedBy).toEqual({ old: null, new: superadminId });
+
+    const b = await services.create(
+      { id: editorId, role: "editor" },
+      { name: "Fence Cleaning", slug: "fence-cleaning", shortDescription: "s", fullDescription: "f" }
+    );
+    await services.reject({ id: superadminId, role: "superadmin" }, b.id, "Needs photos");
+    const [rejectLog] = await prisma.auditLog.findMany({
+      where: { entityId: b.id, action: "reject" },
+    });
+    const rejectDiff = rejectLog.diff as AuditDiff;
+    expect(rejectDiff.approvalStatus).toEqual({ old: "pending_approval", new: "rejected" });
+    expect(rejectDiff.rejectionReason).toEqual({ old: null, new: "Needs photos" });
+  });
+
+  it("records the actor's ipAddress on the audit row when supplied", async () => {
+    const record = await services.create(
+      { id: editorId, role: "editor", ipAddress: "203.0.113.7" },
+      { name: "Vent Cleaning", slug: "vent-cleaning", shortDescription: "s", fullDescription: "f" }
+    );
+    const [log] = await prisma.auditLog.findMany({ where: { entityId: record.id } });
+    expect(log.ipAddress).toBe("203.0.113.7");
+  });
+});
+
+// -------------------------------------------------------------------------
+// REGRESSION GUARD for the partial unique index `Service_slug_live_key`.
+//
+// schema.prisma can only express `@@index([slug])` (NON-unique). The real
+// uniqueness constraint lives in hand-written SQL in migration
+// `20260823175559_partial_slug_index`. A future `prisma migrate dev` may
+// propose dropping it as "drift"; accepting that would silently remove
+// slug-uniqueness enforcement. If this test goes red, the partial index is
+// gone from the database — re-add it before doing anything else.
+// -------------------------------------------------------------------------
+describe("Service partial unique slug index (migration-drift guard)", () => {
+  it("rejects two live Services sharing a slug (partial unique index)", async () => {
+    await prisma.service.create({
+      data: {
+        name: "Attic Cleaning",
+        slug: "attic-cleaning",
+        shortDescription: "s",
+        fullDescription: "f",
+      },
+    });
+
+    await expect(
+      prisma.service.create({
+        data: {
+          name: "Attic Cleaning Duplicate",
+          slug: "attic-cleaning",
+          shortDescription: "s2",
+          fullDescription: "f2",
+        },
+      })
+    ).rejects.toMatchObject({ code: "P2002" });
+  });
+
+  it("still allows a soft-deleted row to share a slug with a live row", async () => {
+    const first = await prisma.service.create({
+      data: {
+        name: "Shed Cleaning",
+        slug: "shed-cleaning",
+        shortDescription: "s",
+        fullDescription: "f",
+        deletedAt: new Date(),
+      },
+    });
+    const second = await prisma.service.create({
+      data: {
+        name: "Shed Cleaning v2",
+        slug: "shed-cleaning",
+        shortDescription: "s2",
+        fullDescription: "f2",
+      },
+    });
+    expect(first.slug).toBe(second.slug);
+  });
+});
+
+describe("ApprovableResourceService slug conflicts", () => {
+  it("create() throws SlugConflictError when the slug is taken by a live record", async () => {
+    await services.create(
+      { id: superadminId, role: "superadmin" },
+      { name: "Patio Cleaning", slug: "patio-cleaning", shortDescription: "s", fullDescription: "f" }
+    );
+
+    await expect(
+      services.create(
+        { id: superadminId, role: "superadmin" },
+        {
+          name: "Patio Cleaning Copy",
+          slug: "patio-cleaning",
+          shortDescription: "s2",
+          fullDescription: "f2",
+        }
+      )
+    ).rejects.toThrow(SlugConflictError);
+  });
+
+  it("update() throws SlugConflictError when moving onto a taken slug", async () => {
+    await services.create(
+      { id: superadminId, role: "superadmin" },
+      { name: "Grill Cleaning", slug: "grill-cleaning", shortDescription: "s", fullDescription: "f" }
+    );
+    const other = await services.create(
+      { id: superadminId, role: "superadmin" },
+      { name: "Deck Cleaning", slug: "deck-cleaning", shortDescription: "s", fullDescription: "f" }
+    );
+
+    await expect(
+      services.update({ id: superadminId, role: "superadmin" }, other.id, {
+        slug: "grill-cleaning",
+      })
+    ).rejects.toThrow(SlugConflictError);
+  });
+});
+
+describe("transactional audit-log guarantee", () => {
+  it("rolls back the content write when the audit-log write fails", async () => {
+    // AuditLog.adminId is a FK to Admin. A non-existent actor id makes the
+    // audit insert fail *after* the content row was created inside the same
+    // transaction — the content row must not survive.
+    const ghostActorId = "ghost-admin-does-not-exist";
+
+    await expect(
+      services.create(
+        { id: ghostActorId, role: "superadmin" },
+        {
+          name: "Phantom Cleaning",
+          slug: "phantom-cleaning",
+          shortDescription: "s",
+          fullDescription: "f",
+        }
+      )
+    ).rejects.toThrow();
+
+    const orphans = await prisma.service.findMany({ where: { slug: "phantom-cleaning" } });
+    expect(orphans).toHaveLength(0);
+
+    const logs = await prisma.auditLog.findMany({ where: { adminId: ghostActorId } });
+    expect(logs).toHaveLength(0);
+  });
+
+  it("rolls back an update() when the audit-log write fails", async () => {
+    const record = await services.create(
+      { id: superadminId, role: "superadmin" },
+      { name: "Stone Cleaning", slug: "stone-cleaning", shortDescription: "s", fullDescription: "f" }
+    );
+
+    await expect(
+      services.update({ id: "ghost-admin-does-not-exist", role: "superadmin" }, record.id, {
+        name: "Stone Cleaning HACKED",
+      })
+    ).rejects.toThrow();
+
+    const after = await prisma.service.findUniqueOrThrow({ where: { id: record.id } });
+    expect(after.name).toBe("Stone Cleaning");
+  });
+});
+
+describe("stale approval metadata", () => {
+  it("update() clears rejectionReason/approvedBy/approvedAt when re-entering the queue", async () => {
+    const record = await services.create(
+      { id: editorId, role: "editor" },
+      { name: "Duct Cleaning", slug: "duct-cleaning", shortDescription: "s", fullDescription: "f" }
+    );
+
+    const rejected = await services.reject(
+      { id: superadminId, role: "superadmin" },
+      record.id,
+      "Photo quality too low"
+    );
+    expect(rejected.rejectionReason).toBe("Photo quality too low");
+
+    const updated = await services.update({ id: editorId, role: "editor" }, record.id, {
+      name: "Duct Cleaning (revised)",
+    });
+
+    expect(updated.approvalStatus).toBe("pending_approval");
+    expect(updated.rejectionReason).toBeNull();
+    expect(updated.approvedBy).toBeNull();
+    expect(updated.approvedAt).toBeNull();
+  });
+
+  it("clears a prior approval's approvedBy/approvedAt when an editor edits again", async () => {
+    const record = await services.create(
+      { id: editorId, role: "editor" },
+      { name: "Yard Cleaning", slug: "yard-cleaning", shortDescription: "s", fullDescription: "f" }
+    );
+    const approved = await services.approve({ id: superadminId, role: "superadmin" }, record.id);
+    expect(approved.approvedBy).toBe(superadminId);
+    expect(approved.approvedAt).not.toBeNull();
+
+    const updated = await services.update({ id: editorId, role: "editor" }, record.id, {
+      name: "Yard Cleaning (revised)",
+    });
+    expect(updated.approvalStatus).toBe("pending_approval");
+    expect(updated.approvedBy).toBeNull();
+    expect(updated.approvedAt).toBeNull();
+  });
+});
+
+describe("soft-deleted record guards", () => {
+  it("refuses update() on a soft-deleted record", async () => {
+    const record = await services.create(
+      { id: superadminId, role: "superadmin" },
+      { name: "Trash Cleaning", slug: "trash-cleaning", shortDescription: "s", fullDescription: "f" }
+    );
+    await services.softDelete({ id: superadminId, role: "superadmin" }, record.id);
+
+    await expect(
+      services.update({ id: editorId, role: "editor" }, record.id, { name: "Zombie edit" })
+    ).rejects.toThrow(/soft-deleted/);
+
+    const untouched = await prisma.service.findUniqueOrThrow({ where: { id: record.id } });
+    expect(untouched.name).toBe("Trash Cleaning");
+  });
+
+  it("refuses approve() and reject() on a soft-deleted record", async () => {
+    const record = await services.create(
+      { id: editorId, role: "editor" },
+      { name: "Ghost Cleaning", slug: "ghost-cleaning", shortDescription: "s", fullDescription: "f" }
+    );
+    await services.softDelete({ id: superadminId, role: "superadmin" }, record.id);
+
+    await expect(
+      services.approve({ id: superadminId, role: "superadmin" }, record.id)
+    ).rejects.toThrow(/soft-deleted/);
+
+    await expect(
+      services.reject({ id: superadminId, role: "superadmin" }, record.id, "nope")
+    ).rejects.toThrow(/soft-deleted/);
   });
 });
 
@@ -237,5 +518,41 @@ describe("ApprovableResourceService.approve / reject", () => {
     await expect(
       services.reject({ id: superadminId, role: "superadmin" }, record.id, "reason")
     ).rejects.toThrow(/not pending approval/);
+  });
+});
+
+describe("publicVisibilityWhere", () => {
+  it("is directly usable as a Prisma where fragment and hides trashed/pending/inactive rows", async () => {
+    const live = await services.create(
+      { id: superadminId, role: "superadmin" },
+      { name: "Visible Cleaning", slug: "visible-cleaning", shortDescription: "s", fullDescription: "f" }
+    );
+    const pending = await services.create(
+      { id: editorId, role: "editor" },
+      { name: "Pending Cleaning", slug: "pending-cleaning", shortDescription: "s", fullDescription: "f" }
+    );
+    const trashed = await services.create(
+      { id: superadminId, role: "superadmin" },
+      { name: "Trashed Cleaning", slug: "trashed-cleaning", shortDescription: "s", fullDescription: "f" }
+    );
+    await services.softDelete({ id: superadminId, role: "superadmin" }, trashed.id);
+    const inactive = await services.create(
+      { id: superadminId, role: "superadmin" },
+      {
+        name: "Inactive Cleaning",
+        slug: "inactive-cleaning",
+        shortDescription: "s",
+        fullDescription: "f",
+        isActive: false,
+      }
+    );
+
+    const visible = await prisma.service.findMany({ where: { ...publicVisibilityWhere } });
+    const ids = visible.map((s) => s.id);
+
+    expect(ids).toContain(live.id);
+    expect(ids).not.toContain(pending.id);
+    expect(ids).not.toContain(trashed.id);
+    expect(ids).not.toContain(inactive.id);
   });
 });
