@@ -42,10 +42,7 @@ export function Services() {
                 delayMs={i * 70}
                 className={`w-64 shrink-0 snap-start sm:w-72 ${service.rotate}`}
               >
-                <article
-                  tabIndex={0}
-                  className="group relative border border-gold/15 bg-ink-soft p-4 pt-6 transition-transform duration-300 hover:-translate-y-1 hover:rotate-0 focus-visible:rotate-0"
-                >
+                <article className="group relative border border-gold/15 bg-ink-soft p-4 pt-6 transition-transform duration-300 hover:-translate-y-1 hover:rotate-0">
                   {/* perforated tear edge at the top of the ticket */}
                   <span
                     aria-hidden

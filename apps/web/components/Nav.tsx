@@ -21,7 +21,7 @@ export function Nav() {
 
   return (
     <header
-      className={`fixed inset-x-0 top-0 z-50 transition-colors duration-500 ${
+      className={`site-header fixed inset-x-0 top-0 z-50 transition-colors duration-500 ${
         scrolled ? "bg-ink/95 backdrop-blur-sm border-b border-gold/15" : "bg-transparent"
       }`}
       style={{ transitionTimingFunction: "var(--ease-out-exp)" }}

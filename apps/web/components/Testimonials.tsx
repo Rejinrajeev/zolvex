@@ -74,10 +74,7 @@ export function Testimonials() {
               delayMs={i * 80}
               className="w-80 shrink-0 snap-start sm:w-96"
             >
-              <figure
-                tabIndex={0}
-                className="flex h-full flex-col border border-ink/12 bg-paper p-6"
-              >
+              <figure className="flex h-full flex-col border border-ink/12 bg-paper p-6">
                 <Stars rating={review.rating} />
                 <blockquote className="mt-4 flex-1 font-body text-lg italic leading-relaxed text-ink">
                   “{review.quote}”

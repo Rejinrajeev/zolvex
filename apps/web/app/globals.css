@@ -109,7 +109,8 @@ textarea {
     outline-offset: 3px;
   }
   .ledger-ground-dark :focus-visible,
-  .bg-ink :focus-visible {
+  .bg-ink :focus-visible,
+  .site-header :focus-visible {
     outline-color: var(--color-gold);
   }
 }
@@ -170,6 +171,25 @@ textarea {
 
 .stamp-rotate {
   transform: rotate(-4deg);
+}
+
+/* Section-entrance motion for <Stamped>: plays on paint, not on scroll —
+   see the comment in Stamped.tsx for why. animation-fill-mode: both keeps
+   the pre-animation frame until the delay elapses, then holds the final
+   frame forever after. Reduced-motion users get the instant final frame
+   via the global animation-duration override above. */
+@keyframes stamp-reveal {
+  from {
+    opacity: 0;
+    transform: scale(1.06) translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+.stamp-reveal {
+  animation: stamp-reveal 0.6s var(--ease-stamp) both;
 }
 
 .tabular {

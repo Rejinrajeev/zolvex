@@ -177,7 +177,9 @@ export function EnquiryModal({ open, onClose }: { open: boolean; onClose: () => 
                 defaultValue=""
                 aria-invalid={Boolean(errors.place)}
                 aria-describedby={errors.place ? "place-error" : undefined}
-                className="mt-1.5 h-11 w-full appearance-none border border-ink/20 bg-paper bg-[url('data:image/svg+xml;utf8,%3Csvg%20xmlns=%22http://www.w3.org/2000/svg%22%20viewBox=%220%200%2024%2024%22%20fill=%22none%22%20stroke=%22%23616054%22%20stroke-width=%221.5%22%3E%3Cpath%20d=%22M6%209l6%206%206-6%22/%3E%3C/svg%3E')] bg-[length:1.1rem] bg-[right_0.9rem_center] bg-no-repeat px-3.5 font-body text-ink focus:border-olive-ink"
+                className={`mt-1.5 h-11 w-full appearance-none border bg-paper bg-[url('data:image/svg+xml;utf8,%3Csvg%20xmlns=%22http://www.w3.org/2000/svg%22%20viewBox=%220%200%2024%2024%22%20fill=%22none%22%20stroke=%22%23616054%22%20stroke-width=%221.5%22%3E%3Cpath%20d=%22M6%209l6%206%206-6%22/%3E%3C/svg%3E')] bg-[length:1.1rem] bg-[right_0.9rem_center] bg-no-repeat px-3.5 font-body text-ink focus:border-olive-ink ${
+                  errors.place ? "border-2 border-ink" : "border-ink/20"
+                }`}
               >
                 <option value="" disabled>
                   Select a location
@@ -189,7 +191,8 @@ export function EnquiryModal({ open, onClose }: { open: boolean; onClose: () => 
                 ))}
               </select>
               {errors.place && (
-                <p id="place-error" role="alert" className="mt-1.5 font-body text-sm text-ink">
+                <p id="place-error" role="alert" className="mt-1.5 flex items-center gap-1.5 font-body text-sm font-medium text-ink">
+                  <span aria-hidden className="stamp-rotate inline-block text-xs">◆</span>
                   {errors.place}
                 </p>
               )}
@@ -271,10 +274,13 @@ function Field({
         autoComplete={autoComplete}
         aria-invalid={Boolean(error)}
         aria-describedby={error ? errorId : undefined}
-        className="mt-1.5 h-11 w-full border border-ink/20 bg-paper px-3.5 font-body text-ink placeholder:text-slate focus:border-olive-ink"
+        className={`mt-1.5 h-11 w-full border bg-paper px-3.5 font-body text-ink placeholder:text-slate focus:border-olive-ink ${
+          error ? "border-2 border-ink" : "border-ink/20"
+        }`}
       />
       {error && (
-        <p id={errorId} role="alert" className="mt-1.5 font-body text-sm text-ink">
+        <p id={errorId} role="alert" className="mt-1.5 flex items-center gap-1.5 font-body text-sm font-medium text-ink">
+          <span aria-hidden className="stamp-rotate inline-block text-xs">◆</span>
           {error}
         </p>
       )}
