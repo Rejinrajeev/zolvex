@@ -18,10 +18,12 @@ export function createApp(): Express {
       await prisma.$queryRaw`SELECT 1`;
       res.status(200).json({ status: "ready" });
     } catch (error) {
-      res.status(503).json({
-        status: "unavailable",
-        error: error instanceof Error ? error.message : String(error),
-      });
+      // /ready is unauthenticated by design, so the response body must stay
+      // generic: a raw Prisma error message leaks the DB host/port and
+      // sometimes connection-string fragments to anyone who can reach it.
+      // The real error goes to the server log instead.
+      console.error("readiness check failed:", error);
+      res.status(503).json({ status: "unavailable" });
     }
   });
 
