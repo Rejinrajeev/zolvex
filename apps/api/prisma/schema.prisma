@@ -1,0 +1,245 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum ApprovalStatus {
+  draft
+  pending_approval
+  published
+  rejected
+}
+
+enum AdminRole {
+  superadmin
+  editor
+}
+
+enum AuditAction {
+  create
+  update
+  delete
+  restore
+  publish
+  reject
+}
+
+enum EnquiryStatus {
+  new
+  pushed_to_crm
+  failed
+  needs_manual_push
+}
+
+model Admin {
+  id                  String    @id @default(cuid())
+  name                String
+  email               String    @unique
+  passwordHash        String
+  role                AdminRole
+  isActive            Boolean   @default(true)
+  lastLogin           DateTime?
+  failedLoginAttempts Int       @default(0)
+  lockedUntil         DateTime?
+  twoFAEnabled        Boolean   @default(false)
+  twoFASecret         String?
+  twoFARecoveryCodes  String[]  @default([])
+  deletedAt           DateTime?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  sessions  AdminSession[]
+  auditLogs AuditLog[]
+}
+
+model AdminSession {
+  id           String    @id @default(cuid())
+  adminId      String
+  admin        Admin     @relation(fields: [adminId], references: [id])
+  deviceInfo   String?
+  ipAddress    String?
+  userAgent    String?
+  createdAt    DateTime  @default(now())
+  lastActiveAt DateTime  @default(now())
+  revokedAt    DateTime?
+
+  @@index([adminId])
+}
+
+model Service {
+  id               String         @id @default(cuid())
+  name             String
+  // ==========================================================================
+  // !! MIGRATION HAZARD -- READ BEFORE RUNNING `prisma migrate dev` !!
+  // --------------------------------------------------------------------------
+  // Slug uniqueness is NOT enforced by anything in this file. The `@@index([slug])`
+  // below is a plain, NON-UNIQUE lookup index. The real constraint is the partial
+  // unique index `Service_slug_live_key`:
+  //
+  //     CREATE UNIQUE INDEX "Service_slug_live_key"
+  //       ON "Service"("slug") WHERE "deletedAt" IS NULL;
+  //
+  // It is hand-written in migration `20260823175559_partial_slug_index` because
+  // Prisma's schema DSL cannot express partial indexes. Consequence: Prisma sees
+  // that index as DRIFT against this schema and `prisma migrate dev` MAY PROPOSE
+  // A MIGRATION THAT DROPS IT -- silently removing slug-uniqueness enforcement
+  // with no warning.
+  //
+  // DO NOT accept such a migration without manually re-adding the CREATE UNIQUE
+  // INDEX statement above to the generated migration SQL. The regression test
+  // "rejects two live Services sharing a slug (partial unique index)" in
+  // `src/lib/services/approvable-resource.test.ts` turns this silent tooling
+  // regression into a red test -- if it fails, the partial index is gone.
+  //
+  // Soft-deleted rows are deliberately allowed to share a slug with a live row,
+  // so a new record can reuse a slug freed by a soft-deleted one.
+  // ==========================================================================
+  slug             String
+  shortDescription String
+  fullDescription  String
+  image            String?
+  icon             String?
+  isHighlighted    Boolean        @default(false)
+  order            Int            @default(0)
+  isActive         Boolean        @default(true)
+  metaTitle        String?
+  metaDescription  String?
+  ogImage          String?
+  approvalStatus   ApprovalStatus @default(draft)
+  submittedBy      String?
+  approvedBy       String?
+  approvedAt       DateTime?
+  rejectionReason  String?
+  deletedAt        DateTime?
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+
+  // NOT the uniqueness constraint -- see the MIGRATION HAZARD note on `slug` above.
+  @@index([slug])
+  @@index([approvalStatus])
+  @@index([deletedAt])
+  // Hot public-read path: approvalStatus = 'published' AND deletedAt IS NULL.
+  @@index([approvalStatus, deletedAt])
+}
+
+model BlogPost {
+  id              String         @id @default(cuid())
+  title           String
+  image           String
+  instagramUrl    String
+  order           Int            @default(0)
+  isActive        Boolean        @default(true)
+  approvalStatus  ApprovalStatus @default(draft)
+  submittedBy     String?
+  approvedBy      String?
+  approvedAt      DateTime?
+  rejectionReason String?
+  deletedAt       DateTime?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  @@index([approvalStatus])
+  @@index([deletedAt])
+  // Hot public-read path: approvalStatus = 'published' AND deletedAt IS NULL.
+  @@index([approvalStatus, deletedAt])
+}
+
+model Testimonial {
+  id              String         @id @default(cuid())
+  name            String
+  rating          Int
+  message         String
+  isFeatured      Boolean        @default(false)
+  isActive        Boolean        @default(true)
+  approvalStatus  ApprovalStatus @default(draft)
+  submittedBy     String?
+  approvedBy      String?
+  approvedAt      DateTime?
+  rejectionReason String?
+  deletedAt       DateTime?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  @@index([approvalStatus])
+  @@index([deletedAt])
+  // Hot public-read path: approvalStatus = 'published' AND deletedAt IS NULL.
+  @@index([approvalStatus, deletedAt])
+}
+
+model Faq {
+  id              String         @id @default(cuid())
+  question        String
+  answer          String
+  order           Int            @default(0)
+  isActive        Boolean        @default(true)
+  approvalStatus  ApprovalStatus @default(draft)
+  submittedBy     String?
+  approvedBy      String?
+  approvedAt      DateTime?
+  rejectionReason String?
+  deletedAt       DateTime?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  @@index([approvalStatus])
+  @@index([deletedAt])
+  // Hot public-read path: approvalStatus = 'published' AND deletedAt IS NULL.
+  @@index([approvalStatus, deletedAt])
+}
+
+model Place {
+  id        String    @id @default(cuid())
+  name      String
+  isActive  Boolean   @default(true)
+  order     Int       @default(0)
+  deletedAt DateTime?
+  createdAt DateTime  @default(now())
+}
+
+model PageContent {
+  id        String   @id @default(cuid())
+  pageKey   String   @unique
+  data      Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  updatedBy String?
+}
+
+model Enquiry {
+  id            String        @id @default(cuid())
+  serviceId     String?
+  serviceName   String
+  name          String
+  phone         String
+  place         String
+  preferredDate DateTime?
+  status        EnquiryStatus @default(new)
+  crmResponse   Json?
+  claimedAt     DateTime?
+  attemptCount  Int           @default(0)
+  ipAddress     String?
+  userAgent     String?
+  createdAt     DateTime      @default(now())
+
+  @@index([status])
+}
+
+model AuditLog {
+  id        String      @id @default(cuid())
+  adminId   String
+  admin     Admin       @relation(fields: [adminId], references: [id])
+  action    AuditAction
+  entity    String
+  entityId  String
+  diff      Json
+  ipAddress String?
+  timestamp DateTime    @default(now())
+
+  @@index([entity, entityId])
+  @@index([adminId])
+  @@index([timestamp])
+}

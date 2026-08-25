@@ -1,0 +1,9 @@
+{
+  "name": "zolvex",
+  "private": true,
+  "workspaces": ["apps/*"],
+  "scripts": {
+    "dev:api": "npm run dev --workspace=apps/api",
+    "test:api": "npm run test --workspace=apps/api"
+  }
+}
