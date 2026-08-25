@@ -72,7 +72,27 @@ model InstagramPost {
 }
 ```
 
-No other schema changes are needed — `Admin`, `AdminSession`, `AuditLog`, `PageContent`, and the image-URL fields on `Service`/`BlogPost` already exist from Foundation.
+**Correction during plan-writing**: `AdminSession` as shipped by Foundation has no column to store a refresh-token hash or an expiry (`id, adminId, deviceInfo, ipAddress, userAgent, createdAt, lastActiveAt, revokedAt` only) — the Auth & 2FA section below assumes both exist. Two columns added to `AdminSession` in the same migration as `InstagramPost`:
+
+```prisma
+model AdminSession {
+  id               String    @id @default(cuid())
+  adminId          String
+  admin            Admin     @relation(fields: [adminId], references: [id])
+  refreshTokenHash String    @unique
+  expiresAt        DateTime
+  deviceInfo       String?
+  ipAddress        String?
+  userAgent        String?
+  createdAt        DateTime  @default(now())
+  lastActiveAt     DateTime  @default(now())
+  revokedAt        DateTime?
+
+  @@index([adminId])
+}
+```
+
+No other schema changes are needed — `Admin`, `AuditLog`, `PageContent`, and the image-URL fields on `Service`/`BlogPost` already exist from Foundation.
 
 ## Auth & 2FA
 
@@ -139,3 +159,4 @@ This directly closes the tracked `TODOS.md` P1 item: `twoFASecret`/`twoFARecover
 - Work pushed to GitHub as branches + PRs per chunk, not batched into one local branch.
 - **Correction during plan-writing**: the spec originally listed Place as a sixth generic approvable type. Reading Foundation's actual `schema.prisma` and `approvable-resource.ts` (not just the parent design doc's intent) showed Place has no workflow columns and is explicitly excluded from `ApprovableResourceService`. Fixed to five generic types + Place as bespoke simple CRUD, with a shared `writeAuditRow` extraction so Place (and PageContent) still get real audit coverage — ground truth over intention.
 - **Second correction during plan-writing**: the original spec never said how an admin account gets created at all — a real bootstrap gap, not a stylistic omission. Added the Users management screen and the one-time seed script.
+- **Third correction during plan-writing**: `AdminSession` as shipped has no refresh-token-hash or expiry column; added both in the Data model changes section.
