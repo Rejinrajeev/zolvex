@@ -40,7 +40,10 @@
  * `req.body` into this service. Tracked in TODOS.md ("Denylist field-strip
  * depends on an HTTP-layer allowlist").
  */
-import type { AuditAction, Prisma, PrismaClient } from "@prisma/client";
+import type { Prisma, PrismaClient } from "@prisma/client";
+import { writeAuditRow, buildAuditDiff, type AuditDiff } from "./audit.js";
+
+export { buildAuditDiff, type AuditDiff } from "./audit.js";
 
 export class SlugConflictError extends Error {}
 
@@ -54,12 +57,6 @@ export interface Actor {
    */
   ipAddress?: string;
 }
-
-/**
- * Canonical audit-log `diff` shape: one entry per field that actually changed.
- * Matches the spec's `diff (jsonb: {field: {old, new}})`.
- */
-export type AuditDiff = Record<string, { old: unknown; new: unknown }>;
 
 /**
  * The single source of truth for "visible to the public".
@@ -118,36 +115,6 @@ function stripWorkflowFields(data: Record<string, unknown>): Record<string, unkn
   return clean;
 }
 
-function sameValue(a: unknown, b: unknown): boolean {
-  if (a === b) return true;
-  if (a instanceof Date && b instanceof Date) return a.getTime() === b.getTime();
-  if (a === null || b === null || a === undefined || b === undefined) return false;
-  if (typeof a === "object" && typeof b === "object") {
-    return JSON.stringify(a) === JSON.stringify(b);
-  }
-  return false;
-}
-
-/**
- * Build a per-field `{field: {old, new}}` diff of exactly what changed.
- * `before` is null for creates, in which case every field of the new record is
- * reported with `old: null`.
- */
-export function buildAuditDiff(
-  before: Record<string, unknown> | null,
-  after: Record<string, unknown>
-): AuditDiff {
-  const diff: AuditDiff = {};
-  const keys = new Set([...Object.keys(before ?? {}), ...Object.keys(after)]);
-  for (const key of keys) {
-    const old = before ? (before[key] ?? null) : null;
-    const next = after[key] ?? null;
-    if (before && sameValue(old, next)) continue;
-    diff[key] = { old, new: next };
-  }
-  return diff;
-}
-
 /**
  * Translate a Prisma P2002 (unique constraint) failure on `slug` into the
  * domain-level SlugConflictError, so callers get one consistent error type from
@@ -184,40 +151,6 @@ export class ApprovableResourceService {
     return actor.role === "superadmin" ? "published" : "pending_approval";
   }
 
-  /**
-   * The single place an audit row is written. All six mutating methods go
-   * through here so the row shape stays identical.
-   *
-   * Deliberately takes `tx` rather than `this.prisma`: the audit row MUST be
-   * written inside the caller's transaction so a failed audit write rolls the
-   * content write back.
-   *
-   * Not entity-specific beyond `this.entityName` — when Gate 1/2 add audited
-   * writes for the non-approvable entities (`place`, `pageContent`), this can be
-   * lifted into a shared free function taking `entity` as a parameter.
-   */
-  private async writeAudit(
-    tx: any,
-    params: {
-      actorId: string;
-      ipAddress?: string;
-      action: AuditAction;
-      entityId: string;
-      diff: AuditDiff;
-    }
-  ) {
-    await tx.auditLog.create({
-      data: {
-        adminId: params.actorId,
-        action: params.action,
-        entity: this.entityName,
-        entityId: params.entityId,
-        diff: params.diff,
-        ipAddress: params.ipAddress ?? null,
-      },
-    });
-  }
-
   private assertNotDeleted(before: { deletedAt?: Date | null }, id: string) {
     if (before.deletedAt) {
       throw new Error(
@@ -242,7 +175,8 @@ export class ApprovableResourceService {
         const record = await this.delegate(tx).create({
           data: { ...cleanData, approvalStatus, submittedBy: actor.id },
         });
-        await this.writeAudit(tx, {
+        await writeAuditRow(tx, {
+          entity: this.entityName,
           actorId: actor.id,
           ipAddress: actor.ipAddress,
           action: "create",
@@ -285,7 +219,8 @@ export class ApprovableResourceService {
           data: { ...cleanData, approvalStatus, submittedBy: actor.id, ...approvalReset },
         });
 
-        await this.writeAudit(tx, {
+        await writeAuditRow(tx, {
+          entity: this.entityName,
           actorId: actor.id,
           ipAddress: actor.ipAddress,
           action: "update",
@@ -319,7 +254,8 @@ export class ApprovableResourceService {
         data: { deletedAt: new Date() },
       });
 
-      await this.writeAudit(tx, {
+      await writeAuditRow(tx, {
+        entity: this.entityName,
         actorId: actor.id,
         ipAddress: actor.ipAddress,
         action: "delete",
@@ -356,7 +292,8 @@ export class ApprovableResourceService {
         data: { deletedAt: null },
       });
 
-      await this.writeAudit(tx, {
+      await writeAuditRow(tx, {
+        entity: this.entityName,
         actorId: actor.id,
         ipAddress: actor.ipAddress,
         action: "restore",
@@ -387,7 +324,8 @@ export class ApprovableResourceService {
         data: { approvalStatus: "published", approvedBy: actor.id, approvedAt: new Date() },
       });
 
-      await this.writeAudit(tx, {
+      await writeAuditRow(tx, {
+        entity: this.entityName,
         actorId: actor.id,
         ipAddress: actor.ipAddress,
         action: "publish",
@@ -421,7 +359,8 @@ export class ApprovableResourceService {
         data: { approvalStatus: "rejected", rejectionReason: reason },
       });
 
-      await this.writeAudit(tx, {
+      await writeAuditRow(tx, {
+        entity: this.entityName,
         actorId: actor.id,
         ipAddress: actor.ipAddress,
         action: "reject",
