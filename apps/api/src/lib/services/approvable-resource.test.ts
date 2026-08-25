@@ -12,6 +12,7 @@ const prisma = new PrismaClient({
 });
 
 const services = new ApprovableResourceService(prisma, "service");
+const instagramPosts = new ApprovableResourceService(prisma, "instagramPost");
 
 let editorId: string;
 let superadminId: string;
@@ -31,6 +32,7 @@ beforeAll(async () => {
 afterEach(async () => {
   await prisma.auditLog.deleteMany();
   await prisma.service.deleteMany();
+  await prisma.instagramPost.deleteMany();
 });
 
 afterAll(async () => {
@@ -554,5 +556,29 @@ describe("publicVisibilityWhere", () => {
     expect(ids).not.toContain(pending.id);
     expect(ids).not.toContain(trashed.id);
     expect(ids).not.toContain(inactive.id);
+  });
+});
+
+describe("ApprovableResourceService with the instagramPost delegate", () => {
+  it("saves an editor's create as pending_approval and writes one audit row", async () => {
+    const record = await instagramPosts.create(
+      { id: editorId, role: "editor" },
+      { image: "https://example.test/a.jpg", permalink: "https://instagram.com/p/abc" }
+    );
+
+    expect(record.approvalStatus).toBe("pending_approval");
+
+    const logs = await prisma.auditLog.findMany({ where: { entityId: record.id } });
+    expect(logs).toHaveLength(1);
+    expect(logs[0].entity).toBe("InstagramPost");
+  });
+
+  it("saves a superadmin's create as published directly", async () => {
+    const record = await instagramPosts.create(
+      { id: superadminId, role: "superadmin" },
+      { image: "https://example.test/b.jpg", permalink: "https://instagram.com/p/def" }
+    );
+
+    expect(record.approvalStatus).toBe("published");
   });
 });

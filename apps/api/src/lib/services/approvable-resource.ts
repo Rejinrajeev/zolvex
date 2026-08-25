@@ -77,7 +77,8 @@ export const publicVisibilityWhere = {
 } as const satisfies Prisma.ServiceWhereInput &
   Prisma.BlogPostWhereInput &
   Prisma.TestimonialWhereInput &
-  Prisma.FaqWhereInput;
+  Prisma.FaqWhereInput &
+  Prisma.InstagramPostWhereInput;
 
 // "place" is deliberately excluded: Place has no approvalStatus/submittedBy/
 // approvedBy/approvedAt/rejectionReason columns and is not part of the
@@ -92,6 +93,7 @@ const ENTITY_NAMES = {
   blogPost: "BlogPost",
   testimonial: "Testimonial",
   faq: "Faq",
+  instagramPost: "InstagramPost",
 } as const;
 
 type DelegateName = keyof typeof ENTITY_NAMES;
