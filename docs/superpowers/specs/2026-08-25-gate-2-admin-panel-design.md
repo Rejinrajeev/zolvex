@@ -12,7 +12,7 @@ Zolvex's 3+ non-technical admin/editor staff need to manage every piece of conte
 
 **In scope for this spec:**
 - Admin login with mandatory TOTP 2FA, account lockout, session management/revocation
-- CRUD + approval workflow UI for Service, BlogPost, Testimonial, Faq, Place, and a new InstagramPost content type
+- CRUD + approval workflow UI for Service, BlogPost, Testimonial, Faq, and a new InstagramPost content type; simple non-workflow CRUD for Place
 - Image upload via Cloudinary
 - PageContent editor (hero copy, footer, WhatsApp number, Google Review URL) — superadmin-only, no approval queue
 - Cross-content Approvals dashboard, Audit Log viewer, Trash/restore
@@ -87,22 +87,25 @@ This directly closes the tracked `TODOS.md` P1 item: `twoFASecret`/`twoFARecover
 
 ## Generic resource-admin UI
 
-- **One config object per content type** (Service, BlogPost, Testimonial, Faq, Place, InstagramPost), living in `apps/web`: display name, list columns, and field definitions for the create/edit form (type — text/textarea/number/boolean/select/image — label, required, help text). One generic set of routes reads this config: `/admin/content/[type]` (list), `/admin/content/[type]/new`, `/admin/content/[type]/[id]` (edit).
-- **List view**: table built from the config's columns, filterable by `approvalStatus`, free-text search. All six types have an `order` field and get drag-to-reorder, persisted via one `PATCH .../reorder` call.
+**Correction from Foundation's actual code** (not just the plan): only `Service`, `BlogPost`, `Testimonial`, and `Faq` carry the `approvalStatus`/`submittedBy`/`approvedBy`/`rejectionReason` columns `ApprovableResourceService` operates on (`ENTITY_NAMES` in `approvable-resource.ts` maps exactly these four delegate names). `Place` has no approval-workflow columns at all — it's `id, name, isActive, order, deletedAt, createdAt` only, explicitly called out in the service's own comments as "gets its own simple non-approval CRUD handling in a later Gate task." The new `InstagramPost` model (below) is written with the full workflow shape, bringing the generic set to **five**, not six.
+
+- **One config object per content type** (Service, BlogPost, Testimonial, Faq, InstagramPost), living in `apps/web`: display name, list columns, and field definitions for the create/edit form (type — text/textarea/number/boolean/select/image — label, required, help text). One generic set of routes reads this config: `/admin/content/[type]` (list), `/admin/content/[type]/new`, `/admin/content/[type]/[id]` (edit).
+- **List view**: table built from the config's columns, filterable by `approvalStatus`, free-text search. All five types have an `order` field and get drag-to-reorder, persisted via one `PATCH .../reorder` call.
 - **Create/edit form**: one input per configured field; an `image`-type field shows a drag-and-drop zone that uploads to `POST /admin/api/uploads` first (Cloudinary), storing the returned URL in form state before the record itself is saved.
 - **Role-aware actions**: an editor's submit creates the record as `pending_approval` (or Save Draft); a superadmin's submit publishes directly, bypassing the queue (no confirm step, per the parent design doc). Approve/Reject (reason required) available inline per-record and from the Approvals dashboard.
-- **Server side**: one generic route file (`/admin/api/content/:type/...`) where `:type` is checked against an explicit allowlist (`service | blog-post | testimonial | faq | place | instagram-post`), each mapping to its own **named Zod schema** (never auto-derived from the client config) and its own configured `ApprovableResourceService` instance.
+- **Server side**: one generic route file (`/admin/api/content/:type/...`) where `:type` is checked against an explicit allowlist (`service | blog-post | testimonial | faq | instagram-post`), each mapping to its own **named Zod schema** (never auto-derived from the client config) and its own configured `ApprovableResourceService` instance.
 - **Image upload endpoint**: `POST /admin/api/uploads` takes a file, pushes it to Cloudinary via their SDK, returns the resulting URL. Client-side size/type validation before attempting upload, re-validated server-side.
 
 ## Bespoke screens (don't fit the generic shape)
 
+- **Places** — simple CRUD (`GET/POST /admin/api/places`, `PATCH/DELETE /admin/api/places/:id`, `POST /admin/api/places/:id/restore`) through a small dedicated `lib/services/place.ts` (no approval workflow — any admin, editor or superadmin, can add/edit/remove a service area immediately; still soft-delete + restore since `deletedAt` exists on the model). Foundation's own code comment anticipates this: `writeAudit` gets extracted from `ApprovableResourceService` into a shared free function (`writeAuditRow(tx, {entity, ...})` in a new `lib/services/audit.ts`) so `place.ts` writes a real `AuditLog` row too, inside the same transaction — Place stays fully governed even though it skips the approval queue.
 - **PageContent editor** — one form per known `pageKey` (hero, footer, WhatsApp number, Google Review URL); superadmin-only, saves immediately, no approval queue.
-- **Approvals dashboard** — the parent design doc's `UNION ALL` query across all six approvable content types, sorted/paginated server-side, not six separate queries merged client-side.
+- **Approvals dashboard** — the parent design doc's `UNION ALL` query across the five approvable content types, sorted/paginated server-side, not five separate queries merged client-side.
 - **Enquiries** — read/status view over the `Enquiry` table (its own `EnquiryStatus` enum, not approval-workflow shaped). Read-only in this spec — the CRM push pipeline itself is Gate 1 scope.
-- **Trash** — soft-deleted rows across all six types with restore; the slug-conflict case (`Service` restoring onto a slug another live record has since taken) surfaces as an explicit, actionable error, never a generic failure.
-- **Audit Log** — read-only, filterable by entity/admin/date.
+- **Trash** — soft-deleted rows across the five approvable types plus Place, with restore; the slug-conflict case (`Service` restoring onto a slug another live record has since taken) surfaces as an explicit, actionable error, never a generic failure.
+- **Audit Log** — read-only, filterable by entity/admin/date. Covers all five approvable types plus Place (via the shared `writeAuditRow` extraction above) and `PageContent` (its own superadmin-only edits also write an audit row, same shared function) — everything mutable in the admin panel is traceable.
 - **Sessions** — see Auth & 2FA above.
-- **Admin nav** grouped by task per the parent design doc's Decision 2: Content (the six generic types + Places + Pages), Enquiries & Approvals (top billing), Governance (Audit Log/Sessions/Trash, superadmin-only), Users.
+- **Admin nav** grouped by task per the parent design doc's Decision 2: Content (the five generic types + Places + Pages), Enquiries & Approvals (top billing), Governance (Audit Log/Sessions/Trash, superadmin-only), Users.
 
 ## Error handling
 
@@ -131,3 +134,4 @@ This directly closes the tracked `TODOS.md` P1 item: `twoFASecret`/`twoFARecover
 - Instagram posts become a real admin-managed content type, not left hardcoded.
 - "MVC" scoped to the Express API (routes/controllers, Prisma+services as Model, thin JSON-shaping functions as View); the Next.js admin app keeps its normal App Router structure.
 - Work pushed to GitHub as branches + PRs per chunk, not batched into one local branch.
+- **Correction during plan-writing**: the spec originally listed Place as a sixth generic approvable type. Reading Foundation's actual `schema.prisma` and `approvable-resource.ts` (not just the parent design doc's intent) showed Place has no workflow columns and is explicitly excluded from `ApprovableResourceService`. Fixed to five generic types + Place as bespoke simple CRUD, with a shared `writeAuditRow` extraction so Place (and PageContent) still get real audit coverage — ground truth over intention.
