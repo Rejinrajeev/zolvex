@@ -16,6 +16,7 @@ Zolvex's 3+ non-technical admin/editor staff need to manage every piece of conte
 - Image upload via Cloudinary
 - PageContent editor (hero copy, footer, WhatsApp number, Google Review URL) — superadmin-only, no approval queue
 - Cross-content Approvals dashboard, Audit Log viewer, Trash/restore
+- Admin user management (create/deactivate/change role), superadmin-only, plus the one-time seed script that creates the first superadmin
 - Express API: routes/controllers/views (MVC) layer added on top of the existing Foundation service layer
 
 **Explicitly out of scope** (per the parent design doc's Gate split and NOT-in-scope list):
@@ -105,6 +106,7 @@ This directly closes the tracked `TODOS.md` P1 item: `twoFASecret`/`twoFARecover
 - **Trash** — soft-deleted rows across the five approvable types plus Place, with restore; the slug-conflict case (`Service` restoring onto a slug another live record has since taken) surfaces as an explicit, actionable error, never a generic failure.
 - **Audit Log** — read-only, filterable by entity/admin/date. Covers all five approvable types plus Place (via the shared `writeAuditRow` extraction above) and `PageContent` (its own superadmin-only edits also write an audit row, same shared function) — everything mutable in the admin panel is traceable.
 - **Sessions** — see Auth & 2FA above.
+- **Users (superadmin-only)** — a real gap the original spec draft missed: nothing in the design doc or Foundation describes how an admin account gets created in the first place. `POST /admin/api/users {name, email, role}` (superadmin-only) creates an `Admin` row with a system-generated temporary password (shown once in the response, same one-time-display pattern as 2FA recovery codes) and `twoFAEnabled: false` — the new admin's first login routes into the existing 2FA-setup flow from Section "Auth & 2FA," so there's exactly one bootstrap path, not two. `PATCH /admin/api/users/:id` toggles `isActive` (deactivate/reactivate) or changes `role`. **The very first superadmin account** (before any admin exists to create one) comes from a Prisma seed script (`apps/api/prisma/seed.ts`), reading its email/temp-password from env vars, run once during initial environment setup — this is the only account ever created outside the `POST /admin/api/users` path.
 - **Admin nav** grouped by task per the parent design doc's Decision 2: Content (the five generic types + Places + Pages), Enquiries & Approvals (top billing), Governance (Audit Log/Sessions/Trash, superadmin-only), Users.
 
 ## Error handling
@@ -125,6 +127,7 @@ This directly closes the tracked `TODOS.md` P1 item: `twoFASecret`/`twoFARecover
 
 - **Cloudinary account** — user confirmed they already have one; cloud name / API key / API secret go into `apps/api/.env` when implementation reaches that step (never pasted into chat).
 - **`ADMIN_2FA_ENCRYPTION_KEY`** — a new app-level secret to generate for encrypting TOTP secrets at rest.
+- **`SEED_SUPERADMIN_EMAIL` / `SEED_SUPERADMIN_NAME`** — the first superadmin account's identity for the one-time seed script; its temporary password is generated and printed once at seed time, not stored in an env var.
 - **Merging `foundation`** — this spec assumes the `foundation` branch has landed (its own step, not part of this spec's implementation plan).
 
 ## Decisions made during brainstorming (for the record)
@@ -135,3 +138,4 @@ This directly closes the tracked `TODOS.md` P1 item: `twoFASecret`/`twoFARecover
 - "MVC" scoped to the Express API (routes/controllers, Prisma+services as Model, thin JSON-shaping functions as View); the Next.js admin app keeps its normal App Router structure.
 - Work pushed to GitHub as branches + PRs per chunk, not batched into one local branch.
 - **Correction during plan-writing**: the spec originally listed Place as a sixth generic approvable type. Reading Foundation's actual `schema.prisma` and `approvable-resource.ts` (not just the parent design doc's intent) showed Place has no workflow columns and is explicitly excluded from `ApprovableResourceService`. Fixed to five generic types + Place as bespoke simple CRUD, with a shared `writeAuditRow` extraction so Place (and PageContent) still get real audit coverage — ground truth over intention.
+- **Second correction during plan-writing**: the original spec never said how an admin account gets created at all — a real bootstrap gap, not a stylistic omission. Added the Users management screen and the one-time seed script.
