@@ -27,13 +27,15 @@ export async function login(
 
   const valid = await verifyPassword(password, admin.passwordHash);
   if (!valid) {
-    const attempts = admin.failedLoginAttempts + 1;
-    const lockedUntil = attempts >= MAX_FAILED_ATTEMPTS ? new Date(Date.now() + LOCK_DURATION_MS) : null;
-    await prisma.admin.update({
+    const updated = await prisma.admin.update({
       where: { id: admin.id },
-      data: { failedLoginAttempts: attempts, lockedUntil },
+      data: { failedLoginAttempts: { increment: 1 } },
     });
-    if (lockedUntil) throw new AccountLockedError(lockedUntil);
+    if (updated.failedLoginAttempts >= MAX_FAILED_ATTEMPTS) {
+      const lockedUntil = new Date(Date.now() + LOCK_DURATION_MS);
+      await prisma.admin.update({ where: { id: admin.id }, data: { lockedUntil } });
+      throw new AccountLockedError(lockedUntil);
+    }
     throw new InvalidCredentialsError();
   }
 
@@ -105,9 +107,26 @@ export async function verifyTwoFALogin(
   const admin = await prisma.admin.findUnique({ where: { id: adminId } });
   if (!admin?.twoFASecret || !admin.twoFAEnabled) throw new InvalidCredentialsError();
 
+  if (admin.lockedUntil && admin.lockedUntil > new Date()) {
+    throw new AccountLockedError(admin.lockedUntil);
+  }
+
   const secret = decryptSecret(admin.twoFASecret);
   const result = await verify({ token: code, secret });
-  if (!result.valid) throw new InvalidCredentialsError();
+  if (!result.valid) {
+    const updated = await prisma.admin.update({
+      where: { id: admin.id },
+      data: { failedLoginAttempts: { increment: 1 } },
+    });
+    if (updated.failedLoginAttempts >= MAX_FAILED_ATTEMPTS) {
+      const lockedUntil = new Date(Date.now() + LOCK_DURATION_MS);
+      await prisma.admin.update({ where: { id: admin.id }, data: { lockedUntil } });
+      throw new AccountLockedError(lockedUntil);
+    }
+    throw new InvalidCredentialsError();
+  }
+
+  await prisma.admin.update({ where: { id: admin.id }, data: { failedLoginAttempts: 0 } });
 
   return createSession(admin.id, admin.role, meta);
 }
@@ -120,6 +139,10 @@ export async function loginWithRecoveryCode(
   const admin = await prisma.admin.findUnique({ where: { id: adminId } });
   if (!admin) throw new InvalidCredentialsError();
 
+  if (admin.lockedUntil && admin.lockedUntil > new Date()) {
+    throw new AccountLockedError(admin.lockedUntil);
+  }
+
   let matchedIndex = -1;
   for (let i = 0; i < admin.twoFARecoveryCodes.length; i++) {
     if (await verifyRecoveryCode(code, admin.twoFARecoveryCodes[i])) {
@@ -127,10 +150,24 @@ export async function loginWithRecoveryCode(
       break;
     }
   }
-  if (matchedIndex === -1) throw new InvalidCredentialsError();
+  if (matchedIndex === -1) {
+    const updated = await prisma.admin.update({
+      where: { id: admin.id },
+      data: { failedLoginAttempts: { increment: 1 } },
+    });
+    if (updated.failedLoginAttempts >= MAX_FAILED_ATTEMPTS) {
+      const lockedUntil = new Date(Date.now() + LOCK_DURATION_MS);
+      await prisma.admin.update({ where: { id: admin.id }, data: { lockedUntil } });
+      throw new AccountLockedError(lockedUntil);
+    }
+    throw new InvalidCredentialsError();
+  }
 
   const remaining = admin.twoFARecoveryCodes.filter((_, i) => i !== matchedIndex);
-  await prisma.admin.update({ where: { id: admin.id }, data: { twoFARecoveryCodes: remaining } });
+  await prisma.admin.update({
+    where: { id: admin.id },
+    data: { twoFARecoveryCodes: remaining, failedLoginAttempts: 0 },
+  });
 
   return createSession(admin.id, admin.role, meta);
 }

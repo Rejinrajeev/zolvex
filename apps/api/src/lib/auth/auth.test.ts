@@ -85,6 +85,31 @@ describe("login", () => {
       authService.login("login-test@zolvex.test", "correct-password")
     ).rejects.toBeInstanceOf(authService.InvalidCredentialsError);
   });
+
+  it("correctly accounts for all attempts under concurrent wrong-password requests (no lost updates)", async () => {
+    const N = 10;
+    const results = await Promise.allSettled(
+      Array.from({ length: N }, () => authService.login("login-test@zolvex.test", "wrong-password"))
+    );
+
+    // every attempt must be rejected, either as a plain wrong-password or (once the
+    // threshold is crossed mid-batch) as an account-locked error -- both count as
+    // a real failed attempt.
+    for (const r of results) {
+      expect(r.status).toBe("rejected");
+      if (r.status === "rejected") {
+        expect(
+          r.reason instanceof authService.InvalidCredentialsError ||
+            r.reason instanceof authService.AccountLockedError
+        ).toBe(true);
+      }
+    }
+
+    const admin = await prisma.admin.findUniqueOrThrow({ where: { id: adminId } });
+    // if the atomic increment ever lost an update under concurrency, this would be < N
+    expect(admin.failedLoginAttempts).toBe(N);
+    expect(admin.lockedUntil).not.toBeNull();
+  });
 });
 
 describe("2FA setup", () => {
@@ -162,6 +187,26 @@ describe("2FA login verification", () => {
       authService.InvalidCredentialsError
     );
   });
+
+  it("locks the account after 5 wrong codes, rejecting even the correct code on the 6th attempt", async () => {
+    const secret = await enableTwoFA();
+
+    for (let i = 0; i < 4; i++) {
+      await expect(authService.verifyTwoFALogin(adminId, "000000")).rejects.toBeInstanceOf(
+        authService.InvalidCredentialsError
+      );
+    }
+    // 5th wrong code locks
+    await expect(authService.verifyTwoFALogin(adminId, "000000")).rejects.toBeInstanceOf(
+      authService.AccountLockedError
+    );
+
+    // even the correct code is rejected while locked
+    const code = await generate({ secret });
+    await expect(authService.verifyTwoFALogin(adminId, code)).rejects.toBeInstanceOf(
+      authService.AccountLockedError
+    );
+  });
 });
 
 describe("recovery-code login", () => {
@@ -189,4 +234,31 @@ describe("recovery-code login", () => {
       authService.InvalidCredentialsError
     );
   });
+
+  it(
+    "locks the account after 5 wrong recovery codes, rejecting even a valid unused code on the 6th attempt",
+    async () => {
+      const { recoveryCodes } = await authService.setupTwoFA(adminId);
+      const validUnusedCode = recoveryCodes[0];
+
+      for (let i = 0; i < 4; i++) {
+        await expect(authService.loginWithRecoveryCode(adminId, "not-a-real-code")).rejects.toBeInstanceOf(
+          authService.InvalidCredentialsError
+        );
+      }
+      // 5th wrong code locks
+      await expect(authService.loginWithRecoveryCode(adminId, "not-a-real-code")).rejects.toBeInstanceOf(
+        authService.AccountLockedError
+      );
+
+      const admin = await prisma.admin.findUniqueOrThrow({ where: { id: adminId } });
+      expect(admin.lockedUntil).not.toBeNull();
+
+      // even a real, unused recovery code is rejected while locked
+      await expect(authService.loginWithRecoveryCode(adminId, validUnusedCode)).rejects.toBeInstanceOf(
+        authService.AccountLockedError
+      );
+    },
+    30000
+  );
 });
