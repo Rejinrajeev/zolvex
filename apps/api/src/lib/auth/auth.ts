@@ -1,10 +1,11 @@
 import { generateSecret, generateURI, generate, verify } from "otplib";
 import { prisma } from "../../db/prisma.js";
-import { verifyPassword, encryptSecret, decryptSecret, generateRecoveryCodes, hashRecoveryCode } from "./crypto.js";
-import { signPendingTwoFAToken } from "./jwt.js";
+import { verifyPassword, encryptSecret, decryptSecret, generateRecoveryCodes, hashRecoveryCode, generateRawToken, hashToken, verifyRecoveryCode } from "./crypto.js";
+import { signPendingTwoFAToken, signAccessToken } from "./jwt.js";
 
 const MAX_FAILED_ATTEMPTS = 5;
 const LOCK_DURATION_MS = 15 * 60 * 1000;
+const REFRESH_TOKEN_LIFETIME_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
 
 export class InvalidCredentialsError extends Error {}
 export class AccountLockedError extends Error {
@@ -75,4 +76,61 @@ export async function verifyTwoFASetup(adminId: string, code: string): Promise<v
   if (!result.valid) throw new InvalidCredentialsError();
 
   await prisma.admin.update({ where: { id: adminId }, data: { twoFAEnabled: true } });
+}
+
+async function createSession(
+  adminId: string,
+  role: "superadmin" | "editor",
+  meta?: { ipAddress?: string; userAgent?: string }
+): Promise<{ accessToken: string; refreshToken: string; sessionId: string }> {
+  const refreshToken = generateRawToken();
+  const session = await prisma.adminSession.create({
+    data: {
+      adminId,
+      refreshTokenHash: hashToken(refreshToken),
+      expiresAt: new Date(Date.now() + REFRESH_TOKEN_LIFETIME_MS),
+      ipAddress: meta?.ipAddress,
+      userAgent: meta?.userAgent,
+    },
+  });
+
+  return { accessToken: signAccessToken(adminId, role), refreshToken, sessionId: session.id };
+}
+
+export async function verifyTwoFALogin(
+  adminId: string,
+  code: string,
+  meta?: { ipAddress?: string; userAgent?: string }
+) {
+  const admin = await prisma.admin.findUnique({ where: { id: adminId } });
+  if (!admin?.twoFASecret || !admin.twoFAEnabled) throw new InvalidCredentialsError();
+
+  const secret = decryptSecret(admin.twoFASecret);
+  const result = await verify({ token: code, secret });
+  if (!result.valid) throw new InvalidCredentialsError();
+
+  return createSession(admin.id, admin.role, meta);
+}
+
+export async function loginWithRecoveryCode(
+  adminId: string,
+  code: string,
+  meta?: { ipAddress?: string; userAgent?: string }
+) {
+  const admin = await prisma.admin.findUnique({ where: { id: adminId } });
+  if (!admin) throw new InvalidCredentialsError();
+
+  let matchedIndex = -1;
+  for (let i = 0; i < admin.twoFARecoveryCodes.length; i++) {
+    if (await verifyRecoveryCode(code, admin.twoFARecoveryCodes[i])) {
+      matchedIndex = i;
+      break;
+    }
+  }
+  if (matchedIndex === -1) throw new InvalidCredentialsError();
+
+  const remaining = admin.twoFARecoveryCodes.filter((_, i) => i !== matchedIndex);
+  await prisma.admin.update({ where: { id: admin.id }, data: { twoFARecoveryCodes: remaining } });
+
+  return createSession(admin.id, admin.role, meta);
 }

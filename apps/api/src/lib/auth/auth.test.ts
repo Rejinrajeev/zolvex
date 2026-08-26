@@ -24,6 +24,7 @@ beforeEach(async () => {
 });
 
 afterEach(async () => {
+  await prisma.adminSession.deleteMany();
   await prisma.admin.deleteMany();
 });
 
@@ -121,6 +122,70 @@ describe("2FA setup verification", () => {
   it("throws InvalidCredentialsError on a wrong code", async () => {
     await authService.setupTwoFA(adminId);
     await expect(authService.verifyTwoFASetup(adminId, "000000")).rejects.toBeInstanceOf(
+      authService.InvalidCredentialsError
+    );
+  });
+});
+
+describe("2FA login verification", () => {
+  async function enableTwoFA() {
+    const { otpauthUrl } = await authService.setupTwoFA(adminId);
+    const secret = /secret=([A-Z0-9]+)/.exec(otpauthUrl)![1];
+    const code = await generate({ secret });
+    await authService.verifyTwoFASetup(adminId, code);
+    return secret;
+  }
+
+  it("issues a real session on a correct code", async () => {
+    const secret = await enableTwoFA();
+    const code = await generate({ secret });
+    const result = await authService.verifyTwoFALogin(adminId, code);
+
+    expect(result.accessToken).toBeTruthy();
+    expect(result.refreshToken).toBeTruthy();
+    expect(result.sessionId).toBeTruthy();
+
+    const session = await prisma.adminSession.findUniqueOrThrow({ where: { id: result.sessionId } });
+    expect(session.adminId).toBe(adminId);
+    expect(session.revokedAt).toBeNull();
+  });
+
+  it("rejects a wrong code", async () => {
+    await enableTwoFA();
+    await expect(authService.verifyTwoFALogin(adminId, "000000")).rejects.toBeInstanceOf(
+      authService.InvalidCredentialsError
+    );
+  });
+
+  it("rejects login-verification when 2FA was never enabled", async () => {
+    await expect(authService.verifyTwoFALogin(adminId, "000000")).rejects.toBeInstanceOf(
+      authService.InvalidCredentialsError
+    );
+  });
+});
+
+describe("recovery-code login", () => {
+  it("issues a session and consumes exactly the used code", async () => {
+    const { recoveryCodes } = await authService.setupTwoFA(adminId);
+    const usedCode = recoveryCodes[0];
+
+    const result = await authService.loginWithRecoveryCode(adminId, usedCode);
+    expect(result.accessToken).toBeTruthy();
+    expect(result.refreshToken).toBeTruthy();
+    expect(result.sessionId).toBeTruthy();
+
+    const admin = await prisma.admin.findUniqueOrThrow({ where: { id: adminId } });
+    expect(admin.twoFARecoveryCodes).toHaveLength(7);
+
+    // the same code cannot be used twice
+    await expect(authService.loginWithRecoveryCode(adminId, usedCode)).rejects.toBeInstanceOf(
+      authService.InvalidCredentialsError
+    );
+  });
+
+  it("rejects an unknown code", async () => {
+    await authService.setupTwoFA(adminId);
+    await expect(authService.loginWithRecoveryCode(adminId, "not-a-real-code")).rejects.toBeInstanceOf(
       authService.InvalidCredentialsError
     );
   });
