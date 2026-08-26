@@ -88,7 +88,11 @@ export async function verifyTwoFALogin(req: Request, res: Response) {
     });
     res.cookie(REFRESH_COOKIE, result.refreshToken, REFRESH_COOKIE_OPTS);
     res.status(200).json(sessionAccessTokenView(result));
-  } catch {
+  } catch (error) {
+    if (error instanceof authService.AccountLockedError) {
+      res.status(423).json({ error: "account_locked", lockedUntil: error.lockedUntil });
+      return;
+    }
     res.status(401).json({ error: "invalid_credentials" });
   }
 }
@@ -109,7 +113,11 @@ export async function loginWithRecoveryCode(req: Request, res: Response) {
     });
     res.cookie(REFRESH_COOKIE, result.refreshToken, REFRESH_COOKIE_OPTS);
     res.status(200).json(sessionAccessTokenView(result));
-  } catch {
+  } catch (error) {
+    if (error instanceof authService.AccountLockedError) {
+      res.status(423).json({ error: "account_locked", lockedUntil: error.lockedUntil });
+      return;
+    }
     res.status(401).json({ error: "invalid_credentials" });
   }
 }

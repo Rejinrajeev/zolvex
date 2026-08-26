@@ -117,3 +117,87 @@ describe("full login -> 2FA setup -> 2FA verify -> refresh -> logout flow", () =
     expect(refreshAfterLogoutRes.status).toBe(401);
   });
 });
+
+describe("POST /admin/api/auth/2fa/login/verify - account lockout on 5 failed 2FA codes", () => {
+  it("returns 423 with lockedUntil after 5 wrong 2FA codes", async () => {
+    const loginRes = await request(app)
+      .post("/admin/api/auth/login")
+      .send({ email: "controller-test@zolvex.test", password: "correct-password" });
+    const pendingToken = loginRes.body.pendingToken;
+
+    const setupRes = await request(app)
+      .post("/admin/api/auth/2fa/setup")
+      .set("Authorization", `Bearer ${pendingToken}`);
+    const secret = /secret=([A-Z0-9]+)/.exec(setupRes.body.otpauthUrl)![1];
+
+    const setupVerifyRes = await request(app)
+      .post("/admin/api/auth/2fa/setup/verify")
+      .set("Authorization", `Bearer ${pendingToken}`)
+      .send({ code: await generate({ secret }) });
+    expect(setupVerifyRes.status).toBe(200);
+
+    // Make 5 failed attempts with wrong code
+    for (let i = 0; i < 4; i++) {
+      const res = await request(app)
+        .post("/admin/api/auth/2fa/login/verify")
+        .set("Authorization", `Bearer ${pendingToken}`)
+        .send({ code: "000000" });
+      expect(res.status).toBe(401);
+      expect(res.body.error).toBe("invalid_credentials");
+    }
+
+    // 5th attempt should return 423 with lockedUntil
+    const lockedRes = await request(app)
+      .post("/admin/api/auth/2fa/login/verify")
+      .set("Authorization", `Bearer ${pendingToken}`)
+      .send({ code: "000000" });
+    expect(lockedRes.status).toBe(423);
+    expect(lockedRes.body.error).toBe("account_locked");
+    expect(lockedRes.body.lockedUntil).toBeTruthy();
+    expect(new Date(lockedRes.body.lockedUntil)).toBeInstanceOf(Date);
+  });
+});
+
+describe("POST /admin/api/auth/2fa/recovery - account lockout on 5 failed recovery codes", () => {
+  it(
+    "returns 423 with lockedUntil after 5 wrong recovery codes",
+    async () => {
+    const loginRes = await request(app)
+      .post("/admin/api/auth/login")
+      .send({ email: "controller-test@zolvex.test", password: "correct-password" });
+    const pendingToken = loginRes.body.pendingToken;
+
+    const setupRes = await request(app)
+      .post("/admin/api/auth/2fa/setup")
+      .set("Authorization", `Bearer ${pendingToken}`);
+    const secret = /secret=([A-Z0-9]+)/.exec(setupRes.body.otpauthUrl)![1];
+
+    const setupVerifyRes = await request(app)
+      .post("/admin/api/auth/2fa/setup/verify")
+      .set("Authorization", `Bearer ${pendingToken}`)
+      .send({ code: await generate({ secret }) });
+    expect(setupVerifyRes.status).toBe(200);
+
+    // Make 5 failed attempts with wrong recovery code
+    for (let i = 0; i < 4; i++) {
+      const res = await request(app)
+        .post("/admin/api/auth/2fa/recovery")
+        .set("Authorization", `Bearer ${pendingToken}`)
+        .send({ code: "wrong-recovery-code" });
+      expect(res.status).toBe(401);
+      expect(res.body.error).toBe("invalid_credentials");
+    }
+
+    // 5th attempt should return 423 with lockedUntil
+    const lockedRes = await request(app)
+      .post("/admin/api/auth/2fa/recovery")
+      .set("Authorization", `Bearer ${pendingToken}`)
+      .send({ code: "wrong-recovery-code" });
+    expect(lockedRes.status).toBe(423);
+    expect(lockedRes.body.error).toBe("account_locked");
+    expect(lockedRes.body.lockedUntil).toBeTruthy();
+    expect(new Date(lockedRes.body.lockedUntil)).toBeInstanceOf(Date);
+    },
+    15000
+  );
+});
