@@ -51,7 +51,32 @@ describe("POST /admin/api/auth/login", () => {
     const res = await request(app).post("/admin/api/auth/login").send({ email: "not-an-email" });
     expect(res.status).toBe(400);
   });
+
+  it("returns 400 when email exceeds the max length", async () => {
+    const oversizedEmail = `${"a".repeat(250)}@zolvex.test`; // > 255 chars, still a syntactically valid email
+    const res = await request(app)
+      .post("/admin/api/auth/login")
+      .send({ email: oversizedEmail, password: "correct-password" });
+    expect(res.status).toBe(400);
+  });
+
+  it("returns 400 when password exceeds the max length", async () => {
+    const res = await request(app)
+      .post("/admin/api/auth/login")
+      .send({ email: "controller-test@zolvex.test", password: "a".repeat(201) });
+    expect(res.status).toBe(400);
+  });
 });
+
+describe("POST /admin/api/auth/2fa/recovery validation", () => {
+  it("returns 400 when the recovery code exceeds the max length", async () => {
+    const res = await request(app)
+      .post("/admin/api/auth/2fa/recovery")
+      .send({ code: "a".repeat(101) });
+    expect(res.status).toBe(400);
+  });
+});
+
 
 describe("full login -> 2FA setup -> 2FA verify -> refresh -> logout flow", () => {
   it("works end to end", async () => {

@@ -129,6 +129,13 @@ describe("2FA setup", () => {
     await prisma.admin.update({ where: { id: adminId }, data: { twoFAEnabled: true } });
     await expect(authService.setupTwoFA(adminId)).rejects.toThrow();
   });
+
+  it("throws InvalidCredentialsError for a deactivated admin", async () => {
+    await prisma.admin.update({ where: { id: adminId }, data: { isActive: false } });
+    await expect(authService.setupTwoFA(adminId)).rejects.toBeInstanceOf(
+      authService.InvalidCredentialsError
+    );
+  });
 });
 
 describe("2FA setup verification", () => {
@@ -147,6 +154,19 @@ describe("2FA setup verification", () => {
   it("throws InvalidCredentialsError on a wrong code", async () => {
     await authService.setupTwoFA(adminId);
     await expect(authService.verifyTwoFASetup(adminId, "000000")).rejects.toBeInstanceOf(
+      authService.InvalidCredentialsError
+    );
+  });
+
+  it("throws InvalidCredentialsError for a deactivated admin, even with a correct code", async () => {
+    const { otpauthUrl } = await authService.setupTwoFA(adminId);
+    const secretMatch = /secret=([A-Z0-9]+)/.exec(otpauthUrl);
+    const secret = secretMatch![1];
+    const code = await generate({ secret });
+
+    await prisma.admin.update({ where: { id: adminId }, data: { isActive: false } });
+
+    await expect(authService.verifyTwoFASetup(adminId, code)).rejects.toBeInstanceOf(
       authService.InvalidCredentialsError
     );
   });
@@ -178,6 +198,17 @@ describe("2FA login verification", () => {
   it("rejects a wrong code", async () => {
     await enableTwoFA();
     await expect(authService.verifyTwoFALogin(adminId, "000000")).rejects.toBeInstanceOf(
+      authService.InvalidCredentialsError
+    );
+  });
+
+  it("throws InvalidCredentialsError for a deactivated admin, even with a correct code", async () => {
+    const secret = await enableTwoFA();
+    const code = await generate({ secret });
+
+    await prisma.admin.update({ where: { id: adminId }, data: { isActive: false } });
+
+    await expect(authService.verifyTwoFALogin(adminId, code)).rejects.toBeInstanceOf(
       authService.InvalidCredentialsError
     );
   });
@@ -231,6 +262,17 @@ describe("recovery-code login", () => {
   it("rejects an unknown code", async () => {
     await authService.setupTwoFA(adminId);
     await expect(authService.loginWithRecoveryCode(adminId, "not-a-real-code")).rejects.toBeInstanceOf(
+      authService.InvalidCredentialsError
+    );
+  });
+
+  it("throws InvalidCredentialsError for a deactivated admin, even with a valid unused code", async () => {
+    const { recoveryCodes } = await authService.setupTwoFA(adminId);
+    const validUnusedCode = recoveryCodes[0];
+
+    await prisma.admin.update({ where: { id: adminId }, data: { isActive: false } });
+
+    await expect(authService.loginWithRecoveryCode(adminId, validUnusedCode)).rejects.toBeInstanceOf(
       authService.InvalidCredentialsError
     );
   });

@@ -49,6 +49,7 @@ export async function setupTwoFA(
 ): Promise<{ otpauthUrl: string; recoveryCodes: string[] }> {
   const admin = await prisma.admin.findUnique({ where: { id: adminId } });
   if (!admin) throw new InvalidCredentialsError();
+  if (!admin.isActive) throw new InvalidCredentialsError();
   if (admin.twoFAEnabled) throw new Error("2FA is already enabled for this account");
 
   const secret = generateSecret();
@@ -72,6 +73,7 @@ export async function setupTwoFA(
 export async function verifyTwoFASetup(adminId: string, code: string): Promise<void> {
   const admin = await prisma.admin.findUnique({ where: { id: adminId } });
   if (!admin?.twoFASecret) throw new InvalidCredentialsError();
+  if (!admin.isActive) throw new InvalidCredentialsError();
 
   const secret = decryptSecret(admin.twoFASecret);
   const result = await verify({ token: code, secret });
@@ -106,6 +108,7 @@ export async function verifyTwoFALogin(
 ) {
   const admin = await prisma.admin.findUnique({ where: { id: adminId } });
   if (!admin?.twoFASecret || !admin.twoFAEnabled) throw new InvalidCredentialsError();
+  if (!admin.isActive) throw new InvalidCredentialsError();
 
   if (admin.lockedUntil && admin.lockedUntil > new Date()) {
     throw new AccountLockedError(admin.lockedUntil);
@@ -138,6 +141,7 @@ export async function loginWithRecoveryCode(
 ) {
   const admin = await prisma.admin.findUnique({ where: { id: adminId } });
   if (!admin) throw new InvalidCredentialsError();
+  if (!admin.isActive) throw new InvalidCredentialsError();
 
   if (admin.lockedUntil && admin.lockedUntil > new Date()) {
     throw new AccountLockedError(admin.lockedUntil);

@@ -24,7 +24,10 @@ function userAgentOf(req: Request): string | undefined {
   return Array.isArray(value) ? value[0] : value;
 }
 
-const loginSchema = z.object({ email: z.string().email(), password: z.string().min(1) });
+const loginSchema = z.object({
+  email: z.string().email().max(255),
+  password: z.string().min(1).max(200),
+});
 
 export async function login(req: Request, res: Response) {
   const parsed = loginSchema.safeParse(req.body);
@@ -90,7 +93,7 @@ export async function verifyTwoFALogin(req: Request, res: Response) {
   }
 }
 
-const recoverySchema = z.object({ code: z.string().min(1) });
+const recoverySchema = z.object({ code: z.string().min(1).max(100) });
 
 export async function loginWithRecoveryCode(req: Request, res: Response) {
   const parsed = recoverySchema.safeParse(req.body);
