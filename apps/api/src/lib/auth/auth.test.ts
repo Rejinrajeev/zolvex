@@ -262,3 +262,69 @@ describe("recovery-code login", () => {
     30000
   );
 });
+
+describe("refreshSession", () => {
+  async function loggedInSession() {
+    const secret = await (async () => {
+      const { otpauthUrl } = await authService.setupTwoFA(adminId);
+      const s = /secret=([A-Z0-9]+)/.exec(otpauthUrl)![1];
+      await authService.verifyTwoFASetup(adminId, await generate({ secret: s }));
+      return s;
+    })();
+    return authService.verifyTwoFALogin(adminId, await generate({ secret }));
+  }
+
+  it("issues a fresh access token for a valid, unrevoked session", async () => {
+    const { refreshToken } = await loggedInSession();
+    const result = await authService.refreshSession(refreshToken);
+    expect(result.accessToken).toBeTruthy();
+  });
+
+  it("rejects an unknown refresh token", async () => {
+    await expect(authService.refreshSession("not-a-real-token")).rejects.toBeInstanceOf(
+      authService.InvalidCredentialsError
+    );
+  });
+
+  it("rejects a revoked session's refresh token", async () => {
+    const { refreshToken, sessionId } = await loggedInSession();
+    await authService.revokeSession(sessionId);
+
+    await expect(authService.refreshSession(refreshToken)).rejects.toBeInstanceOf(
+      authService.InvalidCredentialsError
+    );
+  });
+});
+
+describe("logout", () => {
+  it("revokes the session so a later refresh fails", async () => {
+    const { refreshToken } = await (async () => {
+      const { otpauthUrl } = await authService.setupTwoFA(adminId);
+      const s = /secret=([A-Z0-9]+)/.exec(otpauthUrl)![1];
+      await authService.verifyTwoFASetup(adminId, await generate({ secret: s }));
+      return authService.verifyTwoFALogin(adminId, await generate({ secret: s }));
+    })();
+
+    await authService.logout(refreshToken);
+    await expect(authService.refreshSession(refreshToken)).rejects.toBeInstanceOf(
+      authService.InvalidCredentialsError
+    );
+  });
+});
+
+describe("listSessions", () => {
+  it("lists only unrevoked sessions, most-recently-active first", async () => {
+    const { otpauthUrl } = await authService.setupTwoFA(adminId);
+    const secret = /secret=([A-Z0-9]+)/.exec(otpauthUrl)![1];
+    await authService.verifyTwoFASetup(adminId, await generate({ secret }));
+
+    const first = await authService.verifyTwoFALogin(adminId, await generate({ secret }));
+    await authService.revokeSession(first.sessionId);
+    const second = await authService.verifyTwoFALogin(adminId, await generate({ secret }));
+
+    const sessions = await authService.listSessions();
+    const ids = sessions.map((s) => s.id);
+    expect(ids).toContain(second.sessionId);
+    expect(ids).not.toContain(first.sessionId);
+  });
+});

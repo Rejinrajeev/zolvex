@@ -171,3 +171,37 @@ export async function loginWithRecoveryCode(
 
   return createSession(admin.id, admin.role, meta);
 }
+
+export async function refreshSession(rawRefreshToken: string): Promise<{ accessToken: string }> {
+  const tokenHash = hashToken(rawRefreshToken);
+  const session = await prisma.adminSession.findUnique({ where: { refreshTokenHash: tokenHash } });
+  if (!session || session.revokedAt || session.expiresAt < new Date()) {
+    throw new InvalidCredentialsError();
+  }
+
+  const admin = await prisma.admin.findUnique({ where: { id: session.adminId } });
+  if (!admin || !admin.isActive) throw new InvalidCredentialsError();
+
+  await prisma.adminSession.update({ where: { id: session.id }, data: { lastActiveAt: new Date() } });
+  return { accessToken: signAccessToken(admin.id, admin.role) };
+}
+
+export async function logout(rawRefreshToken: string): Promise<void> {
+  const tokenHash = hashToken(rawRefreshToken);
+  await prisma.adminSession.updateMany({
+    where: { refreshTokenHash: tokenHash },
+    data: { revokedAt: new Date() },
+  });
+}
+
+export async function revokeSession(sessionId: string): Promise<void> {
+  await prisma.adminSession.update({ where: { id: sessionId }, data: { revokedAt: new Date() } });
+}
+
+export async function listSessions() {
+  return prisma.adminSession.findMany({
+    where: { revokedAt: null },
+    include: { admin: { select: { name: true, email: true } } },
+    orderBy: { lastActiveAt: "desc" },
+  });
+}
