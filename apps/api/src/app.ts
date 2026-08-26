@@ -1,8 +1,14 @@
 import express, { type Express } from "express";
+import cookieParser from "cookie-parser";
 import { prisma } from "./db/prisma.js";
+import { adminAuthRouter } from "./routes/admin/auth.routes.js";
 
 export function createApp(): Express {
   const app = express();
+
+  app.use(express.json());
+  app.use(cookieParser());
+  app.use("/admin/api/auth", adminAuthRouter);
 
   // Liveness: is the process up? Deliberately touches nothing external, so a
   // dead database never causes the process to be restarted.
