@@ -28,7 +28,9 @@
 
 ## Security
 
-### Encrypt/hash `Admin.twoFASecret` and `twoFARecoveryCodes` before write
+### ~~Encrypt/hash `Admin.twoFASecret` and `twoFARecoveryCodes` before write~~ ✅ Resolved
+
+**Status:** Resolved by Gate 2 Plan 1 (backend auth/governance). `apps/api/src/lib/auth/crypto.ts` encrypts `twoFASecret` with AES-256-GCM (`encryptSecret`/`decryptSecret`, key from `ADMIN_2FA_ENCRYPTION_KEY`) before it's ever written in `setupTwoFA`, and each recovery code is bcrypt-hashed (`hashRecoveryCode`/`verifyRecoveryCode`, cost 12 — same as `passwordHash`) before storage in `Admin.twoFARecoveryCodes`. Plaintext values are returned to the caller exactly once, at setup, and never logged or persisted in plaintext again. See PR #3 (`gate-2-backend-auth-governance` → `gate-2-admin-panel`).
 
 **What:** The Foundation Prisma schema stores `twoFASecret` as a plain `TEXT` column and `twoFARecoveryCodes` as a plain `TEXT[]` (`apps/api/prisma/schema.prisma`, `Admin` model). The original plan requires the TOTP secret to be "encrypted at rest" and recovery codes to be "hashed one-time recovery codes" — neither is enforced by the schema itself; it has to happen in application code before the values are ever written.
 
