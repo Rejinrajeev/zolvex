@@ -164,6 +164,32 @@ export async function approve(req: AuthedRequest, res: Response) {
   }
 }
 
+const reorderSchema = z.object({
+  items: z.array(z.object({ id: z.string().min(1), order: z.number().int() })),
+});
+
+export async function reorder(req: AuthedRequest, res: Response) {
+  const { type } = req.params;
+  if (!isContentType(type)) {
+    res.status(400).json({ error: "invalid_type" });
+    return;
+  }
+  const parsed = reorderSchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: "invalid_request", issues: parsed.error.issues });
+    return;
+  }
+  try {
+    const records = await serviceFor(type).reorder(
+      { id: req.actor!.id, role: req.actor!.role, ipAddress: req.ip },
+      parsed.data.items
+    );
+    res.status(200).json(contentListView(records));
+  } catch (error) {
+    if (!mapServiceError(error, res)) throw error;
+  }
+}
+
 export async function reject(req: AuthedRequest, res: Response) {
   const { type, id } = req.params;
   if (!isContentType(type)) {

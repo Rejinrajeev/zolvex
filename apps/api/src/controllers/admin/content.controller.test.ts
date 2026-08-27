@@ -224,6 +224,30 @@ describe("POST /admin/api/content/:type/:id/approve", () => {
   });
 });
 
+describe("PATCH /admin/api/content/:type/reorder", () => {
+  it("reorders records and is not shadowed by the /:id update route", async () => {
+    const a = await prisma.faq.create({ data: { question: "A", answer: "A", order: 0 } });
+    const b = await prisma.faq.create({ data: { question: "B", answer: "B", order: 1 } });
+
+    const res = await request(app)
+      .patch("/admin/api/content/faq/reorder")
+      .set("Authorization", `Bearer ${superadminToken}`)
+      .send({ items: [{ id: a.id, order: 2 }, { id: b.id, order: 1 }] });
+
+    expect(res.status).toBe(200);
+    const refreshedA = await prisma.faq.findUniqueOrThrow({ where: { id: a.id } });
+    expect(refreshedA.order).toBe(2);
+  });
+
+  it("returns 400 for a malformed body", async () => {
+    const res = await request(app)
+      .patch("/admin/api/content/faq/reorder")
+      .set("Authorization", `Bearer ${superadminToken}`)
+      .send({ items: "not-an-array" });
+    expect(res.status).toBe(400);
+  });
+});
+
 describe("POST /admin/api/content/:type/:id/reject", () => {
   it("returns 400 with no reason", async () => {
     const created = await prisma.faq.create({ data: { question: "Q", answer: "A", approvalStatus: "pending_approval" } });
