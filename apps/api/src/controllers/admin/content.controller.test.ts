@@ -162,3 +162,41 @@ describe("PATCH /admin/api/content/:type/:id", () => {
     expect(res.status).toBe(409);
   });
 });
+
+describe("DELETE /admin/api/content/:type/:id", () => {
+  it("returns 403 for an editor", async () => {
+    const created = await prisma.faq.create({ data: { question: "Q", answer: "A" } });
+    const res = await request(app)
+      .delete(`/admin/api/content/faq/${created.id}`)
+      .set("Authorization", `Bearer ${editorToken}`);
+    expect(res.status).toBe(403);
+  });
+
+  it("soft-deletes for a superadmin", async () => {
+    const created = await prisma.faq.create({ data: { question: "Q", answer: "A" } });
+    const res = await request(app)
+      .delete(`/admin/api/content/faq/${created.id}`)
+      .set("Authorization", `Bearer ${superadminToken}`);
+    expect(res.status).toBe(200);
+    expect(res.body.deletedAt).not.toBeNull();
+  });
+
+  it("returns 409 deleting an already-deleted record", async () => {
+    const created = await prisma.faq.create({ data: { question: "Q", answer: "A", deletedAt: new Date() } });
+    const res = await request(app)
+      .delete(`/admin/api/content/faq/${created.id}`)
+      .set("Authorization", `Bearer ${superadminToken}`);
+    expect(res.status).toBe(409);
+  });
+});
+
+describe("POST /admin/api/content/:type/:id/restore", () => {
+  it("restores a soft-deleted record for a superadmin", async () => {
+    const created = await prisma.faq.create({ data: { question: "Q", answer: "A", deletedAt: new Date() } });
+    const res = await request(app)
+      .post(`/admin/api/content/faq/${created.id}/restore`)
+      .set("Authorization", `Bearer ${superadminToken}`);
+    expect(res.status).toBe(200);
+    expect(res.body.deletedAt).toBeNull();
+  });
+});

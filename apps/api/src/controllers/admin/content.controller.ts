@@ -54,6 +54,26 @@ export async function getOne(req: Request, res: Response) {
   res.status(200).json(contentRecordView(record));
 }
 
+function mapServiceError(error: unknown, res: Response): boolean {
+  if (error instanceof SlugConflictError) {
+    res.status(409).json({ error: "slug_conflict", message: error.message });
+    return true;
+  }
+  if (error instanceof RecordNotFoundError) {
+    res.status(404).json({ error: "not_found" });
+    return true;
+  }
+  if (error instanceof InvalidStateError) {
+    res.status(409).json({ error: "invalid_state", message: error.message });
+    return true;
+  }
+  if (error instanceof ForbiddenActionError) {
+    res.status(403).json({ error: "forbidden" });
+    return true;
+  }
+  return false;
+}
+
 export async function create(req: AuthedRequest, res: Response) {
   const { type } = req.params;
   if (!isContentType(type)) {
@@ -72,15 +92,7 @@ export async function create(req: AuthedRequest, res: Response) {
     );
     res.status(201).json(contentRecordView(record));
   } catch (error) {
-    if (error instanceof SlugConflictError) {
-      res.status(409).json({ error: "slug_conflict", message: error.message });
-      return;
-    }
-    if (error instanceof ForbiddenActionError) {
-      res.status(403).json({ error: "forbidden" });
-      return;
-    }
-    throw error;
+    if (!mapServiceError(error, res)) throw error;
   }
 }
 
@@ -103,22 +115,34 @@ export async function update(req: AuthedRequest, res: Response) {
     );
     res.status(200).json(contentRecordView(record));
   } catch (error) {
-    if (error instanceof SlugConflictError) {
-      res.status(409).json({ error: "slug_conflict", message: error.message });
-      return;
-    }
-    if (error instanceof RecordNotFoundError) {
-      res.status(404).json({ error: "not_found" });
-      return;
-    }
-    if (error instanceof InvalidStateError) {
-      res.status(409).json({ error: "invalid_state", message: error.message });
-      return;
-    }
-    if (error instanceof ForbiddenActionError) {
-      res.status(403).json({ error: "forbidden" });
-      return;
-    }
-    throw error;
+    if (!mapServiceError(error, res)) throw error;
+  }
+}
+
+export async function softDelete(req: AuthedRequest, res: Response) {
+  const { type, id } = req.params;
+  if (!isContentType(type)) {
+    res.status(400).json({ error: "invalid_type" });
+    return;
+  }
+  try {
+    const record = await serviceFor(type).softDelete({ id: req.actor!.id, role: req.actor!.role, ipAddress: req.ip }, id);
+    res.status(200).json(contentRecordView(record));
+  } catch (error) {
+    if (!mapServiceError(error, res)) throw error;
+  }
+}
+
+export async function restore(req: AuthedRequest, res: Response) {
+  const { type, id } = req.params;
+  if (!isContentType(type)) {
+    res.status(400).json({ error: "invalid_type" });
+    return;
+  }
+  try {
+    const record = await serviceFor(type).restore({ id: req.actor!.id, role: req.actor!.role, ipAddress: req.ip }, id);
+    res.status(200).json(contentRecordView(record));
+  } catch (error) {
+    if (!mapServiceError(error, res)) throw error;
   }
 }

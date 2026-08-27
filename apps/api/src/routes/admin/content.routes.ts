@@ -8,3 +8,5 @@ adminContentRouter.get("/:type", requireAuth, contentController.list);
 adminContentRouter.get("/:type/:id", requireAuth, contentController.getOne);
 adminContentRouter.post("/:type", requireAuth, contentController.create);
 adminContentRouter.patch("/:type/:id", requireAuth, contentController.update);
+adminContentRouter.delete("/:type/:id", requireAuth, contentController.softDelete);
+adminContentRouter.post("/:type/:id/restore", requireAuth, contentController.restore);
