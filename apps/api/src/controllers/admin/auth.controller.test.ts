@@ -198,6 +198,10 @@ describe("POST /admin/api/auth/2fa/recovery - account lockout on 5 failed recove
     expect(lockedRes.body.lockedUntil).toBeTruthy();
     expect(new Date(lockedRes.body.lockedUntil)).toBeInstanceOf(Date);
     },
-    15000
+    // 5 recovery-code guesses each requiring a full bcrypt-compare round
+    // (parallelized in loginWithRecoveryCode, but still bounded by libuv's
+    // threadpool size), through the full HTTP + login + 2FA-setup flow first
+    // -- 15s already came within ~500ms of the limit on a real CI runner.
+    30000
   );
 });

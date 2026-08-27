@@ -241,30 +241,42 @@ describe("2FA login verification", () => {
 });
 
 describe("recovery-code login", () => {
-  it("issues a session and consumes exactly the used code", async () => {
-    const { recoveryCodes } = await authService.setupTwoFA(adminId);
-    const usedCode = recoveryCodes[0];
+  it(
+    "issues a session and consumes exactly the used code",
+    async () => {
+      const { recoveryCodes } = await authService.setupTwoFA(adminId);
+      const usedCode = recoveryCodes[0];
 
-    const result = await authService.loginWithRecoveryCode(adminId, usedCode);
-    expect(result.accessToken).toBeTruthy();
-    expect(result.refreshToken).toBeTruthy();
-    expect(result.sessionId).toBeTruthy();
+      const result = await authService.loginWithRecoveryCode(adminId, usedCode);
+      expect(result.accessToken).toBeTruthy();
+      expect(result.refreshToken).toBeTruthy();
+      expect(result.sessionId).toBeTruthy();
 
-    const admin = await prisma.admin.findUniqueOrThrow({ where: { id: adminId } });
-    expect(admin.twoFARecoveryCodes).toHaveLength(7);
+      const admin = await prisma.admin.findUniqueOrThrow({ where: { id: adminId } });
+      expect(admin.twoFARecoveryCodes).toHaveLength(7);
 
-    // the same code cannot be used twice
-    await expect(authService.loginWithRecoveryCode(adminId, usedCode)).rejects.toBeInstanceOf(
-      authService.InvalidCredentialsError
-    );
-  });
+      // the same code cannot be used twice
+      await expect(authService.loginWithRecoveryCode(adminId, usedCode)).rejects.toBeInstanceOf(
+        authService.InvalidCredentialsError
+      );
+    },
+    // Two full recovery-code verification rounds, each bcrypt-comparing
+    // against up to 8 stored hashes (parallelized, but still bounded by
+    // libuv's threadpool size) -- comfortably fast on a dev machine but slow
+    // enough on a constrained CI runner to need headroom past vitest's 5s default.
+    15000
+  );
 
-  it("rejects an unknown code", async () => {
-    await authService.setupTwoFA(adminId);
-    await expect(authService.loginWithRecoveryCode(adminId, "not-a-real-code")).rejects.toBeInstanceOf(
-      authService.InvalidCredentialsError
-    );
-  });
+  it(
+    "rejects an unknown code",
+    async () => {
+      await authService.setupTwoFA(adminId);
+      await expect(authService.loginWithRecoveryCode(adminId, "not-a-real-code")).rejects.toBeInstanceOf(
+        authService.InvalidCredentialsError
+      );
+    },
+    10000
+  );
 
   it("throws InvalidCredentialsError for a deactivated admin, even with a valid unused code", async () => {
     const { recoveryCodes } = await authService.setupTwoFA(adminId);

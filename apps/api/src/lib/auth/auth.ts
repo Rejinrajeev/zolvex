@@ -147,13 +147,17 @@ export async function loginWithRecoveryCode(
     throw new AccountLockedError(admin.lockedUntil);
   }
 
-  let matchedIndex = -1;
-  for (let i = 0; i < admin.twoFARecoveryCodes.length; i++) {
-    if (await verifyRecoveryCode(code, admin.twoFARecoveryCodes[i])) {
-      matchedIndex = i;
-      break;
-    }
-  }
+  // Compare against every stored hash in parallel rather than sequentially:
+  // bcrypt cost 12 makes a full sequential scan of up to 8 codes slow enough
+  // to be visibly latent for real users and to flirt with test timeouts on
+  // slower CI runners. Running the compares concurrently (Node offloads each
+  // bcrypt.compare to libuv's threadpool) cuts worst-case wall time roughly
+  // to the cost of one compare instead of eight, and as a side effect makes
+  // response timing independent of which code (if any) matched.
+  const matches = await Promise.all(
+    admin.twoFARecoveryCodes.map((hash) => verifyRecoveryCode(code, hash))
+  );
+  const matchedIndex = matches.indexOf(true);
   if (matchedIndex === -1) {
     const updated = await prisma.admin.update({
       where: { id: admin.id },
