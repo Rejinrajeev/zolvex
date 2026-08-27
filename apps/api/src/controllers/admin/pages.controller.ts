@@ -1,5 +1,6 @@
 import type { Response } from "express";
 import { z } from "zod";
+import type { Prisma } from "@prisma/client";
 import { PageContentService } from "../../lib/services/page-content.js";
 import { prisma } from "../../db/prisma.js";
 import type { AuthedRequest } from "../../lib/auth/middleware.js";
@@ -22,7 +23,7 @@ export async function set(req: AuthedRequest, res: Response) {
   const record = await pages.set(
     { id: req.actor!.id, role: req.actor!.role, ipAddress: req.ip },
     req.params.pageKey,
-    parsed.data.data
+    parsed.data.data as Prisma.InputJsonValue
   );
   res.status(200).json(record);
 }
