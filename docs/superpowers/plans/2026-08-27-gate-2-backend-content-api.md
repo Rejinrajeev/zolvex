@@ -64,6 +64,19 @@ const SEARCH_FIELDS: Record<DelegateName, string> = {
   faq: "question",
   instagramPost: "permalink",
 };
+
+// Not every delegate has an `order` column — `Testimonial` doesn't (confirmed
+// against schema.prisma; the spec's claim that "all five types have an order
+// field" is wrong for this one, ground truth over intention, same as the
+// Plan 1 spec's own documented Place correction). list() falls back to
+// createdAt for these, and reorder() refuses them outright with a clear
+// error instead of letting Prisma throw an opaque "Unknown argument" error.
+const ORDERABLE: Partial<Record<DelegateName, true>> = {
+  service: true,
+  blogPost: true,
+  faq: true,
+  instagramPost: true,
+};
 ```
 
 - [ ] **Step 3: Write the failing tests for `list()`**
@@ -118,11 +131,12 @@ async list(filter?: { status?: string; search?: string }) {
   if (filter?.search) {
     where[SEARCH_FIELDS[this.delegateName]] = { contains: filter.search, mode: "insensitive" };
   }
-  return this.delegate(this.prisma).findMany({ where, orderBy: { order: "asc" } });
+  const orderBy = ORDERABLE[this.delegateName] ? { order: "asc" as const } : { createdAt: "desc" as const };
+  return this.delegate(this.prisma).findMany({ where, orderBy });
 }
 ```
 
-Note `this.delegate(this.prisma)` (not `this.delegate(tx)`) — `list()` isn't transactional, it's a plain read, so it calls the private `delegate()` helper with the plain `prisma` client instead of a `tx`. Confirm `Testimonial` has no `order` column in `schema.prisma` before assuming `orderBy: { order: "asc" }` works for every delegate — if a type lacks `order`, use `orderBy: { createdAt: "asc" }` for that one instead (check the actual schema; write whichever is correct, don't guess).
+Note `this.delegate(this.prisma)` (not `this.delegate(tx)`) — `list()` isn't transactional, it's a plain read, so it calls the private `delegate()` helper with the plain `prisma` client instead of a `tx`. `Testimonial` (no `order` column) falls back to `createdAt desc` — newest first, a reasonable default for a type with no manual ordering; the other four types get `order asc` as normal.
 
 - [ ] **Step 6: Run the test to verify it passes**
 
@@ -165,10 +179,17 @@ describe("ApprovableResourceService.reorder", () => {
     const unchanged = await prisma.faq.findUniqueOrThrow({ where: { id: a.id } });
     expect(unchanged.order).toBe(0);
   });
+
+  it("refuses to reorder a type with no order column (Testimonial)", async () => {
+    const t = await prisma.testimonial.create({ data: { name: "Jane", rating: 5, message: "Great" } });
+    await expect(
+      services.testimonial.reorder({ id: superadminId, role: "superadmin" }, [{ id: t.id, order: 1 }])
+    ).rejects.toBeInstanceOf(InvalidStateError);
+  });
 });
 ```
 
-Import `RecordNotFoundError` at the top of the test file alongside whatever this file already imports from `./approvable-resource.js`.
+Import `RecordNotFoundError` and `InvalidStateError` at the top of the test file alongside whatever this file already imports from `./approvable-resource.js`. Confirm the file's existing `services` const already includes a `testimonial` entry (an `ApprovableResourceService(prisma, "testimonial")` instance) — if it doesn't yet, add one, matching the pattern of the existing entries.
 
 - [ ] **Step 8: Run it to verify it fails**
 
@@ -179,6 +200,9 @@ Expected: FAIL — `services.faq.reorder is not a function`.
 
 ```ts
 async reorder(actor: Actor, items: { id: string; order: number }[]) {
+  if (!ORDERABLE[this.delegateName]) {
+    throw new InvalidStateError(`${this.entityName} does not support manual ordering`);
+  }
   return this.prisma.$transaction(async (tx) => {
     const results = [];
     for (const item of items) {
@@ -204,12 +228,12 @@ async reorder(actor: Actor, items: { id: string; order: number }[]) {
 - [ ] **Step 10: Run the tests to verify they pass**
 
 Run: `npm run test --workspace=apps/api -- approvable-resource.test`
-Expected: PASS, all new tests (previous 27 + 5 new = 32).
+Expected: PASS, all new tests (previous 27 + 6 new = 33).
 
 - [ ] **Step 11: Run the full suite**
 
 Run: `npm run test --workspace=apps/api`
-Expected: 122 tests passing (117 previous + 5 new). If this number doesn't match exactly because the baseline you inherited differs, that's fine — confirm all tests pass, don't chase an exact count.
+Expected: 123 tests passing (117 previous + 6 new). If this number doesn't match exactly because the baseline you inherited differs, that's fine — confirm all tests pass, don't chase an exact count.
 
 - [ ] **Step 12: Commit**
 
