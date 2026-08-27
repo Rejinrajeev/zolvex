@@ -132,3 +132,33 @@ describe("POST /admin/api/content/:type", () => {
     expect(res.status).toBe(409);
   });
 });
+
+describe("PATCH /admin/api/content/:type/:id", () => {
+  it("returns 404 for an unknown id", async () => {
+    const res = await request(app)
+      .patch("/admin/api/content/faq/does-not-exist")
+      .set("Authorization", `Bearer ${editorToken}`)
+      .send({ question: "New" });
+    expect(res.status).toBe(404);
+  });
+
+  it("updates a subset of fields", async () => {
+    const created = await prisma.faq.create({ data: { question: "Old", answer: "A" } });
+    const res = await request(app)
+      .patch(`/admin/api/content/faq/${created.id}`)
+      .set("Authorization", `Bearer ${superadminToken}`)
+      .send({ question: "New" });
+    expect(res.status).toBe(200);
+    expect(res.body.question).toBe("New");
+    expect(res.body.answer).toBe("A");
+  });
+
+  it("returns 409 when updating a soft-deleted record", async () => {
+    const created = await prisma.faq.create({ data: { question: "Q", answer: "A", deletedAt: new Date() } });
+    const res = await request(app)
+      .patch(`/admin/api/content/faq/${created.id}`)
+      .set("Authorization", `Bearer ${superadminToken}`)
+      .send({ question: "New" });
+    expect(res.status).toBe(409);
+  });
+});
