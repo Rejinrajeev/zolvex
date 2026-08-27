@@ -1,4 +1,5 @@
 import type { Request, Response } from "express";
+import { z } from "zod";
 import { PrismaClient } from "@prisma/client";
 import {
   ApprovableResourceService,
@@ -141,6 +142,45 @@ export async function restore(req: AuthedRequest, res: Response) {
   }
   try {
     const record = await serviceFor(type).restore({ id: req.actor!.id, role: req.actor!.role, ipAddress: req.ip }, id);
+    res.status(200).json(contentRecordView(record));
+  } catch (error) {
+    if (!mapServiceError(error, res)) throw error;
+  }
+}
+
+const rejectSchema = z.object({ reason: z.string().min(1) });
+
+export async function approve(req: AuthedRequest, res: Response) {
+  const { type, id } = req.params;
+  if (!isContentType(type)) {
+    res.status(400).json({ error: "invalid_type" });
+    return;
+  }
+  try {
+    const record = await serviceFor(type).approve({ id: req.actor!.id, role: req.actor!.role, ipAddress: req.ip }, id);
+    res.status(200).json(contentRecordView(record));
+  } catch (error) {
+    if (!mapServiceError(error, res)) throw error;
+  }
+}
+
+export async function reject(req: AuthedRequest, res: Response) {
+  const { type, id } = req.params;
+  if (!isContentType(type)) {
+    res.status(400).json({ error: "invalid_type" });
+    return;
+  }
+  const parsed = rejectSchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: "invalid_request", issues: parsed.error.issues });
+    return;
+  }
+  try {
+    const record = await serviceFor(type).reject(
+      { id: req.actor!.id, role: req.actor!.role, ipAddress: req.ip },
+      id,
+      parsed.data.reason
+    );
     res.status(200).json(contentRecordView(record));
   } catch (error) {
     if (!mapServiceError(error, res)) throw error;

@@ -10,3 +10,5 @@ adminContentRouter.post("/:type", requireAuth, contentController.create);
 adminContentRouter.patch("/:type/:id", requireAuth, contentController.update);
 adminContentRouter.delete("/:type/:id", requireAuth, contentController.softDelete);
 adminContentRouter.post("/:type/:id/restore", requireAuth, contentController.restore);
+adminContentRouter.post("/:type/:id/approve", requireAuth, contentController.approve);
+adminContentRouter.post("/:type/:id/reject", requireAuth, contentController.reject);

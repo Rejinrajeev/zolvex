@@ -200,3 +200,48 @@ describe("POST /admin/api/content/:type/:id/restore", () => {
     expect(res.body.deletedAt).toBeNull();
   });
 });
+
+describe("POST /admin/api/content/:type/:id/approve", () => {
+  it("publishes a pending record for a superadmin", async () => {
+    const created = await request(app)
+      .post("/admin/api/content/faq")
+      .set("Authorization", `Bearer ${editorToken}`)
+      .send({ question: "Q?", answer: "A." });
+
+    const res = await request(app)
+      .post(`/admin/api/content/faq/${created.body.id}/approve`)
+      .set("Authorization", `Bearer ${superadminToken}`);
+    expect(res.status).toBe(200);
+    expect(res.body.approvalStatus).toBe("published");
+  });
+
+  it("returns 409 approving an already-published record", async () => {
+    const created = await prisma.faq.create({ data: { question: "Q", answer: "A", approvalStatus: "published" } });
+    const res = await request(app)
+      .post(`/admin/api/content/faq/${created.id}/approve`)
+      .set("Authorization", `Bearer ${superadminToken}`);
+    expect(res.status).toBe(409);
+  });
+});
+
+describe("POST /admin/api/content/:type/:id/reject", () => {
+  it("returns 400 with no reason", async () => {
+    const created = await prisma.faq.create({ data: { question: "Q", answer: "A", approvalStatus: "pending_approval" } });
+    const res = await request(app)
+      .post(`/admin/api/content/faq/${created.id}/reject`)
+      .set("Authorization", `Bearer ${superadminToken}`)
+      .send({});
+    expect(res.status).toBe(400);
+  });
+
+  it("rejects a pending record with a reason", async () => {
+    const created = await prisma.faq.create({ data: { question: "Q", answer: "A", approvalStatus: "pending_approval" } });
+    const res = await request(app)
+      .post(`/admin/api/content/faq/${created.id}/reject`)
+      .set("Authorization", `Bearer ${superadminToken}`)
+      .send({ reason: "Needs more detail" });
+    expect(res.status).toBe(200);
+    expect(res.body.approvalStatus).toBe("rejected");
+    expect(res.body.rejectionReason).toBe("Needs more detail");
+  });
+});
