@@ -80,4 +80,11 @@ describe("POST /admin/api/sessions/:id/revoke", () => {
     const session = await prisma.adminSession.findUniqueOrThrow({ where: { id: sessionId } });
     expect(session.revokedAt).not.toBeNull();
   });
+
+  it("returns 404 for a nonexistent session id instead of an unhandled rejection", async () => {
+    const res = await request(app)
+      .post("/admin/api/sessions/does-not-exist/revoke")
+      .set("Authorization", `Bearer ${superadminAccessToken}`);
+    expect(res.status).toBe(404);
+  });
 });

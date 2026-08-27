@@ -16,6 +16,7 @@ beforeAll(async () => {
 
 afterEach(async () => {
   await prisma.auditLog.deleteMany();
+  await prisma.adminSession.deleteMany();
   await prisma.admin.deleteMany();
 });
 
@@ -74,5 +75,54 @@ describe("AdminUserService.setActive / changeRole", () => {
     await seedActors();
     const updated = await users.changeRole({ id: superadminId, role: "superadmin" }, editorId, "superadmin");
     expect(updated.role).toBe("superadmin");
+  });
+
+  it("revokes the target's existing sessions on deactivation", async () => {
+    await seedActors();
+    const session = await prisma.adminSession.create({
+      data: {
+        adminId: editorId,
+        refreshTokenHash: "test-hash-" + Math.random(),
+        expiresAt: new Date(Date.now() + 1000 * 60 * 60),
+      },
+    });
+
+    await users.setActive({ id: superadminId, role: "superadmin" }, editorId, false);
+
+    const after = await prisma.adminSession.findUniqueOrThrow({ where: { id: session.id } });
+    expect(after.revokedAt).not.toBeNull();
+  });
+
+  it("does NOT touch existing sessions on reactivation", async () => {
+    await seedActors();
+    await users.setActive({ id: superadminId, role: "superadmin" }, editorId, false);
+    const session = await prisma.adminSession.create({
+      data: {
+        adminId: editorId,
+        refreshTokenHash: "test-hash-" + Math.random(),
+        expiresAt: new Date(Date.now() + 1000 * 60 * 60),
+      },
+    });
+
+    await users.setActive({ id: superadminId, role: "superadmin" }, editorId, true);
+
+    const after = await prisma.adminSession.findUniqueOrThrow({ where: { id: session.id } });
+    expect(after.revokedAt).toBeNull();
+  });
+
+  it("revokes the target's existing sessions on a role change", async () => {
+    await seedActors();
+    const session = await prisma.adminSession.create({
+      data: {
+        adminId: editorId,
+        refreshTokenHash: "test-hash-" + Math.random(),
+        expiresAt: new Date(Date.now() + 1000 * 60 * 60),
+      },
+    });
+
+    await users.changeRole({ id: superadminId, role: "superadmin" }, editorId, "superadmin");
+
+    const after = await prisma.adminSession.findUniqueOrThrow({ where: { id: session.id } });
+    expect(after.revokedAt).not.toBeNull();
   });
 });

@@ -3,6 +3,12 @@ import { writeAuditRow, buildAuditDiff } from "./audit.js";
 import type { Actor } from "./approvable-resource.js";
 import { hashPassword, generateTempPassword } from "../auth/crypto.js";
 
+/** Thrown when a non-superadmin actor attempts a superadmin-only admin-user operation. */
+export class ForbiddenAdminActionError extends Error {}
+
+/** Thrown when the target admin id doesn't exist. */
+export class AdminNotFoundError extends Error {}
+
 export class AdminUserService {
   constructor(private prisma: PrismaClient) {}
 
@@ -14,7 +20,7 @@ export class AdminUserService {
   }
 
   async create(actor: Actor, data: { name: string; email: string; role: AdminRole }) {
-    if (actor.role !== "superadmin") throw new Error("Only superadmin can create admin accounts");
+    if (actor.role !== "superadmin") throw new ForbiddenAdminActionError("Only superadmin can create admin accounts");
 
     const tempPassword = generateTempPassword();
     const passwordHash = await hashPassword(tempPassword);
@@ -37,11 +43,11 @@ export class AdminUserService {
   }
 
   async setActive(actor: Actor, id: string, isActive: boolean) {
-    if (actor.role !== "superadmin") throw new Error("Only superadmin can change account status");
+    if (actor.role !== "superadmin") throw new ForbiddenAdminActionError("Only superadmin can change account status");
 
     return this.prisma.$transaction(async (tx) => {
       const before = await tx.admin.findUnique({ where: { id } });
-      if (!before) throw new Error(`Admin ${id} not found`);
+      if (!before) throw new AdminNotFoundError(`Admin ${id} not found`);
 
       const record = await tx.admin.update({ where: { id }, data: { isActive } });
       await writeAuditRow(tx, {
@@ -52,16 +58,29 @@ export class AdminUserService {
         ipAddress: actor.ipAddress,
         diff: buildAuditDiff({ isActive: before.isActive }, { isActive: record.isActive }),
       });
+
+      // Deactivating an admin must not leave their existing sessions usable --
+      // otherwise a 15-minute access token they already hold keeps working at
+      // the old privilege level until it naturally expires. Reactivating must
+      // NOT revoke anything: it's not a security event and shouldn't force a
+      // fresh login on top of whatever else the operator is doing.
+      if (isActive === false) {
+        await tx.adminSession.updateMany({
+          where: { adminId: id, revokedAt: null },
+          data: { revokedAt: new Date() },
+        });
+      }
+
       return record;
     });
   }
 
   async changeRole(actor: Actor, id: string, role: AdminRole) {
-    if (actor.role !== "superadmin") throw new Error("Only superadmin can change roles");
+    if (actor.role !== "superadmin") throw new ForbiddenAdminActionError("Only superadmin can change roles");
 
     return this.prisma.$transaction(async (tx) => {
       const before = await tx.admin.findUnique({ where: { id } });
-      if (!before) throw new Error(`Admin ${id} not found`);
+      if (!before) throw new AdminNotFoundError(`Admin ${id} not found`);
 
       const record = await tx.admin.update({ where: { id }, data: { role } });
       await writeAuditRow(tx, {
@@ -72,6 +91,14 @@ export class AdminUserService {
         ipAddress: actor.ipAddress,
         diff: buildAuditDiff({ role: before.role }, { role: record.role }),
       });
+
+      // Any role change must force re-login so the new role takes effect
+      // immediately instead of only once the old access token expires.
+      await tx.adminSession.updateMany({
+        where: { adminId: id, revokedAt: null },
+        data: { revokedAt: new Date() },
+      });
+
       return record;
     });
   }

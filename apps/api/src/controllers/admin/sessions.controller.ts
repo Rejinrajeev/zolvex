@@ -8,6 +8,13 @@ export async function list(_req: AuthedRequest, res: Response) {
 }
 
 export async function revoke(req: AuthedRequest, res: Response) {
-  await authService.revokeSession(req.params.id);
-  res.status(200).json({ ok: true });
+  try {
+    await authService.revokeSession(req.params.id);
+    res.status(200).json({ ok: true });
+  } catch {
+    // revokeSession() throws Prisma's P2025 when the id doesn't exist (already
+    // revoked, stale client list, double-click). That's a client-caused 404,
+    // not a server error -- and it must not become an unhandled rejection.
+    res.status(404).json({ error: "not_found" });
+  }
 }

@@ -1,4 +1,4 @@
-import express, { type Express } from "express";
+import express, { type Express, type Request, type Response, type NextFunction } from "express";
 import cookieParser from "cookie-parser";
 import { prisma } from "./db/prisma.js";
 import { adminAuthRouter } from "./routes/admin/auth.routes.js";
@@ -7,6 +7,14 @@ import { adminUsersRouter } from "./routes/admin/users.routes.js";
 
 export function createApp(): Express {
   const app = express();
+
+  // Off by default: blindly trusting X-Forwarded-For from an untrusted network
+  // lets a client spoof their own rate-limit bucket. Only opt in, explicitly,
+  // when this API actually sits behind a known reverse proxy/load balancer --
+  // see .env.example for accepted values (Express's "trust proxy" setting).
+  if (process.env.TRUST_PROXY) {
+    app.set("trust proxy", process.env.TRUST_PROXY);
+  }
 
   app.use(express.json());
   app.use(cookieParser());
@@ -35,6 +43,17 @@ export function createApp(): Express {
       console.error("readiness check failed:", error);
       res.status(503).json({ status: "unavailable" });
     }
+  });
+
+  // Catch-all error handler -- MUST be the last middleware registered. Express
+  // 4 does not auto-catch a rejected promise from an async route handler, and
+  // there is no process-level unhandledRejection/uncaughtException guard, so
+  // an unguarded async handler that throws can otherwise crash the whole
+  // process. Any future handler that forgets its own try/catch degrades to a
+  // 500 here instead.
+  app.use((err: unknown, _req: Request, res: Response, _next: NextFunction) => {
+    console.error(err);
+    res.status(500).json({ error: "internal_error" });
   });
 
   return app;
