@@ -27,6 +27,7 @@ beforeEach(async () => {
 afterEach(async () => {
   await prisma.auditLog.deleteMany();
   await prisma.faq.deleteMany();
+  await prisma.service.deleteMany();
   await prisma.admin.deleteMany();
 });
 
@@ -79,5 +80,55 @@ describe("GET /admin/api/content/:type/:id", () => {
       .set("Authorization", `Bearer ${editorToken}`);
     expect(res.status).toBe(200);
     expect(res.body.id).toBe(created.id);
+  });
+});
+
+describe("POST /admin/api/content/:type", () => {
+  it("returns 400 for an unknown content type", async () => {
+    const res = await request(app)
+      .post("/admin/api/content/not-a-real-type")
+      .set("Authorization", `Bearer ${editorToken}`)
+      .send({});
+    expect(res.status).toBe(400);
+  });
+
+  it("returns 400 for a malformed body", async () => {
+    const res = await request(app)
+      .post("/admin/api/content/faq")
+      .set("Authorization", `Bearer ${editorToken}`)
+      .send({ question: "Missing answer" });
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBe("invalid_request");
+  });
+
+  it("creates as pending_approval for an editor", async () => {
+    const res = await request(app)
+      .post("/admin/api/content/faq")
+      .set("Authorization", `Bearer ${editorToken}`)
+      .send({ question: "Q?", answer: "A." });
+    expect(res.status).toBe(201);
+    expect(res.body.approvalStatus).toBe("pending_approval");
+  });
+
+  it("creates as published for a superadmin", async () => {
+    const res = await request(app)
+      .post("/admin/api/content/faq")
+      .set("Authorization", `Bearer ${superadminToken}`)
+      .send({ question: "Q?", answer: "A." });
+    expect(res.status).toBe(201);
+    expect(res.body.approvalStatus).toBe("published");
+  });
+
+  it("returns 409 on a Service slug conflict", async () => {
+    await request(app)
+      .post("/admin/api/content/service")
+      .set("Authorization", `Bearer ${superadminToken}`)
+      .send({ name: "A", slug: "dup", shortDescription: "s", fullDescription: "f" });
+
+    const res = await request(app)
+      .post("/admin/api/content/service")
+      .set("Authorization", `Bearer ${superadminToken}`)
+      .send({ name: "B", slug: "dup", shortDescription: "s", fullDescription: "f" });
+    expect(res.status).toBe(409);
   });
 });

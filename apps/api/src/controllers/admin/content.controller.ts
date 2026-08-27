@@ -1,9 +1,10 @@
 import type { Request, Response } from "express";
 import { PrismaClient } from "@prisma/client";
-import { ApprovableResourceService } from "../../lib/services/approvable-resource.js";
-import { CONTENT_TYPES, TYPE_TO_DELEGATE, type ContentType } from "./content.schemas.js";
+import { ApprovableResourceService, SlugConflictError, ForbiddenActionError } from "../../lib/services/approvable-resource.js";
+import { CONTENT_TYPES, TYPE_TO_DELEGATE, type ContentType, schemaFor } from "./content.schemas.js";
 import { contentRecordView, contentListView } from "../../views/admin/content.view.js";
 import { prisma } from "../../db/prisma.js";
+import type { AuthedRequest } from "../../lib/auth/middleware.js";
 
 function isContentType(value: string): value is ContentType {
   return (CONTENT_TYPES as readonly string[]).includes(value);
@@ -45,4 +46,34 @@ export async function getOne(req: Request, res: Response) {
     return;
   }
   res.status(200).json(contentRecordView(record));
+}
+
+export async function create(req: AuthedRequest, res: Response) {
+  const { type } = req.params;
+  if (!isContentType(type)) {
+    res.status(400).json({ error: "invalid_type" });
+    return;
+  }
+  const parsed = schemaFor(type).safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: "invalid_request", issues: parsed.error.issues });
+    return;
+  }
+  try {
+    const record = await serviceFor(type).create(
+      { id: req.actor!.id, role: req.actor!.role, ipAddress: req.ip },
+      parsed.data as Record<string, unknown>
+    );
+    res.status(201).json(contentRecordView(record));
+  } catch (error) {
+    if (error instanceof SlugConflictError) {
+      res.status(409).json({ error: "slug_conflict", message: error.message });
+      return;
+    }
+    if (error instanceof ForbiddenActionError) {
+      res.status(403).json({ error: "forbidden" });
+      return;
+    }
+    throw error;
+  }
 }

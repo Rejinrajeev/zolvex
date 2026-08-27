@@ -6,3 +6,4 @@ export const adminContentRouter = Router();
 
 adminContentRouter.get("/:type", requireAuth, contentController.list);
 adminContentRouter.get("/:type/:id", requireAuth, contentController.getOne);
+adminContentRouter.post("/:type", requireAuth, contentController.create);
