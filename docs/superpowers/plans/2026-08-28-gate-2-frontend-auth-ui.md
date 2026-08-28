@@ -871,13 +871,20 @@ export async function POST(request: Request) {
   const refreshToken = await getRefreshToken();
   if (refreshToken) {
     const forwardedFor = request.headers.get("x-forwarded-for");
-    await fetch(`${getApiBaseUrl()}/admin/api/auth/logout`, {
-      method: "POST",
-      headers: {
-        Cookie: `refresh_token=${refreshToken}`,
-        ...(forwardedFor ? { "X-Forwarded-For": forwardedFor } : {}),
-      },
-    });
+    try {
+      await fetch(`${getApiBaseUrl()}/admin/api/auth/logout`, {
+        method: "POST",
+        headers: {
+          Cookie: `refresh_token=${refreshToken}`,
+          ...(forwardedFor ? { "X-Forwarded-For": forwardedFor } : {}),
+        },
+      });
+    } catch {
+      // Best-effort upstream revocation -- a network error/timeout here must
+      // never block the local logout below. The user is done either way;
+      // Express's own refresh-token expiry is the backstop if this call
+      // never reached it.
+    }
   }
   await clearSessionCookies();
   return NextResponse.json({ ok: true }, { status: 204 });
@@ -886,7 +893,7 @@ export async function POST(request: Request) {
 
 As in Task 4, relay the incoming request's `x-forwarded-for` header to Express as `X-Forwarded-For` on both of this task's upstream calls — both endpoints sit behind Express's `authFlowRateLimit()`.
 
-Note `logout` clears local session cookies unconditionally, even if the upstream call fails or there was no refresh token to begin with — a logout must always succeed from the browser's point of view; a failed best-effort upstream revocation shouldn't leave the user stuck in an authenticated-looking state client-side.
+Note `logout` clears local session cookies unconditionally, even if the upstream call fails or there was no refresh token to begin with — a logout must always succeed from the browser's point of view; a failed best-effort upstream revocation shouldn't leave the user stuck in an authenticated-looking state client-side. This is why the `fetch` above is wrapped in `try`/`catch`: a thrown network error (not just a non-2xx response, which `fetch` doesn't throw on) must not skip the `clearSessionCookies()` call below it.
 
 - [ ] **Step 2: Manually verify**
 
