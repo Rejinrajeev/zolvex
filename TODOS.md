@@ -78,6 +78,30 @@
 **Priority:** P2
 **Depends on:** None — can be resolved any time before Gate 1 launch
 
+### Confirm a trusted edge strips client-supplied `X-Forwarded-For` before setting `TRUST_PROXY`
+
+**What:** Before ever setting `apps/api`'s `TRUST_PROXY` env var to enable IP-based rate-limiting through the Next.js BFF proxy, confirm what actually terminates public traffic in front of `apps/web` in production, and that it overwrites (not appends to) any client-supplied `X-Forwarded-For` header with the real connecting address.
+
+**Why:** Gate 2's frontend admin auth plan (`docs/superpowers/plans/2026-08-28-gate-2-frontend-auth-ui.md`, Tasks 4-7) has every Next.js Route Handler relay the `x-forwarded-for` header it received on the incoming browser request straight through to Express, so Express's `express-rate-limit` middleware (keyed on `req.ip`) can key on the real client instead of collapsing every user into one shared bucket (Next.js's own address). That relay is only safe to trust if `apps/web` itself sits behind a real reverse proxy/CDN/load balancer that sanitizes the header first. If `apps/web` is directly internet-facing with nothing in front of it, a client can set `X-Forwarded-For` to anything on every request and get a fresh rate-limit bucket each time — a full bypass of the IP-based login/2FA rate limiters (though not of the separate, IP-independent per-account lockout, which stays intact either way). Caught by an automated security review during Task 4/5's implementation, after an earlier automated review had flagged the original shared-bucket problem the relay fixes — see `apps/api/.env.example`'s expanded `TRUST_PROXY` comment for the full reasoning.
+
+**Context:** This is a deployment-topology fact this repo can't determine on its own (what fronts `apps/web` in the real production environment). Until confirmed, `TRUST_PROXY` must stay unset (the current default) — the code-level relay is inert in that state, and the account lockout remains the sole, sufficient brute-force defense.
+
+**Effort:** S (a deployment verification + one env var, not a code change)
+**Priority:** P1 — must be resolved before `TRUST_PROXY` is ever set in a real deployment; not blocking for continued Gate 2 frontend development, since the default (unset) is safe
+**Depends on:** Knowing Gate 2's actual production hosting/reverse-proxy setup (see "Define post-launch ops ownership" above)
+
+### Migrate `apps/web/middleware.ts` to the `proxy` convention
+
+**What:** Next.js 16.3.2 already deprecates the `middleware.ts` file convention in favor of `proxy.ts` (confirmed via a build warning: `The "middleware" file convention is deprecated. Please use "proxy" instead.`). Run `npx @next/codemod@canary middleware-to-proxy` (or the manual equivalent) to migrate `apps/web/middleware.ts` (Gate 2 frontend auth UI plan, Task 10 — route-protection gate for `/admin/**`).
+
+**Why:** Not currently broken — `middleware.ts` still works and was verified end-to-end (redirects unauthenticated `/admin/**` requests to `/admin/login`, doesn't leak into the Edge bundle). But Plans 3b/3c will keep building on top of this file, and a deprecated convention risks removal in a future Next.js major with no advance warning if left alone.
+
+**Context:** Surfaced by this plan's final whole-branch review.
+
+**Effort:** S (one codemod run + verify the build warning is gone)
+**Priority:** P3
+**Depends on:** None
+
 ## Design
 
 ### Fill in the full per-feature interaction-state table
