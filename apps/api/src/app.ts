@@ -1,3 +1,19 @@
+// MUST stay the very first import in this file -- load-bearing, do not reorder.
+//
+// Express 4 does NOT forward a rejected promise from an async route handler to
+// the error-handling middleware: the rejection escapes as an unhandled
+// rejection, the request hangs forever, and (under Node's default
+// --unhandled-rejections=throw) the whole process dies. One authenticated
+// request with a bad query param used to be enough to take the API down.
+//
+// This package patches Express's Layer/Router at import time so every handler's
+// returned promise gets a `.catch(next)`. Because Express builds a Layer at
+// route-REGISTRATION time, the patch has to be installed before any router
+// module is evaluated -- ESM evaluates imports in declaration order, so this
+// import sitting above the `./routes/...` imports below is what makes the
+// guarantee hold. (app.ts is the only module that imports the routers; nothing
+// else can register a route ahead of this.)
+import "express-async-errors";
 import express, { type Express, type Request, type Response, type NextFunction } from "express";
 import cookieParser from "cookie-parser";
 import { prisma } from "./db/prisma.js";
@@ -61,12 +77,18 @@ export function createApp(): Express {
     }
   });
 
-  // Catch-all error handler -- MUST be the last middleware registered. Express
-  // 4 does not auto-catch a rejected promise from an async route handler, and
-  // there is no process-level unhandledRejection/uncaughtException guard, so
-  // an unguarded async handler that throws can otherwise crash the whole
-  // process. Any future handler that forgets its own try/catch degrades to a
-  // 500 here instead.
+  // Catch-all error handler -- MUST be the last middleware registered.
+  //
+  // On its own this middleware only catches SYNCHRONOUS throws: bare Express 4
+  // does not forward a rejected promise from an async handler here, so before
+  // `express-async-errors` was added an async handler that forgot its own
+  // try/catch produced a hung request and a dead process, never a 500. The
+  // `import "express-async-errors"` at the top of this file is what actually
+  // routes async rejections into `next(err)` and therefore into this handler.
+  // Keep that import; without it the guarantee below is false.
+  //
+  // With both in place, any handler that forgets its own try/catch degrades to
+  // a 500 here instead of crashing the process.
   app.use((err: unknown, _req: Request, res: Response, _next: NextFunction) => {
     console.error(err);
     res.status(500).json({ error: "internal_error" });

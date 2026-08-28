@@ -58,6 +58,17 @@ describe("Enquiries HTTP routes", () => {
     expect(res.body[0].status).toBe("pushed_to_crm");
   });
 
+  it("returns 400 for a status outside the EnquiryStatus enum, not a 500 or a dead process", async () => {
+    // `?status=` used to be cast `as any` straight into the Prisma filter, so
+    // this threw PrismaClientValidationError inside an async handler -- a
+    // rejection bare Express 4 never catches.
+    const res = await request(app)
+      .get("/admin/api/enquiries?status=bogus")
+      .set("Authorization", `Bearer ${editorToken}`);
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBe("invalid_request");
+  });
+
   it("returns 404 for an unknown id", async () => {
     const res = await request(app)
       .get("/admin/api/enquiries/does-not-exist")

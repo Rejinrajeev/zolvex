@@ -63,6 +63,18 @@ describe("GET /admin/api/content/:type", () => {
     expect(res.body).toHaveLength(1);
     expect(res.body[0].question).toBe("Published");
   });
+
+  it("returns 400 for a status outside the ApprovalStatus enum, not a 500 or a dead process", async () => {
+    // Regression guard: `?status=` used to be passed to Prisma unvalidated, so
+    // this exact request threw PrismaClientValidationError inside an async
+    // handler -- which bare Express 4 never catches. The request hung and the
+    // process died. It must now be a clean 400.
+    const res = await request(app)
+      .get("/admin/api/content/faq?status=bogus")
+      .set("Authorization", `Bearer ${editorToken}`);
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBe("invalid_request");
+  });
 });
 
 describe("GET /admin/api/content/:type/:id", () => {
@@ -245,6 +257,42 @@ describe("PATCH /admin/api/content/:type/reorder", () => {
       .set("Authorization", `Bearer ${superadminToken}`)
       .send({ items: "not-an-array" });
     expect(res.status).toBe(400);
+  });
+
+  it("returns 403 for an editor, and does not change any order", async () => {
+    // Reorder writes straight to the live, publicly-visible display order with
+    // no approval step, unlike every other editor mutation -- superadmin only.
+    const a = await prisma.faq.create({ data: { question: "A", answer: "A", order: 0 } });
+
+    const res = await request(app)
+      .patch("/admin/api/content/faq/reorder")
+      .set("Authorization", `Bearer ${editorToken}`)
+      .send({ items: [{ id: a.id, order: 9 }] });
+
+    expect(res.status).toBe(403);
+    expect(res.body.error).toBe("forbidden");
+
+    const unchanged = await prisma.faq.findUniqueOrThrow({ where: { id: a.id } });
+    expect(unchanged.order).toBe(0);
+  });
+
+  it("returns 409 when the batch includes a soft-deleted record", async () => {
+    const live = await prisma.faq.create({ data: { question: "A", answer: "A", order: 0 } });
+    const trashed = await prisma.faq.create({
+      data: { question: "B", answer: "B", order: 1, deletedAt: new Date() },
+    });
+
+    const res = await request(app)
+      .patch("/admin/api/content/faq/reorder")
+      .set("Authorization", `Bearer ${superadminToken}`)
+      .send({ items: [{ id: live.id, order: 5 }, { id: trashed.id, order: 6 }] });
+
+    expect(res.status).toBe(409);
+    expect(res.body.error).toBe("invalid_state");
+
+    // Atomic: the live record in the same batch must be untouched.
+    const unchanged = await prisma.faq.findUniqueOrThrow({ where: { id: live.id } });
+    expect(unchanged.order).toBe(0);
   });
 });
 

@@ -26,8 +26,17 @@ export async function create(req: AuthedRequest, res: Response) {
     res.status(400).json({ error: "invalid_request", issues: parsed.error.issues });
     return;
   }
-  const record = await places.create(actorFrom(req), parsed.data);
-  res.status(201).json(record);
+  try {
+    const record = await places.create(actorFrom(req), parsed.data);
+    res.status(201).json(record);
+  } catch {
+    // Consistent with update()/remove()/restore() below: PlaceService throws a
+    // bare Error, so 404 is the closest honest mapping. Defense in depth --
+    // app.ts's express-async-errors + catch-all would now turn an escaped
+    // rejection into a 500 rather than a dead process, but this keeps the
+    // whole file answering the same way.
+    res.status(404).json({ error: "not_found" });
+  }
 }
 
 const updateSchema = createSchema.partial();

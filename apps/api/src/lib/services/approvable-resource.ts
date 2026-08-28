@@ -40,7 +40,7 @@
  * `req.body` into this service. Tracked in TODOS.md ("Denylist field-strip
  * depends on an HTTP-layer allowlist").
  */
-import type { Prisma, PrismaClient } from "@prisma/client";
+import type { Prisma, PrismaClient, ApprovalStatus } from "@prisma/client";
 import { writeAuditRow, buildAuditDiff, type AuditDiff } from "./audit.js";
 
 export { buildAuditDiff, type AuditDiff } from "./audit.js";
@@ -396,7 +396,14 @@ export class ApprovableResourceService {
     });
   }
 
-  async list(filter?: { status?: string; search?: string }) {
+  /**
+   * `status` is typed as the ApprovalStatus enum, not `string`: it lands
+   * verbatim in a Prisma `approvalStatus` filter, which throws
+   * PrismaClientValidationError for anything outside the enum. Keeping the
+   * narrow type here makes the HTTP layer's validation a compile-time
+   * obligation rather than a convention a future caller can forget.
+   */
+  async list(filter?: { status?: ApprovalStatus; search?: string }) {
     const where: Record<string, unknown> = { deletedAt: null };
     if (filter?.status) where.approvalStatus = filter.status;
     if (filter?.search) {
@@ -415,6 +422,10 @@ export class ApprovableResourceService {
       for (const item of items) {
         const before = await this.delegate(tx).findUnique({ where: { id: item.id } });
         if (!before) throw new RecordNotFoundError(`${this.entityName} ${item.id} not found`);
+        // Same guard update()/approve()/reject() apply. Reordering a trashed
+        // record would write a misleading audit row and leave it in a confusing
+        // half-state; the whole batch rolls back instead.
+        this.assertNotDeleted(before, item.id);
 
         const record = await this.delegate(tx).update({ where: { id: item.id }, data: { order: item.order } });
         await writeAuditRow(tx, {

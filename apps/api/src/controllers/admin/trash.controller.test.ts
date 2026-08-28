@@ -43,12 +43,25 @@ describe("GET /admin/api/trash", () => {
     expect(res.status).toBe(401);
   });
 
-  it("lists a soft-deleted Faq for an authenticated admin", async () => {
+  // NOTE: this route is superadmin-only. It enumerates every soft-deleted
+  // record across all six types with full, unredacted fields, and deletion
+  // itself is already superadmin-only -- so reading the trash is too. This test
+  // previously used the editor token and asserted 200; that expectation was
+  // the bug, not the fix.
+  it("lists a soft-deleted Faq for a superadmin", async () => {
     await prisma.faq.create({ data: { question: "Q", answer: "A", deletedAt: new Date() } });
-    const res = await request(app).get("/admin/api/trash").set("Authorization", `Bearer ${editorToken}`);
+    const res = await request(app).get("/admin/api/trash").set("Authorization", `Bearer ${superadminToken}`);
     expect(res.status).toBe(200);
     expect(res.body).toHaveLength(1);
     expect(res.body[0].entity).toBe("Faq");
+  });
+
+  it("returns 403 for an editor, leaking nothing about what is in the trash", async () => {
+    await prisma.faq.create({ data: { question: "Q", answer: "A", deletedAt: new Date() } });
+    const res = await request(app).get("/admin/api/trash").set("Authorization", `Bearer ${editorToken}`);
+    expect(res.status).toBe(403);
+    expect(res.body.error).toBe("forbidden");
+    expect(res.body).not.toHaveProperty("length");
   });
 });
 

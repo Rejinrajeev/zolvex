@@ -58,6 +58,23 @@ describe("POST /admin/api/uploads", () => {
     expect(res.body.error).toBe("file_too_large");
   });
 
+  it("returns 400, not 500, when the file arrives under the wrong form-field name", async () => {
+    // multer rejects this with MulterError code LIMIT_UNEXPECTED_FILE. Only
+    // LIMIT_FILE_SIZE used to be mapped, so every other multer code fell
+    // through to app.ts's catch-all as an opaque 500 for what is really a
+    // malformed client request.
+    const onePixelPng = Buffer.from(
+      "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=",
+      "base64"
+    );
+    const res = await request(app)
+      .post("/admin/api/uploads")
+      .set("Authorization", `Bearer ${editorToken}`)
+      .attach("wrongfield", onePixelPng, { filename: "pixel.png", contentType: "image/png" });
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBe("invalid_upload");
+  });
+
   it("uploads a real 1x1 PNG to Cloudinary and returns its URL", async () => {
     // A minimal valid 1x1 transparent PNG, base64-decoded.
     const onePixelPng = Buffer.from(

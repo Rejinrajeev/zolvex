@@ -651,6 +651,28 @@ describe("ApprovableResourceService.reorder", () => {
     expect(unchanged.order).toBe(0);
   });
 
+  it("refuses to reorder a batch containing a soft-deleted record, and rolls the batch back", async () => {
+    const live = await faqs.create({ id: superadminId, role: "superadmin" }, { question: "A", answer: "A" });
+    const trashed = await faqs.create({ id: superadminId, role: "superadmin" }, { question: "B", answer: "B" });
+    await faqs.softDelete({ id: superadminId, role: "superadmin" }, trashed.id);
+
+    await expect(
+      faqs.reorder({ id: superadminId, role: "superadmin" }, [
+        { id: live.id, order: 5 },
+        { id: trashed.id, order: 6 },
+      ])
+    ).rejects.toBeInstanceOf(InvalidStateError);
+
+    await expect(
+      faqs.reorder({ id: superadminId, role: "superadmin" }, [{ id: trashed.id, order: 6 }])
+    ).rejects.toThrow(/soft-deleted/);
+
+    const unchangedLive = await prisma.faq.findUniqueOrThrow({ where: { id: live.id } });
+    expect(unchangedLive.order).toBe(0);
+    const unchangedTrashed = await prisma.faq.findUniqueOrThrow({ where: { id: trashed.id } });
+    expect(unchangedTrashed.order).toBe(0);
+  });
+
   it("refuses to reorder a type with no order column (Testimonial)", async () => {
     const t = await prisma.testimonial.create({ data: { name: "Jane", rating: 5, message: "Great" } });
     await expect(
