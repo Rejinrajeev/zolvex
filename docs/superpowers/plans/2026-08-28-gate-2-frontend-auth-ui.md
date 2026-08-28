@@ -544,10 +544,20 @@ import { setPending2FACookie } from "../../../../../lib/admin-auth/cookies.js";
 
 export async function POST(request: Request) {
   const body = await request.text();
+  // Express's login rate limiter (express-rate-limit) keys on req.ip. Without
+  // this, every request arrives at Express from this Next.js server's own
+  // address, collapsing every real client into one shared rate-limit bucket --
+  // an attacker's traffic and legitimate admins' traffic would count against
+  // the same pool. Relay whatever the actual edge (reverse proxy/CDN) put in
+  // this header so Express can key the limiter on the real client again.
+  const forwardedFor = request.headers.get("x-forwarded-for");
 
   const upstream = await callExpress("/admin/api/auth/login", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      ...(forwardedFor ? { "X-Forwarded-For": forwardedFor } : {}),
+    },
     body,
   });
 
@@ -600,15 +610,22 @@ import { NextResponse } from "next/server";
 import { callExpress } from "../../../../../../lib/admin-auth/proxy.js";
 import { getPending2FAToken } from "../../../../../../lib/admin-auth/cookies.js";
 
-export async function POST() {
+export async function POST(request: Request) {
   const pendingToken = await getPending2FAToken();
   if (!pendingToken) {
     return NextResponse.json({ error: "no_pending_login" }, { status: 401 });
   }
 
+  // See Task 4's note on why this header is relayed: without it, Express's
+  // rate limiter keys every real client to this Next.js server's own address.
+  const forwardedFor = request.headers.get("x-forwarded-for");
+
   const upstream = await callExpress("/admin/api/auth/2fa/setup", {
     method: "POST",
-    headers: { Authorization: `Bearer ${pendingToken}` },
+    headers: {
+      Authorization: `Bearer ${pendingToken}`,
+      ...(forwardedFor ? { "X-Forwarded-For": forwardedFor } : {}),
+    },
   });
 
   const data = await upstream.json();
@@ -629,9 +646,14 @@ export async function POST(request: Request) {
   }
 
   const body = await request.text();
+  const forwardedFor = request.headers.get("x-forwarded-for");
   const upstream = await callExpress("/admin/api/auth/2fa/setup/verify", {
     method: "POST",
-    headers: { "Content-Type": "application/json", Authorization: `Bearer ${pendingToken}` },
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${pendingToken}`,
+      ...(forwardedFor ? { "X-Forwarded-For": forwardedFor } : {}),
+    },
     body,
   });
 
@@ -640,7 +662,7 @@ export async function POST(request: Request) {
 }
 ```
 
-As in Task 4, verify the exact relative import depth against the real file location when you create each file (or use the `@/*` alias if `apps/web/tsconfig.json` already defines one).
+As in Task 4, verify the exact relative import depth against the real file location when you create each file (or use the `@/*` alias if `apps/web/tsconfig.json` already defines one). Also as in Task 4, relay the incoming request's `x-forwarded-for` header to Express as `X-Forwarded-For` on every `callExpress` call in this task — both handlers sit behind Express's `authFlowRateLimit()`, which has the identical req.ip-collapsing problem Task 4's note describes.
 
 - [ ] **Step 2: Manually verify**
 
@@ -694,9 +716,14 @@ export async function POST(request: Request) {
   }
 
   const body = await request.text();
+  const forwardedFor = request.headers.get("x-forwarded-for");
   const upstream = await callExpress("/admin/api/auth/2fa/login/verify", {
     method: "POST",
-    headers: { "Content-Type": "application/json", Authorization: `Bearer ${pendingToken}` },
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${pendingToken}`,
+      ...(forwardedFor ? { "X-Forwarded-For": forwardedFor } : {}),
+    },
     body,
   });
 
@@ -742,9 +769,14 @@ export async function POST(request: Request) {
   }
 
   const body = await request.text();
+  const forwardedFor = request.headers.get("x-forwarded-for");
   const upstream = await callExpress("/admin/api/auth/2fa/recovery", {
     method: "POST",
-    headers: { "Content-Type": "application/json", Authorization: `Bearer ${pendingToken}` },
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${pendingToken}`,
+      ...(forwardedFor ? { "X-Forwarded-For": forwardedFor } : {}),
+    },
     body,
   });
 
@@ -763,6 +795,8 @@ export async function POST(request: Request) {
   return NextResponse.json(data, { status: upstream.status });
 }
 ```
+
+Both handlers relay the incoming request's `x-forwarded-for` header to Express as `X-Forwarded-For` on their `callExpress` call, for the same reason given in Task 4's note — these two endpoints sit behind Express's `authFlowRateLimit()`, which has the identical req.ip-collapsing problem.
 
 - [ ] **Step 2: Manually verify**
 
@@ -797,15 +831,23 @@ import { NextResponse } from "next/server";
 import { getApiBaseUrl } from "../../../../../lib/admin-auth/env.js";
 import { getRefreshToken, setAccessTokenCookie, clearSessionCookies } from "../../../../../lib/admin-auth/cookies.js";
 
-export async function POST() {
+export async function POST(request: Request) {
   const refreshToken = await getRefreshToken();
   if (!refreshToken) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 
+  // See Task 4's note: relay the real client's address so Express's
+  // authFlowRateLimit() doesn't key every caller to this Next.js server's
+  // own address.
+  const forwardedFor = request.headers.get("x-forwarded-for");
+
   const upstream = await fetch(`${getApiBaseUrl()}/admin/api/auth/refresh`, {
     method: "POST",
-    headers: { Cookie: `refresh_token=${refreshToken}` },
+    headers: {
+      Cookie: `refresh_token=${refreshToken}`,
+      ...(forwardedFor ? { "X-Forwarded-For": forwardedFor } : {}),
+    },
   });
 
   if (!upstream.ok) {
@@ -825,18 +867,24 @@ import { NextResponse } from "next/server";
 import { getApiBaseUrl } from "../../../../../lib/admin-auth/env.js";
 import { getRefreshToken, clearSessionCookies } from "../../../../../lib/admin-auth/cookies.js";
 
-export async function POST() {
+export async function POST(request: Request) {
   const refreshToken = await getRefreshToken();
   if (refreshToken) {
+    const forwardedFor = request.headers.get("x-forwarded-for");
     await fetch(`${getApiBaseUrl()}/admin/api/auth/logout`, {
       method: "POST",
-      headers: { Cookie: `refresh_token=${refreshToken}` },
+      headers: {
+        Cookie: `refresh_token=${refreshToken}`,
+        ...(forwardedFor ? { "X-Forwarded-For": forwardedFor } : {}),
+      },
     });
   }
   await clearSessionCookies();
   return NextResponse.json({ ok: true }, { status: 204 });
 }
 ```
+
+As in Task 4, relay the incoming request's `x-forwarded-for` header to Express as `X-Forwarded-For` on both of this task's upstream calls — both endpoints sit behind Express's `authFlowRateLimit()`.
 
 Note `logout` clears local session cookies unconditionally, even if the upstream call fails or there was no refresh token to begin with — a logout must always succeed from the browser's point of view; a failed best-effort upstream revocation shouldn't leave the user stuck in an authenticated-looking state client-side.
 
