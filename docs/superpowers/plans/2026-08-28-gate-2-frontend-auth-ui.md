@@ -545,7 +545,7 @@ export async function parseJsonSafe(response: Response): Promise<Record<string, 
 - [ ] **Step 4: Run the tests to verify they pass**
 
 Run: `npm run test --workspace=apps/web`
-Expected: PASS, 6 new tests (14 total).
+Expected: PASS, 6 new tests (14 total). (A 7th test covering `callExpress`'s header-priority behavior was added later, during this plan's final whole-branch review — see that block's code above, which already reflects the fix.)
 
 - [ ] **Step 5: Commit**
 
