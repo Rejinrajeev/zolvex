@@ -36,7 +36,12 @@ describe("Prisma schema round-trip", () => {
     expect(admin.id).toBeTruthy();
 
     const session = await prisma.adminSession.create({
-      data: { adminId: admin.id, deviceInfo: "test-device" },
+      data: {
+        adminId: admin.id,
+        deviceInfo: "test-device",
+        refreshTokenHash: "test-refresh-token-hash",
+        expiresAt: new Date(Date.now() + 1000 * 60 * 60),
+      },
     });
     expect(session.adminId).toBe(admin.id);
 

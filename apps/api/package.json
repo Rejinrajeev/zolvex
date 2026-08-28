@@ -11,15 +11,32 @@
     "test:watch": "vitest",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
-    "db:migrate:test": "prisma migrate deploy --schema prisma/schema.prisma"
+    "db:migrate:test": "prisma migrate deploy --schema prisma/schema.prisma",
+    "db:seed": "tsx prisma/seed.ts"
+  },
+  "prisma": {
+    "seed": "tsx prisma/seed.ts"
   },
   "dependencies": {
     "@prisma/client": "^6.1.0",
+    "bcryptjs": "^3.0.3",
+    "cloudinary": "^2.10.1",
+    "cookie-parser": "^1.4.7",
     "dotenv": "^16.4.0",
-    "express": "^4.21.0"
+    "express": "^4.21.0",
+    "express-async-errors": "^3.1.1",
+    "express-rate-limit": "^8.6.2",
+    "jsonwebtoken": "^9.0.3",
+    "multer": "^2.2.0",
+    "otplib": "^13.5.0",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
+    "@types/cookie-parser": "^1.4.10",
     "@types/express": "^4.17.21",
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/multer": "^2.2.0",
     "@types/node": "^20.14.0",
     "@types/supertest": "^6.0.2",
     "prisma": "^6.1.0",
