@@ -1,6 +1,6 @@
 // apps/web/lib/admin-auth/proxy.ts
-import { getApiBaseUrl } from "./env.js";
-import { getAccessToken, getRefreshToken, setAccessTokenCookie, clearSessionCookies } from "./cookies.js";
+import { getApiBaseUrl } from "./env";
+import { getAccessToken, getRefreshToken, setAccessTokenCookie, clearSessionCookies } from "./cookies";
 
 export class UpstreamUnauthorizedError extends Error {}
 
