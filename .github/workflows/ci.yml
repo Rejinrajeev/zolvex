@@ -61,6 +61,17 @@ jobs:
         run: npm run typecheck --workspace=apps/api
 
       - name: Test
+        # Real credentials (GitHub encrypted repo secrets), scoped to only
+        # this step -- not the job-level env -- so earlier steps (in
+        # particular `npm install`, where a compromised transitive
+        # dependency's postinstall script would otherwise have a shot at
+        # them) never see these values. The upload test genuinely calls the
+        # live Cloudinary API, so these can't be throwaway values like the
+        # two job-level secrets above.
+        env:
+          CLOUDINARY_CLOUD_NAME: ${{ secrets.CLOUDINARY_CLOUD_NAME }}
+          CLOUDINARY_API_KEY: ${{ secrets.CLOUDINARY_API_KEY }}
+          CLOUDINARY_API_SECRET: ${{ secrets.CLOUDINARY_API_SECRET }}
         run: npm run test --workspace=apps/api
 
       - name: Audit dependencies

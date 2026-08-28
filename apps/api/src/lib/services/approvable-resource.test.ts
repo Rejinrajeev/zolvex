@@ -3,6 +3,8 @@ import { PrismaClient } from "@prisma/client";
 import {
   ApprovableResourceService,
   SlugConflictError,
+  RecordNotFoundError,
+  InvalidStateError,
   publicVisibilityWhere,
   type AuditDiff,
 } from "./approvable-resource.js";
@@ -13,6 +15,8 @@ const prisma = new PrismaClient({
 
 const services = new ApprovableResourceService(prisma, "service");
 const instagramPosts = new ApprovableResourceService(prisma, "instagramPost");
+const faqs = new ApprovableResourceService(prisma, "faq");
+const testimonials = new ApprovableResourceService(prisma, "testimonial");
 
 let editorId: string;
 let superadminId: string;
@@ -33,6 +37,8 @@ afterEach(async () => {
   await prisma.auditLog.deleteMany();
   await prisma.service.deleteMany();
   await prisma.instagramPost.deleteMany();
+  await prisma.faq.deleteMany();
+  await prisma.testimonial.deleteMany();
 });
 
 afterAll(async () => {
@@ -580,5 +586,97 @@ describe("ApprovableResourceService with the instagramPost delegate", () => {
     );
 
     expect(record.approvalStatus).toBe("published");
+  });
+});
+
+describe("ApprovableResourceService.list", () => {
+  it("returns every record with no filter", async () => {
+    await faqs.create({ id: superadminId, role: "superadmin" }, { question: "Q1", answer: "A1" });
+    await faqs.create({ id: superadminId, role: "superadmin" }, { question: "Q2", answer: "A2" });
+
+    const all = await faqs.list();
+    expect(all).toHaveLength(2);
+  });
+
+  it("filters by approvalStatus", async () => {
+    await faqs.create({ id: editorId, role: "editor" }, { question: "Pending one", answer: "A" });
+    await faqs.create({ id: superadminId, role: "superadmin" }, { question: "Published one", answer: "A" });
+
+    const pending = await faqs.list({ status: "pending_approval" });
+    expect(pending).toHaveLength(1);
+    expect(pending[0].question).toBe("Pending one");
+  });
+
+  it("filters by free-text search on the type's searchable field, case-insensitive", async () => {
+    await faqs.create({ id: superadminId, role: "superadmin" }, { question: "How do refunds work?", answer: "A" });
+    await faqs.create({ id: superadminId, role: "superadmin" }, { question: "What are your hours?", answer: "A" });
+
+    const found = await faqs.list({ search: "REFUNDS" });
+    expect(found).toHaveLength(1);
+    expect(found[0].question).toBe("How do refunds work?");
+  });
+});
+
+describe("ApprovableResourceService.reorder", () => {
+  it("updates order on every listed record and writes one audit row per record", async () => {
+    const a = await faqs.create({ id: superadminId, role: "superadmin" }, { question: "A", answer: "A" });
+    const b = await faqs.create({ id: superadminId, role: "superadmin" }, { question: "B", answer: "B" });
+
+    await prisma.auditLog.deleteMany(); // clear the create-audit noise before asserting on reorder's rows
+
+    const result = await faqs.reorder({ id: superadminId, role: "superadmin" }, [
+      { id: a.id, order: 2 },
+      { id: b.id, order: 1 },
+    ]);
+
+    expect(result.find((r) => r.id === a.id)?.order).toBe(2);
+    expect(result.find((r) => r.id === b.id)?.order).toBe(1);
+
+    const logs = await prisma.auditLog.findMany({ where: { entity: "Faq" } });
+    expect(logs).toHaveLength(2);
+    expect(logs.every((l) => l.action === "update")).toBe(true);
+  });
+
+  it("is atomic: an unknown id in the batch rolls back every change in it", async () => {
+    const a = await faqs.create({ id: superadminId, role: "superadmin" }, { question: "A", answer: "A" });
+
+    await expect(
+      faqs.reorder({ id: superadminId, role: "superadmin" }, [
+        { id: a.id, order: 5 },
+        { id: "does-not-exist", order: 1 },
+      ])
+    ).rejects.toBeInstanceOf(RecordNotFoundError);
+
+    const unchanged = await prisma.faq.findUniqueOrThrow({ where: { id: a.id } });
+    expect(unchanged.order).toBe(0);
+  });
+
+  it("refuses to reorder a batch containing a soft-deleted record, and rolls the batch back", async () => {
+    const live = await faqs.create({ id: superadminId, role: "superadmin" }, { question: "A", answer: "A" });
+    const trashed = await faqs.create({ id: superadminId, role: "superadmin" }, { question: "B", answer: "B" });
+    await faqs.softDelete({ id: superadminId, role: "superadmin" }, trashed.id);
+
+    await expect(
+      faqs.reorder({ id: superadminId, role: "superadmin" }, [
+        { id: live.id, order: 5 },
+        { id: trashed.id, order: 6 },
+      ])
+    ).rejects.toBeInstanceOf(InvalidStateError);
+
+    await expect(
+      faqs.reorder({ id: superadminId, role: "superadmin" }, [{ id: trashed.id, order: 6 }])
+    ).rejects.toThrow(/soft-deleted/);
+
+    const unchangedLive = await prisma.faq.findUniqueOrThrow({ where: { id: live.id } });
+    expect(unchangedLive.order).toBe(0);
+    const unchangedTrashed = await prisma.faq.findUniqueOrThrow({ where: { id: trashed.id } });
+    expect(unchangedTrashed.order).toBe(0);
+  });
+
+  it("refuses to reorder a type with no order column (Testimonial)", async () => {
+    const t = await prisma.testimonial.create({ data: { name: "Jane", rating: 5, message: "Great" } });
+    await expect(
+      testimonials.reorder({ id: superadminId, role: "superadmin" }, [{ id: t.id, order: 1 }])
+    ).rejects.toBeInstanceOf(InvalidStateError);
   });
 });
