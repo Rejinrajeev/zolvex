@@ -37,12 +37,6 @@ jobs:
       # these live in the gitignored apps/api/.env (see .env.example).
       ADMIN_2FA_ENCRYPTION_KEY: 83b4804f7aeb794ffaa96cc77aaa671ce4e0cc79db01d6b1dbfdd2bca23f4a16
       JWT_SECRET: 9a3cbca6364ab7f631d14cce81da53777c584165d63b0a2aeb3205a3b3fec193
-      # Real credentials (GitHub encrypted repo secrets) -- the upload test
-      # genuinely calls the live Cloudinary API, so these can't be throwaway
-      # values like the two above.
-      CLOUDINARY_CLOUD_NAME: ${{ secrets.CLOUDINARY_CLOUD_NAME }}
-      CLOUDINARY_API_KEY: ${{ secrets.CLOUDINARY_API_KEY }}
-      CLOUDINARY_API_SECRET: ${{ secrets.CLOUDINARY_API_SECRET }}
 
     steps:
       - name: Checkout
@@ -67,6 +61,17 @@ jobs:
         run: npm run typecheck --workspace=apps/api
 
       - name: Test
+        # Real credentials (GitHub encrypted repo secrets), scoped to only
+        # this step -- not the job-level env -- so earlier steps (in
+        # particular `npm install`, where a compromised transitive
+        # dependency's postinstall script would otherwise have a shot at
+        # them) never see these values. The upload test genuinely calls the
+        # live Cloudinary API, so these can't be throwaway values like the
+        # two job-level secrets above.
+        env:
+          CLOUDINARY_CLOUD_NAME: ${{ secrets.CLOUDINARY_CLOUD_NAME }}
+          CLOUDINARY_API_KEY: ${{ secrets.CLOUDINARY_API_KEY }}
+          CLOUDINARY_API_SECRET: ${{ secrets.CLOUDINARY_API_SECRET }}
         run: npm run test --workspace=apps/api
 
       - name: Audit dependencies
