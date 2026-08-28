@@ -887,7 +887,9 @@ export async function POST(request: Request) {
     }
   }
   await clearSessionCookies();
-  return NextResponse.json({ ok: true }, { status: 204 });
+  // A 204 response must not carry a body -- the Response constructor throws
+  // ("Invalid response status code 204") if one is given.
+  return new NextResponse(null, { status: 204 });
 }
 ```
 
