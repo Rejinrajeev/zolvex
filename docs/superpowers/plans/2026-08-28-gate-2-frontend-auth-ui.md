@@ -1030,12 +1030,17 @@ This page has two entry modes, chosen by the `?setup=` query param Task 8 sets:
 // apps/web/app/admin/login/verify/page.tsx
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
 type Phase = "loading-setup" | "enter-setup-code" | "setup-done-enter-login-code" | "enter-login-code";
 
-export default function VerifyTwoFactorPage() {
+// A Client Component calling useSearchParams() must sit inside a Suspense
+// boundary, or Next.js's build fails with "should be wrapped in a suspense
+// boundary" -- verify this against the real build when you create this file
+// (Next.js version behavior here can vary); the wrapper at the bottom of
+// this file is the fix if the build does require it.
+function VerifyTwoFactorForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const needsSetup = searchParams.get("setup") === "1";
@@ -1191,6 +1196,14 @@ export default function VerifyTwoFactorPage() {
         {useRecoveryCode ? "Use an authenticator code instead" : "Use a recovery code instead"}
       </button>
     </div>
+  );
+}
+
+export default function VerifyTwoFactorPage() {
+  return (
+    <Suspense fallback={<p>Loading…</p>}>
+      <VerifyTwoFactorForm />
+    </Suspense>
   );
 }
 ```
