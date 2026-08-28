@@ -113,4 +113,22 @@ describe("callExpress", () => {
     await expect(callExpress("/admin/api/content/faq")).rejects.toBeInstanceOf(UpstreamUnauthorizedError);
     expect(fetchMock).toHaveBeenCalledTimes(1); // only the original attempt, no refresh call
   });
+
+  it("lets a caller-supplied Authorization header win over the auto-attached access token (the 2FA setup/verify/recovery handlers rely on this)", async () => {
+    // A browser can hold a still-valid admin_access_token cookie (15-min TTL)
+    // at the same time as a fresh admin_pending_2fa_token cookie -- e.g.
+    // logging in again without logging out first, or a second tab. The
+    // pending-2FA handlers explicitly set their own Authorization header;
+    // callExpress must not silently overwrite it with the access token.
+    store.set(ACCESS_TOKEN_COOKIE, { value: "stale-access-token" });
+    const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response("{}", { status: 200 }));
+
+    await callExpress("/admin/api/auth/2fa/setup", {
+      method: "POST",
+      headers: { Authorization: "Bearer pending-token" },
+    });
+
+    const [, init] = fetchMock.mock.calls[0];
+    expect((init?.headers as Record<string, string>).Authorization).toBe("Bearer pending-token");
+  });
 });

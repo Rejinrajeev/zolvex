@@ -90,6 +90,18 @@
 **Priority:** P1 — must be resolved before `TRUST_PROXY` is ever set in a real deployment; not blocking for continued Gate 2 frontend development, since the default (unset) is safe
 **Depends on:** Knowing Gate 2's actual production hosting/reverse-proxy setup (see "Define post-launch ops ownership" above)
 
+### Migrate `apps/web/middleware.ts` to the `proxy` convention
+
+**What:** Next.js 16.3.2 already deprecates the `middleware.ts` file convention in favor of `proxy.ts` (confirmed via a build warning: `The "middleware" file convention is deprecated. Please use "proxy" instead.`). Run `npx @next/codemod@canary middleware-to-proxy` (or the manual equivalent) to migrate `apps/web/middleware.ts` (Gate 2 frontend auth UI plan, Task 10 — route-protection gate for `/admin/**`).
+
+**Why:** Not currently broken — `middleware.ts` still works and was verified end-to-end (redirects unauthenticated `/admin/**` requests to `/admin/login`, doesn't leak into the Edge bundle). But Plans 3b/3c will keep building on top of this file, and a deprecated convention risks removal in a future Next.js major with no advance warning if left alone.
+
+**Context:** Surfaced by this plan's final whole-branch review.
+
+**Effort:** S (one codemod run + verify the build warning is gone)
+**Priority:** P3
+**Depends on:** None
+
 ## Design
 
 ### Fill in the full per-feature interaction-state table

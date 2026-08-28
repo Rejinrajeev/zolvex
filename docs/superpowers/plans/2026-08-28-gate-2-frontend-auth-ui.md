@@ -470,14 +470,27 @@ export async function callExpress(path: string, init: RequestInit = {}): Promise
   const baseUrl = getApiBaseUrl();
   const accessToken = await getAccessToken();
 
-  const doFetch = (token: string | undefined) =>
-    fetch(`${baseUrl}${path}`, {
+  const doFetch = (token: string | undefined) => {
+    const callerHeaders = (init.headers as Record<string, string> | undefined) ?? {};
+    // A caller that explicitly sets its own Authorization header (Tasks 5/6's
+    // 2FA setup/verify/recovery handlers, which must send the pending-2FA
+    // token, not whatever's in the access-token cookie) always wins. Without
+    // this check, a browser holding a still-valid admin_access_token cookie
+    // alongside a fresh admin_pending_2fa_token cookie (e.g. logging in again
+    // without logging out first, or a second tab) would have its explicit
+    // pending-token header silently overwritten below, since object-spread
+    // order would otherwise let the auto-attached token win. (Found by this
+    // plan's final whole-branch review, not by Task 3's own isolated review
+    // -- Tasks 5/6 didn't exist yet when Task 3 was reviewed.)
+    const hasExplicitAuth = Object.keys(callerHeaders).some((key) => key.toLowerCase() === "authorization");
+    return fetch(`${baseUrl}${path}`, {
       ...init,
       headers: {
-        ...(init.headers as Record<string, string> | undefined),
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...callerHeaders,
+        ...(token && !hasExplicitAuth ? { Authorization: `Bearer ${token}` } : {}),
       },
     });
+  };
 
   const firstResponse = await doFetch(accessToken);
   // Only a 401 from a call that actually carried an access token means "this
@@ -509,6 +522,24 @@ export async function callExpress(path: string, init: RequestInit = {}): Promise
 
   return doFetch(freshAccessToken);
 }
+
+/**
+ * Parses a Response body as JSON, returning null instead of throwing if the
+ * body isn't valid JSON. Every Route Handler that calls `callExpress` uses
+ * this (not `response.json()` directly), because Express's rate limiters
+ * (express-rate-limit) respond to a throttled request with a plain-text
+ * body, not JSON -- `response.json()` on that body throws a SyntaxError,
+ * which would otherwise surface as an uncaught exception (a generic 500,
+ * masking the real 429) the first time a client trips one of Express's
+ * login/2FA rate limiters. (Also found by the final whole-branch review.)
+ */
+export async function parseJsonSafe(response: Response): Promise<Record<string, unknown> | null> {
+  try {
+    return (await response.json()) as Record<string, unknown>;
+  } catch {
+    return null;
+  }
+}
 ```
 
 - [ ] **Step 4: Run the tests to verify they pass**
@@ -539,7 +570,7 @@ git commit -m "feat(web): add callExpress proxy helper with refresh-and-retry on
 ```ts
 // apps/web/app/admin/api/auth/login/route.ts
 import { NextResponse } from "next/server";
-import { callExpress } from "../../../../../lib/admin-auth/proxy.js";
+import { callExpress, parseJsonSafe } from "../../../../../lib/admin-auth/proxy.js";
 import { setPending2FACookie } from "../../../../../lib/admin-auth/cookies.js";
 
 export async function POST(request: Request) {
@@ -561,9 +592,11 @@ export async function POST(request: Request) {
     body,
   });
 
-  const data = await upstream.json();
+  // parseJsonSafe (Task 3), not upstream.json() directly -- Express's rate
+  // limiter sends a plain-text body on 429, which .json() would throw on.
+  const data = await parseJsonSafe(upstream);
 
-  if (upstream.status === 200 && typeof data.pendingToken === "string") {
+  if (upstream.status === 200 && typeof data?.pendingToken === "string") {
     await setPending2FACookie(data.pendingToken);
     // Never echo the pending token itself back to the browser -- the
     // browser only needs to know whether 2FA is already enabled, to decide
@@ -571,7 +604,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ twoFAEnabled: data.twoFAEnabled }, { status: 200 });
   }
 
-  return NextResponse.json(data, { status: upstream.status });
+  return NextResponse.json(data ?? { error: "upstream_error" }, { status: upstream.status });
 }
 ```
 
@@ -607,7 +640,7 @@ Both of these use the PENDING-2FA token (not a real access token) as their Beare
 ```ts
 // apps/web/app/admin/api/auth/2fa/setup/route.ts
 import { NextResponse } from "next/server";
-import { callExpress } from "../../../../../../lib/admin-auth/proxy.js";
+import { callExpress, parseJsonSafe } from "../../../../../../lib/admin-auth/proxy.js";
 import { getPending2FAToken } from "../../../../../../lib/admin-auth/cookies.js";
 
 export async function POST(request: Request) {
@@ -628,15 +661,16 @@ export async function POST(request: Request) {
     },
   });
 
-  const data = await upstream.json();
-  return NextResponse.json(data, { status: upstream.status });
+  // parseJsonSafe (Task 3), not upstream.json() directly -- see Task 4's note.
+  const data = await parseJsonSafe(upstream);
+  return NextResponse.json(data ?? { error: "upstream_error" }, { status: upstream.status });
 }
 ```
 
 ```ts
 // apps/web/app/admin/api/auth/2fa/setup/verify/route.ts
 import { NextResponse } from "next/server";
-import { callExpress } from "../../../../../../../lib/admin-auth/proxy.js";
+import { callExpress, parseJsonSafe } from "../../../../../../../lib/admin-auth/proxy.js";
 import { getPending2FAToken } from "../../../../../../../lib/admin-auth/cookies.js";
 
 export async function POST(request: Request) {
@@ -657,8 +691,8 @@ export async function POST(request: Request) {
     body,
   });
 
-  const data = await upstream.json();
-  return NextResponse.json(data, { status: upstream.status });
+  const data = await parseJsonSafe(upstream);
+  return NextResponse.json(data ?? { error: "upstream_error" }, { status: upstream.status });
 }
 ```
 
@@ -694,7 +728,7 @@ Both of Express's equivalent endpoints return `{ accessToken }` in the JSON body
 ```ts
 // apps/web/app/admin/api/auth/2fa/login/verify/route.ts
 import { NextResponse } from "next/server";
-import { callExpress } from "../../../../../../../lib/admin-auth/proxy.js";
+import { callExpress, parseJsonSafe } from "../../../../../../../lib/admin-auth/proxy.js";
 import {
   getPending2FAToken,
   setAccessTokenCookie,
@@ -727,9 +761,9 @@ export async function POST(request: Request) {
     body,
   });
 
-  const data = await upstream.json();
+  const data = await parseJsonSafe(upstream);
 
-  if (upstream.status === 200 && typeof data.accessToken === "string") {
+  if (upstream.status === 200 && typeof data?.accessToken === "string") {
     const refreshToken = extractRefreshToken(upstream.headers.get("set-cookie"));
     if (refreshToken) {
       await setRefreshTokenCookie(refreshToken);
@@ -741,14 +775,14 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: true }, { status: 200 });
   }
 
-  return NextResponse.json(data, { status: upstream.status });
+  return NextResponse.json(data ?? { error: "upstream_error" }, { status: upstream.status });
 }
 ```
 
 ```ts
 // apps/web/app/admin/api/auth/2fa/recovery/route.ts
 import { NextResponse } from "next/server";
-import { callExpress } from "../../../../../../lib/admin-auth/proxy.js";
+import { callExpress, parseJsonSafe } from "../../../../../../lib/admin-auth/proxy.js";
 import {
   getPending2FAToken,
   setAccessTokenCookie,
@@ -780,9 +814,9 @@ export async function POST(request: Request) {
     body,
   });
 
-  const data = await upstream.json();
+  const data = await parseJsonSafe(upstream);
 
-  if (upstream.status === 200 && typeof data.accessToken === "string") {
+  if (upstream.status === 200 && typeof data?.accessToken === "string") {
     const refreshToken = extractRefreshToken(upstream.headers.get("set-cookie"));
     if (refreshToken) {
       await setRefreshTokenCookie(refreshToken);
@@ -792,7 +826,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: true }, { status: 200 });
   }
 
-  return NextResponse.json(data, { status: upstream.status });
+  return NextResponse.json(data ?? { error: "upstream_error" }, { status: upstream.status });
 }
 ```
 

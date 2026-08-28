@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { callExpress } from "@/lib/admin-auth/proxy";
+import { callExpress, parseJsonSafe } from "@/lib/admin-auth/proxy";
 import { setPending2FACookie } from "@/lib/admin-auth/cookies";
 
 export async function POST(request: Request) {
@@ -21,9 +21,9 @@ export async function POST(request: Request) {
     body,
   });
 
-  const data = await upstream.json();
+  const data = await parseJsonSafe(upstream);
 
-  if (upstream.status === 200 && typeof data.pendingToken === "string") {
+  if (upstream.status === 200 && typeof data?.pendingToken === "string") {
     await setPending2FACookie(data.pendingToken);
     // Never echo the pending token itself back to the browser -- the
     // browser only needs to know whether 2FA is already enabled, to decide
@@ -31,5 +31,5 @@ export async function POST(request: Request) {
     return NextResponse.json({ twoFAEnabled: data.twoFAEnabled }, { status: 200 });
   }
 
-  return NextResponse.json(data, { status: upstream.status });
+  return NextResponse.json(data ?? { error: "upstream_error" }, { status: upstream.status });
 }

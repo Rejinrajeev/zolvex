@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { callExpress } from "@/lib/admin-auth/proxy";
+import { callExpress, parseJsonSafe } from "@/lib/admin-auth/proxy";
 import { getPending2FAToken } from "@/lib/admin-auth/cookies";
 
 export async function POST(request: Request) {
@@ -20,6 +20,6 @@ export async function POST(request: Request) {
     body,
   });
 
-  const data = await upstream.json();
-  return NextResponse.json(data, { status: upstream.status });
+  const data = await parseJsonSafe(upstream);
+  return NextResponse.json(data ?? { error: "upstream_error" }, { status: upstream.status });
 }

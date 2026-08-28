@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { callExpress } from "@/lib/admin-auth/proxy";
+import { callExpress, parseJsonSafe } from "@/lib/admin-auth/proxy";
 import {
   getPending2FAToken,
   setAccessTokenCookie,
@@ -31,9 +31,9 @@ export async function POST(request: Request) {
     body,
   });
 
-  const data = await upstream.json();
+  const data = await parseJsonSafe(upstream);
 
-  if (upstream.status === 200 && typeof data.accessToken === "string") {
+  if (upstream.status === 200 && typeof data?.accessToken === "string") {
     const refreshToken = extractRefreshToken(upstream.headers.get("set-cookie"));
     if (refreshToken) {
       await setRefreshTokenCookie(refreshToken);
@@ -43,5 +43,5 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: true }, { status: 200 });
   }
 
-  return NextResponse.json(data, { status: upstream.status });
+  return NextResponse.json(data ?? { error: "upstream_error" }, { status: upstream.status });
 }
