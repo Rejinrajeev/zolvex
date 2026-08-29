@@ -8,6 +8,7 @@ import { Table } from "@/components/admin/Table";
 import { StatusBadge } from "@/components/admin/StatusBadge";
 import { ErrorBanner } from "@/components/admin/ErrorBanner";
 import { Modal } from "@/components/admin/Modal";
+import { IconDragHandle } from "@/components/icons";
 
 interface ContentRecord {
   id: string;
@@ -17,6 +18,10 @@ interface ContentRecord {
 }
 
 const STATUS_OPTIONS = ["", "draft", "pending_approval", "published", "rejected"] as const;
+
+function isReorderable(fields: { name: string }[]): boolean {
+  return fields.some((f) => f.name === "order");
+}
 
 function ContentListForType() {
   const params = useParams<{ type: string }>();
@@ -34,6 +39,7 @@ function ContentListForType() {
   const [error, setError] = useState<string | null>(null);
   const [rejectTarget, setRejectTarget] = useState<ContentRecord | null>(null);
   const [rejectReason, setRejectReason] = useState("");
+  const [draggedId, setDraggedId] = useState<string | null>(null);
 
   const fetchRecords = useCallback(async () => {
     if (!config) return;
@@ -116,6 +122,34 @@ function ContentListForType() {
     fetchRecords();
   }
 
+  async function handleDrop(targetId: string) {
+    if (!draggedId || draggedId === targetId) {
+      setDraggedId(null);
+      return;
+    }
+    const fromIndex = records.findIndex((r) => r.id === draggedId);
+    const toIndex = records.findIndex((r) => r.id === targetId);
+    if (fromIndex === -1 || toIndex === -1) {
+      setDraggedId(null);
+      return;
+    }
+    const reordered = [...records];
+    const [moved] = reordered.splice(fromIndex, 1);
+    reordered.splice(toIndex, 0, moved);
+    setRecords(reordered); // optimistic
+    setDraggedId(null);
+
+    const res = await fetch(`/admin/api/content/${type}/reorder`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ items: reordered.map((r, i) => ({ id: r.id, order: i })) }),
+    });
+    if (!res.ok) {
+      setError("Could not save the new order. Reloading the list.");
+      fetchRecords();
+    }
+  }
+
   if (!config) {
     return <ErrorBanner message={`Unknown content type "${type}".`} />;
   }
@@ -166,6 +200,65 @@ function ContentListForType() {
 
       {loading ? (
         <p className="font-body text-sm text-slate">Loading…</p>
+      ) : isSuperadmin && isReorderable(config.fields) ? (
+        <table className="w-full border-collapse font-body text-sm">
+          <thead>
+            <tr className="border-b border-ink/10 text-left">
+              <th className="py-2 pr-2" />
+              {config.listColumns.map((col) => (
+                <th key={col.key} className="py-2 pr-4 font-stamp text-[0.7rem] uppercase tracking-wide text-slate">
+                  {col.label}
+                </th>
+              ))}
+              <th className="py-2 pr-4 font-stamp text-[0.7rem] uppercase tracking-wide text-slate">Status</th>
+              <th className="py-2" />
+            </tr>
+          </thead>
+          <tbody>
+            {records.map((row) => (
+              <tr
+                key={row.id}
+                draggable
+                onDragStart={() => setDraggedId(row.id)}
+                onDragOver={(e) => e.preventDefault()}
+                onDrop={() => handleDrop(row.id)}
+                className={`border-b border-ink/10 ${draggedId === row.id ? "stamp-rotate opacity-70" : ""}`}
+              >
+                <td className="py-3 pr-2 cursor-grab text-slate">
+                  <IconDragHandle className="h-5 w-5" />
+                </td>
+                {config.listColumns.map((col) => (
+                  <td key={col.key} className="py-3 pr-4 align-top text-ink">
+                    {String(row[col.key] ?? "")}
+                  </td>
+                ))}
+                <td className="py-3 pr-4 align-top">
+                  <StatusBadge status={row.approvalStatus} />
+                </td>
+                <td className="py-3 text-right">
+                  <div className="flex justify-end gap-2">
+                    <Link href={`/admin/content/${type}/${row.id}`} className="font-body text-sm text-olive-ink underline">
+                      Edit
+                    </Link>
+                    {row.approvalStatus === "pending_approval" && (
+                      <>
+                        <button type="button" onClick={() => handleApprove(row)} className="font-body text-sm text-olive-ink underline">
+                          Approve
+                        </button>
+                        <button type="button" onClick={() => setRejectTarget(row)} className="font-body text-sm text-ink underline">
+                          Reject
+                        </button>
+                      </>
+                    )}
+                    <button type="button" onClick={() => handleDelete(row)} className="font-body text-sm text-ink underline">
+                      Delete
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       ) : (
         <Table
           columns={[
@@ -200,6 +293,7 @@ function ContentListForType() {
           emptyMessage={`No ${config.displayNamePlural.toLowerCase()} yet.`}
         />
       )}
+
 
       {rejectTarget && (
         <Modal title={`Reject this ${config.displayName.toLowerCase()}`} onClose={() => setRejectTarget(null)}>
