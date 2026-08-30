@@ -2,16 +2,16 @@
 
 ## Security
 
-### Encrypt/hash Admin.twoFASecret and twoFARecoveryCodes before write
+### Encrypt/hash `Admin.twoFASecret` and `twoFARecoveryCodes` before write
 
 **What:** The Foundation Prisma schema stores `twoFASecret` as a plain `TEXT` column and `twoFARecoveryCodes` as a plain `TEXT[]` (`apps/api/prisma/schema.prisma`, `Admin` model). The original plan requires the TOTP secret to be "encrypted at rest" and recovery codes to be "hashed one-time recovery codes" — neither is enforced by the schema itself; it has to happen in application code before the values are ever written.
 
 **Why:** A background security review of the Foundation commit flagged these columns. They're not a defect in the schema (Foundation only defines storage shape, not the auth flow), but if Gate 2's admin-auth implementation writes to these columns without encrypting/hashing first, real TOTP secrets and recovery codes end up in plaintext in the database.
 
-**Context:** Surfaced by an automated security review during the Foundation build. `passwordHash` is correctly a hash by design and needs no further action. This TODO exists so Gate 2's implementation plan explicitly includes: encrypt `twoFASecret` with an application-level key before create/update, and hash each recovery code (e.g. bcrypt) before storing.
+**Context:** Surfaced by an automated security review during `/plan-eng-review`'s subagent-driven build (Task 2, commit `02fe209`). `passwordHash` is correctly a hash by design and needs no further action. This TODO exists so Gate 2's implementation plan explicitly includes: encrypt `twoFASecret` with an application-level key (e.g. via a KMS-backed envelope encryption or at minimum AES-GCM with a secret from environment/secrets manager, never committed) before `create`/`update`, and hash each recovery code (e.g. bcrypt, same as `passwordHash`) before storing — comparing on verification the same way passwords are checked, never storing or logging the plaintext code after the one-time display at setup.
 
 **Effort:** S (a few functions in the Gate 2 auth service, not a schema change)
-**Priority:** P1 — must land before any real admin account is created
+**Priority:** P1 — must land before any real admin account is created, i.e. before Gate 2 goes live, not before Foundation/Gate 1
 **Depends on:** Gate 2's admin-auth implementation task (2FA setup/login flow)
 
 ## Foundation
@@ -78,16 +78,40 @@
 **Priority:** P2
 **Depends on:** None — can be resolved any time before Gate 1 launch
 
-## Security
+### Confirm a trusted edge strips client-supplied `X-Forwarded-For` before setting `TRUST_PROXY`
 
-### Encrypt/hash `Admin.twoFASecret` and `twoFARecoveryCodes` before write
+**What:** Before ever setting `apps/api`'s `TRUST_PROXY` env var to enable IP-based rate-limiting through the Next.js BFF proxy, confirm what actually terminates public traffic in front of `apps/web` in production, and that it overwrites (not appends to) any client-supplied `X-Forwarded-For` header with the real connecting address.
 
-**What:** The Foundation Prisma schema stores `twoFASecret` as a plain `TEXT` column and `twoFARecoveryCodes` as a plain `TEXT[]` (`apps/api/prisma/schema.prisma`, `Admin` model). The original plan requires the TOTP secret to be "encrypted at rest" and recovery codes to be "hashed one-time recovery codes" — neither is enforced by the schema itself; it has to happen in application code before the values are ever written.
+**Why:** Gate 2's frontend admin auth plan (`docs/superpowers/plans/2026-08-28-gate-2-frontend-auth-ui.md`, Tasks 4-7) has every Next.js Route Handler relay the `x-forwarded-for` header it received on the incoming browser request straight through to Express, so Express's `express-rate-limit` middleware (keyed on `req.ip`) can key on the real client instead of collapsing every user into one shared bucket (Next.js's own address). That relay is only safe to trust if `apps/web` itself sits behind a real reverse proxy/CDN/load balancer that sanitizes the header first. If `apps/web` is directly internet-facing with nothing in front of it, a client can set `X-Forwarded-For` to anything on every request and get a fresh rate-limit bucket each time — a full bypass of the IP-based login/2FA rate limiters (though not of the separate, IP-independent per-account lockout, which stays intact either way). Caught by an automated security review during Task 4/5's implementation, after an earlier automated review had flagged the original shared-bucket problem the relay fixes — see `apps/api/.env.example`'s expanded `TRUST_PROXY` comment for the full reasoning.
 
-**Why:** A background security review of the Foundation commit flagged these columns. They're not a defect in the schema (Foundation only defines storage shape, not the auth flow), but if Gate 2's admin-auth implementation writes to these columns without encrypting/hashing first, real TOTP secrets and recovery codes end up in plaintext in the database.
+**Context:** This is a deployment-topology fact this repo can't determine on its own (what fronts `apps/web` in the real production environment). Until confirmed, `TRUST_PROXY` must stay unset (the current default) — the code-level relay is inert in that state, and the account lockout remains the sole, sufficient brute-force defense.
 
-**Context:** Surfaced by an automated security review during `/plan-eng-review`'s subagent-driven build (Task 2, commit `02fe209`). `passwordHash` is correctly a hash by design and needs no further action. This TODO exists so Gate 2's implementation plan explicitly includes: encrypt `twoFASecret` with an application-level key (e.g. via a KMS-backed envelope encryption or at minimum AES-GCM with a secret from environment/secrets manager, never committed) before `create`/`update`, and hash each recovery code (e.g. bcrypt, same as `passwordHash`) before storing — comparing on verification the same way passwords are checked, never storing or logging the plaintext code after the one-time display at setup.
+**Effort:** S (a deployment verification + one env var, not a code change)
+**Priority:** P1 — must be resolved before `TRUST_PROXY` is ever set in a real deployment; not blocking for continued Gate 2 frontend development, since the default (unset) is safe
+**Depends on:** Knowing Gate 2's actual production hosting/reverse-proxy setup (see "Define post-launch ops ownership" above)
 
-**Effort:** S (a few functions in the Gate 2 auth service, not a schema change)
-**Priority:** P1 — must land before any real admin account is created, i.e. before Gate 2 goes live, not before Foundation/Gate 1
-**Depends on:** Gate 2's admin-auth implementation task (2FA setup/login flow)
+### Migrate `apps/web/middleware.ts` to the `proxy` convention
+
+**What:** Next.js 16.3.2 already deprecates the `middleware.ts` file convention in favor of `proxy.ts` (confirmed via a build warning: `The "middleware" file convention is deprecated. Please use "proxy" instead.`). Run `npx @next/codemod@canary middleware-to-proxy` (or the manual equivalent) to migrate `apps/web/middleware.ts` (Gate 2 frontend auth UI plan, Task 10 — route-protection gate for `/admin/**`).
+
+**Why:** Not currently broken — `middleware.ts` still works and was verified end-to-end (redirects unauthenticated `/admin/**` requests to `/admin/login`, doesn't leak into the Edge bundle). But Plans 3b/3c will keep building on top of this file, and a deprecated convention risks removal in a future Next.js major with no advance warning if left alone.
+
+**Context:** Surfaced by this plan's final whole-branch review.
+
+**Effort:** S (one codemod run + verify the build warning is gone)
+**Priority:** P3
+**Depends on:** None
+
+## Design
+
+### Fill in the full per-feature interaction-state table
+
+**What:** Specify loading/empty/error/success/partial states for every remaining UI feature — `/plan-design-review` only locked in the two highest-risk flows (enquiry form, admin approvals queue); everything else (services listing, blog strip, testimonials, admin content CRUD screens, sessions/trash/audit-log views) still needs the same treatment.
+
+**Why:** Without this, an implementer defaults to bare "Loading..."/"No items found" placeholders per screen as they're built, rather than considered, on-brand states — the exact gap the design review's Pass 2 flagged (initial score 1/10).
+
+**Context:** Natural point to do this is once DESIGN.md exists (post `/design-consultation`, already recommended in the design review) and Gate 1/Gate 2 implementation plans are being written — fill in states screen-by-screen as each plan takes shape, rather than as one disconnected exercise now.
+
+**Effort:** M (spread across both Gate plans, not one big task)
+**Priority:** P2
+**Depends on:** `/design-consultation` (for tone/voice of empty-state copy), Gate 1 and Gate 2 plans being written

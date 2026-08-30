@@ -57,15 +57,17 @@ model Admin {
 }
 
 model AdminSession {
-  id           String    @id @default(cuid())
-  adminId      String
-  admin        Admin     @relation(fields: [adminId], references: [id])
-  deviceInfo   String?
-  ipAddress    String?
-  userAgent    String?
-  createdAt    DateTime  @default(now())
-  lastActiveAt DateTime  @default(now())
-  revokedAt    DateTime?
+  id               String    @id @default(cuid())
+  adminId          String
+  admin            Admin     @relation(fields: [adminId], references: [id])
+  refreshTokenHash String    @unique
+  expiresAt        DateTime
+  deviceInfo       String?
+  ipAddress        String?
+  userAgent        String?
+  createdAt        DateTime  @default(now())
+  lastActiveAt     DateTime  @default(now())
+  revokedAt        DateTime?
 
   @@index([adminId])
 }
@@ -188,6 +190,26 @@ model Faq {
   @@index([approvalStatus])
   @@index([deletedAt])
   // Hot public-read path: approvalStatus = 'published' AND deletedAt IS NULL.
+  @@index([approvalStatus, deletedAt])
+}
+
+model InstagramPost {
+  id              String         @id @default(cuid())
+  image           String
+  permalink       String
+  order           Int            @default(0)
+  isActive        Boolean        @default(true)
+  approvalStatus  ApprovalStatus @default(draft)
+  submittedBy     String?
+  approvedBy      String?
+  approvedAt      DateTime?
+  rejectionReason String?
+  deletedAt       DateTime?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  @@index([approvalStatus])
+  @@index([deletedAt])
   @@index([approvalStatus, deletedAt])
 }
 

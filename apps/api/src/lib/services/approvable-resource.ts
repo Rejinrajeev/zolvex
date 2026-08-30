@@ -40,9 +40,15 @@
  * `req.body` into this service. Tracked in TODOS.md ("Denylist field-strip
  * depends on an HTTP-layer allowlist").
  */
-import type { AuditAction, Prisma, PrismaClient } from "@prisma/client";
+import type { Prisma, PrismaClient, ApprovalStatus } from "@prisma/client";
+import { writeAuditRow, buildAuditDiff, type AuditDiff } from "./audit.js";
+
+export { buildAuditDiff, type AuditDiff } from "./audit.js";
 
 export class SlugConflictError extends Error {}
+export class RecordNotFoundError extends Error {}
+export class ForbiddenActionError extends Error {}
+export class InvalidStateError extends Error {}
 
 export interface Actor {
   id: string;
@@ -54,12 +60,6 @@ export interface Actor {
    */
   ipAddress?: string;
 }
-
-/**
- * Canonical audit-log `diff` shape: one entry per field that actually changed.
- * Matches the spec's `diff (jsonb: {field: {old, new}})`.
- */
-export type AuditDiff = Record<string, { old: unknown; new: unknown }>;
 
 /**
  * The single source of truth for "visible to the public".
@@ -77,7 +77,8 @@ export const publicVisibilityWhere = {
 } as const satisfies Prisma.ServiceWhereInput &
   Prisma.BlogPostWhereInput &
   Prisma.TestimonialWhereInput &
-  Prisma.FaqWhereInput;
+  Prisma.FaqWhereInput &
+  Prisma.InstagramPostWhereInput;
 
 // "place" is deliberately excluded: Place has no approvalStatus/submittedBy/
 // approvedBy/approvedAt/rejectionReason columns and is not part of the
@@ -92,9 +93,32 @@ const ENTITY_NAMES = {
   blogPost: "BlogPost",
   testimonial: "Testimonial",
   faq: "Faq",
+  instagramPost: "InstagramPost",
 } as const;
 
 type DelegateName = keyof typeof ENTITY_NAMES;
+
+// The one free-text-searchable column per type, used by list()'s `search` filter.
+const SEARCH_FIELDS: Record<DelegateName, string> = {
+  service: "name",
+  blogPost: "title",
+  testimonial: "name",
+  faq: "question",
+  instagramPost: "permalink",
+};
+
+// Not every delegate has an `order` column — `Testimonial` doesn't (confirmed
+// against schema.prisma; the spec's claim that "all five types have an order
+// field" is wrong for this one, ground truth over intention, same as the
+// Plan 1 spec's own documented Place correction). list() falls back to
+// createdAt for these, and reorder() refuses them outright with a clear
+// error instead of letting Prisma throw an opaque "Unknown argument" error.
+const ORDERABLE: Partial<Record<DelegateName, true>> = {
+  service: true,
+  blogPost: true,
+  faq: true,
+  instagramPost: true,
+};
 
 const WORKFLOW_FIELDS = [
   "id",
@@ -114,36 +138,6 @@ function stripWorkflowFields(data: Record<string, unknown>): Record<string, unkn
     delete clean[field];
   }
   return clean;
-}
-
-function sameValue(a: unknown, b: unknown): boolean {
-  if (a === b) return true;
-  if (a instanceof Date && b instanceof Date) return a.getTime() === b.getTime();
-  if (a === null || b === null || a === undefined || b === undefined) return false;
-  if (typeof a === "object" && typeof b === "object") {
-    return JSON.stringify(a) === JSON.stringify(b);
-  }
-  return false;
-}
-
-/**
- * Build a per-field `{field: {old, new}}` diff of exactly what changed.
- * `before` is null for creates, in which case every field of the new record is
- * reported with `old: null`.
- */
-export function buildAuditDiff(
-  before: Record<string, unknown> | null,
-  after: Record<string, unknown>
-): AuditDiff {
-  const diff: AuditDiff = {};
-  const keys = new Set([...Object.keys(before ?? {}), ...Object.keys(after)]);
-  for (const key of keys) {
-    const old = before ? (before[key] ?? null) : null;
-    const next = after[key] ?? null;
-    if (before && sameValue(old, next)) continue;
-    diff[key] = { old, new: next };
-  }
-  return diff;
 }
 
 /**
@@ -182,43 +176,9 @@ export class ApprovableResourceService {
     return actor.role === "superadmin" ? "published" : "pending_approval";
   }
 
-  /**
-   * The single place an audit row is written. All six mutating methods go
-   * through here so the row shape stays identical.
-   *
-   * Deliberately takes `tx` rather than `this.prisma`: the audit row MUST be
-   * written inside the caller's transaction so a failed audit write rolls the
-   * content write back.
-   *
-   * Not entity-specific beyond `this.entityName` — when Gate 1/2 add audited
-   * writes for the non-approvable entities (`place`, `pageContent`), this can be
-   * lifted into a shared free function taking `entity` as a parameter.
-   */
-  private async writeAudit(
-    tx: any,
-    params: {
-      actorId: string;
-      ipAddress?: string;
-      action: AuditAction;
-      entityId: string;
-      diff: AuditDiff;
-    }
-  ) {
-    await tx.auditLog.create({
-      data: {
-        adminId: params.actorId,
-        action: params.action,
-        entity: this.entityName,
-        entityId: params.entityId,
-        diff: params.diff,
-        ipAddress: params.ipAddress ?? null,
-      },
-    });
-  }
-
   private assertNotDeleted(before: { deletedAt?: Date | null }, id: string) {
     if (before.deletedAt) {
-      throw new Error(
+      throw new InvalidStateError(
         `Cannot operate on ${this.entityName} ${id}: record is soft-deleted (restore it first)`
       );
     }
@@ -240,7 +200,8 @@ export class ApprovableResourceService {
         const record = await this.delegate(tx).create({
           data: { ...cleanData, approvalStatus, submittedBy: actor.id },
         });
-        await this.writeAudit(tx, {
+        await writeAuditRow(tx, {
+          entity: this.entityName,
           actorId: actor.id,
           ipAddress: actor.ipAddress,
           action: "create",
@@ -266,7 +227,7 @@ export class ApprovableResourceService {
     try {
       return await this.prisma.$transaction(async (tx) => {
         const before = await this.delegate(tx).findUnique({ where: { id } });
-        if (!before) throw new Error(`${this.entityName} ${id} not found`);
+        if (!before) throw new RecordNotFoundError(`${this.entityName} ${id} not found`);
         this.assertNotDeleted(before, id);
 
         const approvalStatus = this.statusFor(actor);
@@ -283,7 +244,8 @@ export class ApprovableResourceService {
           data: { ...cleanData, approvalStatus, submittedBy: actor.id, ...approvalReset },
         });
 
-        await this.writeAudit(tx, {
+        await writeAuditRow(tx, {
+          entity: this.entityName,
           actorId: actor.id,
           ipAddress: actor.ipAddress,
           action: "update",
@@ -304,20 +266,21 @@ export class ApprovableResourceService {
 
   async softDelete(actor: Actor, id: string) {
     if (actor.role !== "superadmin") {
-      throw new Error("Only superadmin can delete/restore");
+      throw new ForbiddenActionError("Only superadmin can delete/restore");
     }
 
     return this.prisma.$transaction(async (tx) => {
       const before = await this.delegate(tx).findUnique({ where: { id } });
-      if (!before) throw new Error(`${this.entityName} ${id} not found`);
-      if (before.deletedAt) throw new Error(`${this.entityName} ${id} already deleted`);
+      if (!before) throw new RecordNotFoundError(`${this.entityName} ${id} not found`);
+      if (before.deletedAt) throw new InvalidStateError(`${this.entityName} ${id} already deleted`);
 
       const record = await this.delegate(tx).update({
         where: { id },
         data: { deletedAt: new Date() },
       });
 
-      await this.writeAudit(tx, {
+      await writeAuditRow(tx, {
+        entity: this.entityName,
         actorId: actor.id,
         ipAddress: actor.ipAddress,
         action: "delete",
@@ -330,13 +293,13 @@ export class ApprovableResourceService {
 
   async restore(actor: Actor, id: string) {
     if (actor.role !== "superadmin") {
-      throw new Error("Only superadmin can delete/restore");
+      throw new ForbiddenActionError("Only superadmin can delete/restore");
     }
 
     return this.prisma.$transaction(async (tx) => {
       const before = await this.delegate(tx).findUnique({ where: { id } });
-      if (!before) throw new Error(`${this.entityName} ${id} not found`);
-      if (!before.deletedAt) throw new Error(`${this.entityName} ${id} is not deleted`);
+      if (!before) throw new RecordNotFoundError(`${this.entityName} ${id} not found`);
+      if (!before.deletedAt) throw new InvalidStateError(`${this.entityName} ${id} is not deleted`);
 
       if ("slug" in before && before.slug) {
         const conflict = await this.delegate(tx).findFirst({
@@ -354,7 +317,8 @@ export class ApprovableResourceService {
         data: { deletedAt: null },
       });
 
-      await this.writeAudit(tx, {
+      await writeAuditRow(tx, {
+        entity: this.entityName,
         actorId: actor.id,
         ipAddress: actor.ipAddress,
         action: "restore",
@@ -367,15 +331,15 @@ export class ApprovableResourceService {
 
   async approve(actor: Actor, id: string) {
     if (actor.role !== "superadmin") {
-      throw new Error("Only superadmin can approve/reject");
+      throw new ForbiddenActionError("Only superadmin can approve/reject");
     }
 
     return this.prisma.$transaction(async (tx) => {
       const before = await this.delegate(tx).findUnique({ where: { id } });
-      if (!before) throw new Error(`${this.entityName} ${id} not found`);
+      if (!before) throw new RecordNotFoundError(`${this.entityName} ${id} not found`);
       this.assertNotDeleted(before, id);
       if (before.approvalStatus !== "pending_approval") {
-        throw new Error(
+        throw new InvalidStateError(
           `Cannot approve ${this.entityName} ${id}: not pending approval (current status: ${before.approvalStatus})`
         );
       }
@@ -385,7 +349,8 @@ export class ApprovableResourceService {
         data: { approvalStatus: "published", approvedBy: actor.id, approvedAt: new Date() },
       });
 
-      await this.writeAudit(tx, {
+      await writeAuditRow(tx, {
+        entity: this.entityName,
         actorId: actor.id,
         ipAddress: actor.ipAddress,
         action: "publish",
@@ -398,18 +363,18 @@ export class ApprovableResourceService {
 
   async reject(actor: Actor, id: string, reason: string) {
     if (actor.role !== "superadmin") {
-      throw new Error("Only superadmin can approve/reject");
+      throw new ForbiddenActionError("Only superadmin can approve/reject");
     }
     if (!reason || reason.trim().length === 0) {
-      throw new Error("rejectionReason is required");
+      throw new InvalidStateError("rejectionReason is required");
     }
 
     return this.prisma.$transaction(async (tx) => {
       const before = await this.delegate(tx).findUnique({ where: { id } });
-      if (!before) throw new Error(`${this.entityName} ${id} not found`);
+      if (!before) throw new RecordNotFoundError(`${this.entityName} ${id} not found`);
       this.assertNotDeleted(before, id);
       if (before.approvalStatus !== "pending_approval") {
-        throw new Error(
+        throw new InvalidStateError(
           `Cannot reject ${this.entityName} ${id}: not pending approval (current status: ${before.approvalStatus})`
         );
       }
@@ -419,7 +384,8 @@ export class ApprovableResourceService {
         data: { approvalStatus: "rejected", rejectionReason: reason },
       });
 
-      await this.writeAudit(tx, {
+      await writeAuditRow(tx, {
+        entity: this.entityName,
         actorId: actor.id,
         ipAddress: actor.ipAddress,
         action: "reject",
@@ -427,6 +393,52 @@ export class ApprovableResourceService {
         diff: buildAuditDiff(before, record),
       });
       return record;
+    });
+  }
+
+  /**
+   * `status` is typed as the ApprovalStatus enum, not `string`: it lands
+   * verbatim in a Prisma `approvalStatus` filter, which throws
+   * PrismaClientValidationError for anything outside the enum. Keeping the
+   * narrow type here makes the HTTP layer's validation a compile-time
+   * obligation rather than a convention a future caller can forget.
+   */
+  async list(filter?: { status?: ApprovalStatus; search?: string }) {
+    const where: Record<string, unknown> = { deletedAt: null };
+    if (filter?.status) where.approvalStatus = filter.status;
+    if (filter?.search) {
+      where[SEARCH_FIELDS[this.delegateName]] = { contains: filter.search, mode: "insensitive" };
+    }
+    const orderBy = ORDERABLE[this.delegateName] ? { order: "asc" as const } : { createdAt: "desc" as const };
+    return this.delegate(this.prisma).findMany({ where, orderBy });
+  }
+
+  async reorder(actor: Actor, items: { id: string; order: number }[]) {
+    if (!ORDERABLE[this.delegateName]) {
+      throw new InvalidStateError(`${this.entityName} does not support manual ordering`);
+    }
+    return this.prisma.$transaction(async (tx) => {
+      const results = [];
+      for (const item of items) {
+        const before = await this.delegate(tx).findUnique({ where: { id: item.id } });
+        if (!before) throw new RecordNotFoundError(`${this.entityName} ${item.id} not found`);
+        // Same guard update()/approve()/reject() apply. Reordering a trashed
+        // record would write a misleading audit row and leave it in a confusing
+        // half-state; the whole batch rolls back instead.
+        this.assertNotDeleted(before, item.id);
+
+        const record = await this.delegate(tx).update({ where: { id: item.id }, data: { order: item.order } });
+        await writeAuditRow(tx, {
+          entity: this.entityName,
+          actorId: actor.id,
+          ipAddress: actor.ipAddress,
+          action: "update",
+          entityId: item.id,
+          diff: buildAuditDiff({ order: before.order }, { order: record.order }),
+        });
+        results.push(record);
+      }
+      return results;
     });
   }
 }
