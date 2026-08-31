@@ -2,6 +2,12 @@
 import { getApiBaseUrl } from "./env";
 import { getAccessToken, getRefreshToken, setAccessTokenCookie, clearSessionCookies } from "./cookies";
 
+/**
+ * Kept only so any external reference (a stale import, a lingering
+ * instanceof check written against the old contract) fails to compile
+ * rather than silently misbehaving. callExpress itself no longer throws
+ * this -- see the note below on why.
+ */
 export class UpstreamUnauthorizedError extends Error {}
 
 /**
@@ -9,8 +15,17 @@ export class UpstreamUnauthorizedError extends Error {}
  * token (if any). On a 401 (expired access token), silently refreshes using
  * the relayed refresh-token cookie and retries the original call exactly
  * once. If there's no refresh token, or the refresh call itself fails,
- * clears both session cookies and throws -- the calling Route Handler
- * catches this and responds 401, and the frontend redirects to /admin/login.
+ * clears both session cookies and returns a synthetic 401 Response --
+ * NEVER throws. Every Route Handler in this codebase already does
+ * `const data = await parseJsonSafe(upstream); return NextResponse.json(data
+ * ?? {...}, {status: upstream.status})`, which handles this 401 correctly
+ * with no changes needed at any of the ~30 call sites. Throwing instead (the
+ * original design) required every one of those call sites to wrap its own
+ * callExpress call in try/catch to honor the contract -- none of them did,
+ * so a refresh failure crashed the Route Handler with an uncaught exception
+ * (a generic 500 with a non-JSON body) instead of the intended clean 401.
+ * Found during a post-merge review of Plans 3b/3c; fixed at the source
+ * rather than retrofitting ~30 files, each an easy place to forget it again.
  */
 export async function callExpress(path: string, init: RequestInit = {}): Promise<Response> {
   const baseUrl = getApiBaseUrl();
@@ -49,7 +64,7 @@ export async function callExpress(path: string, init: RequestInit = {}): Promise
   const refreshToken = await getRefreshToken();
   if (!refreshToken) {
     await clearSessionCookies();
-    throw new UpstreamUnauthorizedError("No refresh token available");
+    return unauthorizedResponse();
   }
 
   const refreshResponse = await fetch(`${baseUrl}/admin/api/auth/refresh`, {
@@ -58,13 +73,20 @@ export async function callExpress(path: string, init: RequestInit = {}): Promise
   });
   if (!refreshResponse.ok) {
     await clearSessionCookies();
-    throw new UpstreamUnauthorizedError("Refresh failed");
+    return unauthorizedResponse();
   }
 
   const { accessToken: freshAccessToken } = (await refreshResponse.json()) as { accessToken: string };
   await setAccessTokenCookie(freshAccessToken);
 
   return doFetch(freshAccessToken);
+}
+
+function unauthorizedResponse(): Response {
+  return new Response(JSON.stringify({ error: "unauthorized" }), {
+    status: 401,
+    headers: { "Content-Type": "application/json" },
+  });
 }
 
 /**

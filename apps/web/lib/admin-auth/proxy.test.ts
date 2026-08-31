@@ -16,7 +16,7 @@ vi.mock("next/headers", () => ({
 
 process.env.API_BASE_URL = "http://test-backend.internal";
 
-const { callExpress, UpstreamUnauthorizedError } = await import("./proxy.js");
+const { callExpress } = await import("./proxy.js");
 const { ACCESS_TOKEN_COOKIE, REFRESH_TOKEN_COOKIE } = await import("./cookies.js");
 
 beforeEach(() => {
@@ -93,7 +93,7 @@ describe("callExpress", () => {
     }
   });
 
-  it("clears session cookies and throws UpstreamUnauthorizedError when refresh itself fails", async () => {
+  it("clears session cookies and returns a 401 JSON response when refresh itself fails -- never throws", async () => {
     store.set(ACCESS_TOKEN_COOKIE, { value: "expired-token" });
     store.set(REFRESH_TOKEN_COOKIE, { value: "bad-refresh-token" });
 
@@ -101,17 +101,40 @@ describe("callExpress", () => {
       .mockResolvedValueOnce(new Response("{}", { status: 401 }))
       .mockResolvedValueOnce(new Response("{}", { status: 401 })); // refresh fails too
 
-    await expect(callExpress("/admin/api/content/faq")).rejects.toBeInstanceOf(UpstreamUnauthorizedError);
+    const res = await callExpress("/admin/api/content/faq");
+
+    expect(res.status).toBe(401);
+    expect(await res.json()).toEqual({ error: "unauthorized" });
     expect(store.has(ACCESS_TOKEN_COOKIE)).toBe(false);
     expect(store.has(REFRESH_TOKEN_COOKIE)).toBe(false);
   });
 
-  it("throws immediately, without attempting a refresh call, when there is no refresh token", async () => {
+  it("returns a 401 JSON response immediately, without attempting a refresh call or throwing, when there is no refresh token", async () => {
     store.set(ACCESS_TOKEN_COOKIE, { value: "expired-token" });
     const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(new Response("{}", { status: 401 }));
 
-    await expect(callExpress("/admin/api/content/faq")).rejects.toBeInstanceOf(UpstreamUnauthorizedError);
+    const res = await callExpress("/admin/api/content/faq");
+
+    expect(res.status).toBe(401);
+    expect(await res.json()).toEqual({ error: "unauthorized" });
     expect(fetchMock).toHaveBeenCalledTimes(1); // only the original attempt, no refresh call
+  });
+
+  it("a Route Handler's existing parseJsonSafe + NextResponse.json(data, {status}) pattern needs no changes to handle this 401 correctly", async () => {
+    // This is the regression guard for the actual bug: every real Route
+    // Handler in this codebase does `const data = await parseJsonSafe(upstream);
+    // return NextResponse.json(data ?? {...}, {status: upstream.status})` with
+    // NO try/catch. Before this fix, a refresh failure threw here, which none
+    // of those ~30 call sites caught -- an uncaught exception, not a clean 401.
+    store.set(ACCESS_TOKEN_COOKIE, { value: "expired-token" });
+    vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(new Response("{}", { status: 401 }));
+
+    const { parseJsonSafe } = await import("./proxy.js");
+    const upstream = await callExpress("/admin/api/content/faq");
+    const data = await parseJsonSafe(upstream);
+
+    expect(data).toEqual({ error: "unauthorized" });
+    expect(upstream.status).toBe(401);
   });
 
   it("lets a caller-supplied Authorization header win over the auto-attached access token (the 2FA setup/verify/recovery handlers rely on this)", async () => {
