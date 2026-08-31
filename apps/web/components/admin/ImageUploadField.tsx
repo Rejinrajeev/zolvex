@@ -13,16 +13,26 @@ export function ImageUploadField({
   value,
   onChange,
   required,
+  serverError,
 }: {
   label: string;
   value: string;
   onChange: (url: string) => void;
   required?: boolean;
+  /**
+   * A field-level validation error from the server (e.g. Express's Zod
+   * schema rejecting a missing required image). Distinct from this
+   * component's own `error` state below, which is an upload-attempt
+   * failure (wrong file type, too large, network error) -- both need to
+   * be visible, since either can be the reason the field is invalid.
+   */
+  serverError?: string;
 }) {
   const [dragOver, setDragOver] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const displayError = error ?? serverError;
 
   async function uploadFile(file: File) {
     setUploading(true);
@@ -65,7 +75,7 @@ export function ImageUploadField({
         }}
         onClick={() => inputRef.current?.click()}
         className={`relative flex aspect-[4/3] max-w-xs cursor-pointer items-center justify-center overflow-hidden border bg-paper-dim ${
-          dragOver ? "border-2 border-olive-ink" : "border-ink/12"
+          dragOver ? "border-2 border-olive-ink" : displayError ? "border-2 border-ink" : "border-ink/12"
         }`}
       >
         {value ? (
@@ -87,7 +97,12 @@ export function ImageUploadField({
           }}
         />
       </div>
-      {error && <p role="alert" className="mt-1 font-body text-sm text-ink">{error}</p>}
+      {displayError && (
+        <p role="alert" className="mt-1 font-body text-sm text-ink">
+          <span aria-hidden="true" className="stamp-rotate inline-block mr-1">◆</span>
+          {displayError}
+        </p>
+      )}
     </div>
   );
 }

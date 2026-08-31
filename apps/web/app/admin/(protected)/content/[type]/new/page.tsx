@@ -20,7 +20,7 @@ export default function NewContentPage() {
     return <ErrorBanner message={`Unknown content type "${type}".`} />;
   }
 
-  async function handleSubmit(values: FormValues) {
+  async function handleSubmit(values: Partial<FormValues>) {
     const res = await fetch(`/admin/api/content/${type}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
