@@ -136,9 +136,21 @@ export function ContentForm({
                   type={field.type === "number" ? "number" : "text"}
                   required={field.required}
                   value={String(values[field.name] ?? "")}
-                  onChange={(e) =>
-                    setField(field.name, field.type === "number" ? e.target.valueAsNumber : e.target.value)
-                  }
+                  onChange={(e) => {
+                    if (field.type !== "number") {
+                      setField(field.name, e.target.value);
+                      return;
+                    }
+                    // valueAsNumber is NaN while the field is empty (the
+                    // user is mid-edit, or just cleared a previously-filled
+                    // value) -- store "" in that case, not NaN, so the
+                    // input never renders the literal text "NaN" and
+                    // buildPayload's `value === ""` check (below) actually
+                    // matches on this path, not just on an untouched
+                    // pristine default.
+                    const next = e.target.valueAsNumber;
+                    setField(field.name, Number.isNaN(next) ? "" : next);
+                  }}
                   aria-invalid={Boolean(error)}
                   aria-describedby={error ? `${fieldId}-error` : undefined}
                   className={`block h-11 w-full border bg-paper px-3.5 font-body text-ink focus:outline-none ${
