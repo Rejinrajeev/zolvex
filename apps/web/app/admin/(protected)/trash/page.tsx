@@ -55,14 +55,18 @@ export default function TrashPage() {
   async function load() {
     setLoading(true);
     setError(null);
-    const res = await fetch("/admin/api/trash");
-    if (!res.ok) {
-      setError("Could not load trash.");
+    try {
+      const res = await fetch("/admin/api/trash");
+      if (!res.ok) {
+        setError("Could not load trash.");
+        return;
+      }
+      setRecords(await res.json());
+    } catch {
+      setError("Could not reach the server. Check your connection and try again.");
+    } finally {
       setLoading(false);
-      return;
     }
-    setRecords(await res.json());
-    setLoading(false);
   }
 
   useEffect(() => {
