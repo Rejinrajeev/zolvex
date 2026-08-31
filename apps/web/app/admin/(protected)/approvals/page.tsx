@@ -41,21 +41,25 @@ export default function ApprovalsPage() {
   async function load() {
     setLoading(true);
     setError(null);
-    const [approvalRes, meRes] = await Promise.all([
-      fetch("/admin/api/dashboard/approvals"),
-      fetch("/admin/api/auth/me"),
-    ]);
-    if (!approvalRes.ok) {
-      setError("Could not load pending approvals.");
+    try {
+      const [approvalRes, meRes] = await Promise.all([
+        fetch("/admin/api/dashboard/approvals"),
+        fetch("/admin/api/auth/me"),
+      ]);
+      if (!approvalRes.ok) {
+        setError("Could not load pending approvals.");
+        return;
+      }
+      setRecords(await approvalRes.json());
+      if (meRes.ok) {
+        const me = await meRes.json();
+        setRole(me?.role ?? null);
+      }
+    } catch {
+      setError("Could not reach the server. Check your connection and try again.");
+    } finally {
       setLoading(false);
-      return;
     }
-    setRecords(await approvalRes.json());
-    if (meRes.ok) {
-      const me = await meRes.json();
-      setRole(me?.role ?? null);
-    }
-    setLoading(false);
   }
 
   useEffect(() => {

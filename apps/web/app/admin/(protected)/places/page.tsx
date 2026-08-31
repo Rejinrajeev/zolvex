@@ -33,14 +33,18 @@ export default function PlacesPage() {
   async function load() {
     setLoading(true);
     setError(null);
-    const res = await fetch("/admin/api/places");
-    if (!res.ok) {
-      setError("Could not load places.");
+    try {
+      const res = await fetch("/admin/api/places");
+      if (!res.ok) {
+        setError("Could not load places.");
+        return;
+      }
+      setPlaces(await res.json());
+    } catch {
+      setError("Could not reach the server. Check your connection and try again.");
+    } finally {
       setLoading(false);
-      return;
     }
-    setPlaces(await res.json());
-    setLoading(false);
   }
 
   useEffect(() => {

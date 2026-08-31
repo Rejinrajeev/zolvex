@@ -21,7 +21,7 @@ export function ContentForm({
 }: {
   config: ContentTypeConfig;
   initialValues?: FormValues;
-  onSubmit: (values: FormValues) => Promise<{ fieldErrors?: Record<string, string>; generalError?: string } | void>;
+  onSubmit: (values: Partial<FormValues>) => Promise<{ fieldErrors?: Record<string, string>; generalError?: string } | void>;
   submitLabel: string;
 }) {
   const [values, setValues] = useState<FormValues>(() => {
@@ -39,12 +39,38 @@ export function ContentForm({
     setValues((prev) => ({ ...prev, [name]: value }));
   }
 
+  /**
+   * `<input type="number">`'s valueAsNumber is NaN while the field is empty
+   * (the user is mid-edit, or cleared it) -- storing NaN directly would
+   * render the literal text "NaN" back into the box, and JSON.stringify
+   * silently turns NaN into `null`, so a required field could be saved as
+   * null with no validation catching it. Store "" for an empty number field
+   * instead (setField already accepts it -- FormValues is string|number|
+   * boolean), and strip it back out here right before submit: omit it
+   * entirely for an optional field (so the server sees "not provided", not
+   * an empty value), or leave it as "" for a required field so Express's
+   * own Zod schema rejects it with a real "required" error the field-error
+   * mapping below already knows how to show.
+   */
+  function buildPayload(): Partial<FormValues> {
+    const payload: Partial<FormValues> = {};
+    for (const field of config.fields) {
+      const value = values[field.name];
+      if (field.type === "number" && value === "") {
+        if (field.required) payload[field.name] = value;
+        continue;
+      }
+      payload[field.name] = value;
+    }
+    return payload;
+  }
+
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
     setSubmitting(true);
     setFieldErrors({});
     setGeneralError(null);
-    const result = await onSubmit(values);
+    const result = await onSubmit(buildPayload());
     setSubmitting(false);
     if (result?.fieldErrors) setFieldErrors(result.fieldErrors);
     if (result?.generalError) setGeneralError(result.generalError);
@@ -69,6 +95,7 @@ export function ContentForm({
                 required={field.required}
                 value={String(values[field.name] ?? "")}
                 onChange={(url) => setField(field.name, url)}
+                serverError={error}
               />
             );
           }
@@ -109,9 +136,21 @@ export function ContentForm({
                   type={field.type === "number" ? "number" : "text"}
                   required={field.required}
                   value={String(values[field.name] ?? "")}
-                  onChange={(e) =>
-                    setField(field.name, field.type === "number" ? e.target.valueAsNumber : e.target.value)
-                  }
+                  onChange={(e) => {
+                    if (field.type !== "number") {
+                      setField(field.name, e.target.value);
+                      return;
+                    }
+                    // valueAsNumber is NaN while the field is empty (the
+                    // user is mid-edit, or just cleared a previously-filled
+                    // value) -- store "" in that case, not NaN, so the
+                    // input never renders the literal text "NaN" and
+                    // buildPayload's `value === ""` check (below) actually
+                    // matches on this path, not just on an untouched
+                    // pristine default.
+                    const next = e.target.valueAsNumber;
+                    setField(field.name, Number.isNaN(next) ? "" : next);
+                  }}
                   aria-invalid={Boolean(error)}
                   aria-describedby={error ? `${fieldId}-error` : undefined}
                   className={`block h-11 w-full border bg-paper px-3.5 font-body text-ink focus:outline-none ${

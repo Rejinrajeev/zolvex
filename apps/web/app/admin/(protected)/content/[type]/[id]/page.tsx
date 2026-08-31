@@ -60,7 +60,7 @@ export default function EditContentPage() {
     );
   }
 
-  async function handleSubmit(values: FormValues) {
+  async function handleSubmit(values: Partial<FormValues>) {
     const res = await fetch(`/admin/api/content/${type}/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },

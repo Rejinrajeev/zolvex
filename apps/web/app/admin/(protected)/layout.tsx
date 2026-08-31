@@ -33,9 +33,7 @@ function NavGroup({ title, children }: { title: string; children: React.ReactNod
 function NavLink({ href, children }: { href: string; children: React.ReactNode }) {
   const pathname = usePathname();
   const active =
-    pathname === href ||
-    (href !== "/admin/dashboard" && pathname.startsWith(href + "/")) ||
-    (href !== "/admin/dashboard" && pathname === href);
+    pathname === href || (href !== "/admin/dashboard" && pathname.startsWith(href + "/"));
   return (
     <Link
       href={href}

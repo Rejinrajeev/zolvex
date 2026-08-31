@@ -22,14 +22,18 @@ export default function SessionsPage() {
   async function load() {
     setLoading(true);
     setError(null);
-    const res = await fetch("/admin/api/sessions");
-    if (!res.ok) {
-      setError("Could not load sessions.");
+    try {
+      const res = await fetch("/admin/api/sessions");
+      if (!res.ok) {
+        setError("Could not load sessions.");
+        return;
+      }
+      setSessions(await res.json());
+    } catch {
+      setError("Could not reach the server. Check your connection and try again.");
+    } finally {
       setLoading(false);
-      return;
     }
-    setSessions(await res.json());
-    setLoading(false);
   }
 
   useEffect(() => {

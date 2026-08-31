@@ -40,6 +40,7 @@ function ContentListForType() {
   const [rejectTarget, setRejectTarget] = useState<ContentRecord | null>(null);
   const [rejectReason, setRejectReason] = useState("");
   const [draggedId, setDraggedId] = useState<string | null>(null);
+  const isSuperadmin = role === "superadmin";
 
   const fetchRecords = useCallback(async () => {
     if (!config) return;
@@ -48,17 +49,25 @@ function ContentListForType() {
     const qs = new URLSearchParams();
     if (status) qs.set("status", status);
     if (q) qs.set("q", q);
-    const res = await fetch(`/admin/api/content/${type}${qs.toString() ? `?${qs}` : ""}`);
-    const data = await res.json();
-    if (!res.ok) {
-      // On a non-ok response, `data` is always the error object (never the
-      // records array) -- res.ok being false is exactly what routes here.
-      setError(data?.error === "forbidden" ? "You don't have permission for this action." : "Could not load records.");
+    try {
+      const res = await fetch(`/admin/api/content/${type}${qs.toString() ? `?${qs}` : ""}`);
+      const data = await res.json();
+      if (!res.ok) {
+        // On a non-ok response, `data` is always the error object (never the
+        // records array) -- res.ok being false is exactly what routes here.
+        setError(data?.error === "forbidden" ? "You don't have permission for this action." : "Could not load records.");
+        setRecords([]);
+      } else {
+        setRecords(data as ContentRecord[]);
+      }
+    } catch {
+      // A rejected fetch (network error, not just a bad HTTP status) must
+      // not leave `loading` stuck true forever with no way to recover.
+      setError("Could not reach the server. Check your connection and try again.");
       setRecords([]);
-    } else {
-      setRecords(data as ContentRecord[]);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   }, [config, type, status, q]);
 
   useEffect(() => {
@@ -122,8 +131,17 @@ function ContentListForType() {
     fetchRecords();
   }
 
+  // Reordering writes `order: 0..N-1` across whatever's in `records` right
+  // now. That's only correct when `records` IS the full, unfiltered list --
+  // reordering a filtered subset would write colliding order values that
+  // clash with the hidden records' existing order, corrupting the real
+  // display order every visitor to the public site sees. Only reachable
+  // when no filter is active (see the `canReorder` check below); this
+  // guard is a second, explicit line of defense against that same mistake.
+  const canReorder = isSuperadmin && isReorderable(config?.fields ?? []) && !status && !q;
+
   async function handleDrop(targetId: string) {
-    if (!draggedId || draggedId === targetId) {
+    if (!canReorder || !draggedId || draggedId === targetId) {
       setDraggedId(null);
       return;
     }
@@ -154,7 +172,7 @@ function ContentListForType() {
     return <ErrorBanner message={`Unknown content type "${type}".`} />;
   }
 
-  const isSuperadmin = role === "superadmin";
+  const filterActive = Boolean(status || q);
 
   return (
     <div>
@@ -198,9 +216,15 @@ function ContentListForType() {
         </div>
       )}
 
+      {isSuperadmin && isReorderable(config.fields) && filterActive && (
+        <p className="mb-3 font-body text-sm text-slate">
+          Clear the search/status filters to drag-and-drop reorder — reordering only works against the full list.
+        </p>
+      )}
+
       {loading ? (
         <p className="font-body text-sm text-slate">Loading…</p>
-      ) : isSuperadmin && isReorderable(config.fields) ? (
+      ) : canReorder ? (
         <table className="w-full border-collapse font-body text-sm">
           <thead>
             <tr className="border-b border-ink/10 text-left">
@@ -314,7 +338,7 @@ function ContentListForType() {
             <button
               type="button"
               onClick={handleReject}
-              disabled={!rejectReason}
+              disabled={!rejectReason.trim()}
               className="bg-gold px-6 py-3 font-display text-ink disabled:opacity-50"
             >
               Reject
