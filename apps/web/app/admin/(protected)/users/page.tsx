@@ -36,14 +36,23 @@ export default function UsersPage() {
   async function load() {
     setLoading(true);
     setError(null);
-    const res = await fetch("/admin/api/users");
-    if (!res.ok) {
-      setError("Could not load users.");
+    try {
+      const res = await fetch("/admin/api/users");
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        setError(
+          data?.error === "forbidden"
+            ? "You don't have permission to manage users."
+            : "Could not load users."
+        );
+        return;
+      }
+      setUsers(await res.json());
+    } catch {
+      setError("Could not reach the server. Check your connection and try again.");
+    } finally {
       setLoading(false);
-      return;
     }
-    setUsers(await res.json());
-    setLoading(false);
   }
 
   useEffect(() => {
@@ -64,7 +73,9 @@ export default function UsersPage() {
       setCreateError(
         data?.error === "email_taken"
           ? "That email is already in use."
-          : data?.message ?? "Could not create user."
+          : data?.error === "forbidden"
+            ? "You don't have permission to create users."
+            : data?.message ?? "Could not create user."
       );
       return;
     }
@@ -89,7 +100,11 @@ export default function UsersPage() {
     });
     if (!res.ok) {
       const data = await res.json();
-      setError(data?.message ?? "Could not update user.");
+      setError(
+        data?.error === "forbidden"
+          ? "You don't have permission to update users."
+          : data?.message ?? "Could not update user."
+      );
       return;
     }
     load();
@@ -111,7 +126,11 @@ export default function UsersPage() {
     });
     if (!res.ok) {
       const data = await res.json();
-      setError(data?.message ?? "Could not change role.");
+      setError(
+        data?.error === "forbidden"
+          ? "You don't have permission to change roles."
+          : data?.message ?? "Could not change role."
+      );
       return;
     }
     load();
