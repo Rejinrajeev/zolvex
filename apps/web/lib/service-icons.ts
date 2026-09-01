@@ -8,14 +8,14 @@ import {
   IconSanitize,
 } from "@/components/icons";
 
-const ICON_MAP: Record<string, ComponentType<SVGProps<SVGSVGElement>>> = {
-  office: IconOffice,
-  carpet: IconCarpet,
-  window: IconWindow,
-  "post-construction": IconPostConstruction,
-  floor: IconFloor,
-  sanitize: IconSanitize,
-};
+const ICON_MAP = new Map<string, ComponentType<SVGProps<SVGSVGElement>>>([
+  ["office", IconOffice],
+  ["carpet", IconCarpet],
+  ["window", IconWindow],
+  ["post-construction", IconPostConstruction],
+  ["floor", IconFloor],
+  ["sanitize", IconSanitize],
+]);
 
 const DEFAULT_ICON = IconOffice;
 
@@ -25,5 +25,5 @@ const DEFAULT_ICON = IconOffice;
  */
 export function iconForServiceKey(key: string | null | undefined): ComponentType<SVGProps<SVGSVGElement>> {
   if (!key) return DEFAULT_ICON;
-  return ICON_MAP[key] ?? DEFAULT_ICON;
+  return ICON_MAP.get(key) ?? DEFAULT_ICON;
 }

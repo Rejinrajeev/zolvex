@@ -18,4 +18,11 @@ describe("iconForServiceKey", () => {
     expect(iconForServiceKey(null)).toBe(IconOffice);
     expect(iconForServiceKey("")).toBe(IconOffice);
   });
+
+  it("avoids prototype pollution for Object.prototype property names", () => {
+    // Keys that would collide with Object.prototype should still return DEFAULT_ICON
+    expect(iconForServiceKey("constructor")).toBe(IconOffice);
+    expect(iconForServiceKey("toString")).toBe(IconOffice);
+    expect(iconForServiceKey("__proto__")).toBe(IconOffice);
+  });
 });
