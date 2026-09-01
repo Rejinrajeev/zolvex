@@ -1401,16 +1401,17 @@ git commit -m "feat(web): wire Blog to real backend data, reshaped to match Blog
 - Modify: `apps/web/app/(site)/HomePageClient.tsx`
 
 **Interfaces:**
-- Consumes: `getPublicContent`, `getPageContent` (Task 4).
+- Consumes: `getPublicContent`, `getPageContent` (Task 4); `safeHref` (Task 8 — added there as a fix-round response to a real stored-XSS finding on Blog's `instagramUrl` link; every admin-entered URL rendered as an `href` on the public site must go through it, not just Blog's).
 
 - [ ] **Step 1: Update Testimonials.tsx**
 
-Replace the hardcoded `PLACEHOLDER_REVIEWS` array and add the new Google Review link:
+Replace the hardcoded `PLACEHOLDER_REVIEWS` array and add the new Google Review link — note the `href` uses `safeHref(googleReviewUrl)`, not the raw value, for the same reason as Blog's `instagramUrl` link (Task 8): `google-review`'s URL is admin-entered and only Zod-`.url()`-validated server-side, which doesn't reject `javascript:`/`data:` schemes:
 
 ```tsx
 // apps/web/components/Testimonials.tsx
 import { Stamped } from "./Stamped";
 import { IconStar, IconStarOutline } from "./icons";
+import { safeHref } from "@/lib/safe-url";
 
 export interface PublicTestimonial {
   id: string;
@@ -1450,7 +1451,7 @@ export function Testimonials({
             </h2>
             {googleReviewUrl && (
               <a
-                href={googleReviewUrl}
+                href={safeHref(googleReviewUrl)}
                 target="_blank"
                 rel="noreferrer noopener"
                 className="border-2 border-ink px-5 py-2.5 font-display text-sm font-semibold text-ink transition-colors hover:bg-ink hover:text-paper"
@@ -1599,7 +1600,7 @@ git commit -m "feat(web): wire FAQ to real backend data"
 - Modify: `apps/web/app/(site)/HomePageClient.tsx`
 
 **Interfaces:**
-- Consumes: `getPublicContent` (Task 4).
+- Consumes: `getPublicContent` (Task 4); `safeHref` (Task 8, `apps/web/lib/safe-url.ts`) — `permalink` is an admin-entered URL and must never be rendered as a raw `href`, the same stored-XSS risk found and fixed for Blog's `instagramUrl` in Task 8.
 
 - [ ] **Step 1: Update InstagramFeed.tsx**
 
@@ -1608,6 +1609,7 @@ git commit -m "feat(web): wire FAQ to real backend data"
 import { Stamped } from "./Stamped";
 import { PlaceholderPhoto } from "./PlaceholderPhoto";
 import { IconInstagram } from "./icons";
+import { safeHref } from "@/lib/safe-url";
 
 export interface PublicInstagramPost {
   id: string;
@@ -1637,7 +1639,7 @@ export function InstagramFeed({ posts }: { posts: PublicInstagramPost[] }) {
             {posts.map((post, i) => (
               <Stamped key={post.id} delayMs={i * 60}>
                 <a
-                  href={post.permalink}
+                  href={safeHref(post.permalink)}
                   target="_blank"
                   rel="noreferrer noopener"
                   aria-label="Open this post on Instagram"
@@ -1685,7 +1687,7 @@ git commit -m "feat(web): wire InstagramFeed to real backend data"
 - Modify: `apps/web/app/(site)/HomePageClient.tsx`
 
 **Interfaces:**
-- Consumes: `getPageContent` (Task 4).
+- Consumes: `getPageContent` (Task 4); `safeHref` (Task 8, `apps/web/lib/safe-url.ts`) — `instagramUrl` is an admin-entered URL and must never be rendered as a raw `href`, the same stored-XSS risk found and fixed for Blog's `instagramUrl` in Task 8.
 
 - [ ] **Step 1: Update Footer.tsx**
 
@@ -1694,6 +1696,7 @@ Only the tagline paragraph, the Instagram link, and the phone link change — th
 ```tsx
 // apps/web/components/Footer.tsx
 import { IconPhone, IconInstagram } from "./icons";
+import { safeHref } from "@/lib/safe-url";
 
 const DEFAULT_TAGLINE =
   "Commercial cleaning, logged and on time — for offices, retail, and commercial spaces.";
@@ -1753,7 +1756,7 @@ export function Footer({
               {instagramUrl && (
                 <li className="flex items-center gap-2">
                   <IconInstagram className="h-4 w-4 text-gold" />
-                  <a href={instagramUrl} target="_blank" rel="noreferrer noopener" className="hover:text-gold">
+                  <a href={safeHref(instagramUrl)} target="_blank" rel="noreferrer noopener" className="hover:text-gold">
                     Instagram
                   </a>
                 </li>
