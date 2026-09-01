@@ -16,6 +16,7 @@ import type { PublicService } from "@/components/Services";
 import type { FeaturedServiceRecord } from "@/components/FeaturedService";
 import type { PublicBlogPost } from "@/components/Blog";
 import type { PublicTestimonial } from "@/components/Testimonials";
+import type { PublicFaq } from "@/components/FAQ";
 
 export function HomePageClient({
   heroHeadline,
@@ -25,6 +26,7 @@ export function HomePageClient({
   posts,
   testimonials,
   googleReviewUrl,
+  faqs,
 }: {
   heroHeadline?: string;
   heroSubheadline?: string;
@@ -33,6 +35,7 @@ export function HomePageClient({
   posts: PublicBlogPost[];
   testimonials: PublicTestimonial[];
   googleReviewUrl?: string | null;
+  faqs: PublicFaq[];
 }) {
   const [bookingOpen, setBookingOpen] = useState(false);
   const openBooking = () => setBookingOpen(true);
@@ -46,7 +49,7 @@ export function HomePageClient({
         <WhyUs />
         <FeaturedService service={featuredService} onBookNow={openBooking} />
         <Blog posts={posts} />
-        <FAQ />
+        <FAQ faqs={faqs} />
         <Testimonials testimonials={testimonials} googleReviewUrl={googleReviewUrl} />
         <InstagramFeed />
       </main>
