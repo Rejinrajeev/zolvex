@@ -1,6 +1,7 @@
 import { Stamped } from "./Stamped";
 import { PlaceholderPhoto } from "./PlaceholderPhoto";
 import { IconArrow } from "./icons";
+import { safeHref } from "@/lib/safe-url";
 
 export interface PublicBlogPost {
   id: string;
@@ -28,7 +29,7 @@ export function Blog({ posts }: { posts: PublicBlogPost[] }) {
             {posts.map((post, i) => (
               <Stamped key={post.id} delayMs={i * 90}>
                 <a
-                  href={post.instagramUrl}
+                  href={safeHref(post.instagramUrl)}
                   target="_blank"
                   rel="noreferrer noopener"
                   className="group flex h-full flex-col"
