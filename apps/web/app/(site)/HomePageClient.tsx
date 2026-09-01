@@ -13,7 +13,13 @@ import { InstagramFeed } from "@/components/InstagramFeed";
 import { Footer } from "@/components/Footer";
 import { EnquiryModal } from "@/components/EnquiryModal";
 
-export default function Home() {
+export function HomePageClient({
+  heroHeadline,
+  heroSubheadline,
+}: {
+  heroHeadline?: string;
+  heroSubheadline?: string;
+}) {
   const [bookingOpen, setBookingOpen] = useState(false);
   const openBooking = () => setBookingOpen(true);
 
@@ -21,7 +27,7 @@ export default function Home() {
     <>
       <Nav />
       <main id="main">
-        <Hero onBookNow={openBooking} />
+        <Hero onBookNow={openBooking} headline={heroHeadline} subheadline={heroSubheadline} />
         <Services />
         <WhyUs />
         <FeaturedService onBookNow={openBooking} />

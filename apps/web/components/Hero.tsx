@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { IconClock, IconArrow } from "./icons";
+import { splitLastWord } from "@/lib/split-last-word";
 
 function useTodayStamp() {
   const [date, setDate] = useState<string | null>(null);
@@ -18,8 +19,21 @@ function useTodayStamp() {
   return date;
 }
 
-export function Hero({ onBookNow }: { onBookNow: () => void }) {
+const DEFAULT_HEADLINE = "Commercial cleaning you can set your clock to.";
+const DEFAULT_SUBHEADLINE =
+  "Every visit logged, every job on time. Zolvex keeps commercial spaces audit-ready — without you lifting a finger.";
+
+export function Hero({
+  onBookNow,
+  headline,
+  subheadline,
+}: {
+  onBookNow: () => void;
+  headline?: string;
+  subheadline?: string;
+}) {
   const today = useTodayStamp();
+  const { rest, last } = splitLastWord(headline || DEFAULT_HEADLINE);
 
   return (
     <section
@@ -50,37 +64,12 @@ export function Hero({ onBookNow }: { onBookNow: () => void }) {
         </div>
 
         <h1 className="balance max-w-4xl font-display text-[clamp(2.75rem,7vw,5.5rem)] font-semibold leading-[0.98] text-paper">
-          Commercial cleaning you can set your{" "}
-          <span className="relative inline-block">
-            clock
-            <svg
-              viewBox="0 0 300 24"
-              className="pointer-events-none absolute -bottom-2 left-0 h-3.5 w-full text-gold sm:h-4"
-              aria-hidden
-              preserveAspectRatio="none"
-            >
-              <path
-                d="M4 18 C 70 6, 150 22, 230 8 S 285 4, 296 12"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="6"
-                strokeLinecap="round"
-                pathLength={1}
-                style={{
-                  strokeDasharray: 1,
-                  strokeDashoffset: 1,
-                  animation: "draw-underline 1s var(--ease-out-exp) 0.6s forwards",
-                }}
-              />
-            </svg>
-          </span>{" "}
-          to.
+          {rest}
+          <span className="border-b-4 border-gold">{last}</span>
         </h1>
-        <style>{`@keyframes draw-underline { to { stroke-dashoffset: 0; } }`}</style>
 
         <p className="mt-8 max-w-xl font-body text-lg leading-relaxed text-paper/80 sm:text-xl">
-          Every visit logged, every job on time. Zolvex keeps commercial
-          spaces audit-ready — without you lifting a finger.
+          {subheadline || DEFAULT_SUBHEADLINE}
         </p>
 
         <div className="mt-10 flex flex-wrap items-center gap-5">
