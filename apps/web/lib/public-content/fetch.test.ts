@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 
 process.env.API_BASE_URL = "http://test-backend.internal";
 
-const { getPublicContent, getPageContent } = await import("./fetch.js");
+const { getPublicContent, getPageContent, getPublicPlaces } = await import("./fetch.js");
 
 beforeEach(() => {
   vi.restoreAllMocks();
@@ -53,6 +53,27 @@ describe("getPublicContent", () => {
     vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response('"oops"', { status: 200 }));
     const result = await getPublicContent("faq");
     expect(result).toEqual([]);
+  });
+});
+
+describe("getPublicPlaces", () => {
+  it("returns the parsed array and requests the right URL", async () => {
+    const fetchMock = vi
+      .spyOn(globalThis, "fetch")
+      .mockResolvedValue(new Response(JSON.stringify([{ id: "1", name: "Downtown" }]), { status: 200 }));
+    const result = await getPublicPlaces();
+    expect(result).toEqual([{ id: "1", name: "Downtown" }]);
+    expect(String(fetchMock.mock.calls[0][0])).toBe("http://test-backend.internal/api/places");
+  });
+
+  it("returns an empty array on a non-ok response", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response("{}", { status: 500 }));
+    expect(await getPublicPlaces()).toEqual([]);
+  });
+
+  it("returns an empty array when fetch rejects", async () => {
+    vi.spyOn(globalThis, "fetch").mockRejectedValue(new Error("network down"));
+    expect(await getPublicPlaces()).toEqual([]);
   });
 });
 

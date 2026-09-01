@@ -20,6 +20,29 @@ export async function getPublicContent<T = Record<string, unknown>>(type: string
   }
 }
 
+export interface PublicPlace {
+  id: string;
+  name: string;
+}
+
+/**
+ * Fetches the active service areas an enquiry can pick from. Never throws --
+ * the enquiry form must still render (with an empty select) if the API is
+ * down; front-end validation then just asks the visitor to try later.
+ */
+export async function getPublicPlaces(): Promise<PublicPlace[]> {
+  try {
+    const res = await fetch(`${getApiBaseUrl()}/api/places`, {
+      next: { revalidate: REVALIDATE_SECONDS },
+    });
+    if (!res.ok) return [];
+    const data = await res.json();
+    return Array.isArray(data) ? (data as PublicPlace[]) : [];
+  } catch {
+    return [];
+  }
+}
+
 /**
  * Fetches one PageContent key's stored data. Returns null both when the
  * key has never been configured (404) and on any failure -- callers treat

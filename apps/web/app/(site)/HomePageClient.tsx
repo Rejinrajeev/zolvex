@@ -13,6 +13,7 @@ import { Testimonials } from "@/components/Testimonials";
 import { InstagramFeed } from "@/components/InstagramFeed";
 import { Footer } from "@/components/Footer";
 import { EnquiryModal } from "@/components/EnquiryModal";
+import type { PublicPlace } from "@/lib/public-content/fetch";
 import type { PublicService } from "@/components/Services";
 import type { FeaturedServiceRecord } from "@/components/FeaturedService";
 import type { PublicBlogPost } from "@/components/Blog";
@@ -33,6 +34,7 @@ export function HomePageClient({
   footerTagline,
   footerInstagramUrl,
   phoneNumber,
+  places,
 }: {
   heroHeadline?: string;
   heroSubheadline?: string;
@@ -46,6 +48,7 @@ export function HomePageClient({
   footerTagline?: string;
   footerInstagramUrl?: string;
   phoneNumber?: string;
+  places: PublicPlace[];
 }) {
   const [bookingOpen, setBookingOpen] = useState(false);
   const openBooking = () => setBookingOpen(true);
@@ -70,7 +73,7 @@ export function HomePageClient({
         instagramUrl={footerInstagramUrl}
         phoneNumber={phoneNumber}
       />
-      <EnquiryModal open={bookingOpen} onClose={() => setBookingOpen(false)} />
+      <EnquiryModal open={bookingOpen} onClose={() => setBookingOpen(false)} places={places} />
     </>
   );
 }

@@ -1,4 +1,4 @@
-import { getPageContent, getPublicContent } from "@/lib/public-content/fetch";
+import { getPageContent, getPublicContent, getPublicPlaces } from "@/lib/public-content/fetch";
 import { asString } from "@/lib/public-content/coerce";
 import { HomePageClient } from "./HomePageClient";
 import type { FeaturedServiceRecord } from "@/components/FeaturedService";
@@ -13,7 +13,7 @@ interface HeroContent {
 }
 
 export default async function Home() {
-  const [hero, services, blogPosts, testimonials, googleReview, faqs, instagramPosts, footer, whatsapp] = await Promise.all([
+  const [hero, services, blogPosts, testimonials, googleReview, faqs, instagramPosts, footer, whatsapp, places] = await Promise.all([
     getPageContent<HeroContent>("hero"),
     getPublicContent<FeaturedServiceRecord & { isHighlighted?: boolean }>("service"),
     getPublicContent<PublicBlogPost>("blog-post"),
@@ -23,6 +23,7 @@ export default async function Home() {
     getPublicContent<PublicInstagramPost>("instagram-post"),
     getPageContent<{ tagline?: string; instagramUrl?: string }>("footer"),
     getPageContent<{ phoneNumber?: string }>("whatsapp"),
+    getPublicPlaces(),
   ]);
 
   const highlighted = services.find((s) => s.isHighlighted) ?? null;
@@ -41,6 +42,7 @@ export default async function Home() {
       footerTagline={asString(footer?.tagline)}
       footerInstagramUrl={asString(footer?.instagramUrl)}
       phoneNumber={asString(whatsapp?.phoneNumber)}
+      places={places}
     />
   );
 }

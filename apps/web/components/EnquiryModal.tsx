@@ -6,20 +6,31 @@ import { IconClose, IconCheck, IconAlert } from "./icons";
 
 type Status = "idle" | "submitting" | "success" | "error";
 
-const PLACES = ["Downtown", "North Side", "Business District", "Industrial Park", "Other"];
+interface Place {
+  id: string;
+  name: string;
+}
 
 const FOCUSABLE_SELECTOR =
   'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
 /**
- * UI-complete enquiry flow (inline validation, spinner-on-submit, banner +
- * retry on failure, confirmation on success), with a real Tab/Shift+Tab
- * focus trap, focus restored to whatever opened the modal, errors linked to
- * their fields via aria-describedby and announced via role="alert". The
- * submit is still a stub — the Foundation API endpoint lives on a branch not
- * merged here; wire it in when the branches meet.
+ * The enquiry flow: inline validation, spinner-on-submit, banner + retry on
+ * failure, confirmation on success, a real Tab/Shift+Tab focus trap, focus
+ * restored to whatever opened the modal, errors linked to their fields via
+ * aria-describedby and announced via role="alert". Submits to the public
+ * BFF route (`POST /api/enquiries`), which forwards to the Express API and
+ * lands the enquiry in the admin panel.
  */
-export function EnquiryModal({ open, onClose }: { open: boolean; onClose: () => void }) {
+export function EnquiryModal({
+  open,
+  onClose,
+  places,
+}: {
+  open: boolean;
+  onClose: () => void;
+  places: Place[];
+}) {
   const [status, setStatus] = useState<Status>("idle");
   const [errors, setErrors] = useState<Record<string, string>>({});
   const dialogRef = useRef<HTMLDivElement>(null);
@@ -76,6 +87,8 @@ export function EnquiryModal({ open, onClose }: { open: boolean; onClose: () => 
     const phone = String(form.get("phone") ?? "").trim();
     const place = String(form.get("place") ?? "");
 
+    const date = String(form.get("date") ?? "");
+
     const nextErrors: Record<string, string> = {};
     if (!name) nextErrors.name = "Enter your name.";
     if (!phone || phone.replace(/\D/g, "").length < 7) {
@@ -87,8 +100,12 @@ export function EnquiryModal({ open, onClose }: { open: boolean; onClose: () => 
 
     setStatus("submitting");
     try {
-      await new Promise((resolve) => setTimeout(resolve, 900));
-      setStatus("success");
+      const res = await fetch("/api/enquiries", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, phone, place, preferredDate: date || undefined }),
+      });
+      setStatus(res.ok ? "success" : "error");
     } catch {
       setStatus("error");
     }
@@ -172,11 +189,11 @@ export function EnquiryModal({ open, onClose }: { open: boolean; onClose: () => 
                     }`}
                   >
                     <option value="" disabled>
-                      Select a location
+                      {places.length === 0 ? "No locations available yet" : "Select a location"}
                     </option>
-                    {PLACES.map((p) => (
-                      <option key={p} value={p}>
-                        {p}
+                    {places.map((p) => (
+                      <option key={p.id} value={p.name}>
+                        {p.name}
                       </option>
                     ))}
                   </select>
