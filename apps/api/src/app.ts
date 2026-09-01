@@ -29,6 +29,7 @@ import { adminTrashRouter } from "./routes/admin/trash.routes.js";
 import { adminAuditLogRouter } from "./routes/admin/audit-log.routes.js";
 import { adminEnquiriesRouter } from "./routes/admin/enquiries.routes.js";
 import { publicContentRouter } from "./routes/public/content.routes.js";
+import { publicPagesRouter } from "./routes/public/pages.routes.js";
 
 export function createApp(): Express {
   const app = express();
@@ -55,6 +56,7 @@ export function createApp(): Express {
   app.use("/admin/api/audit-log", adminAuditLogRouter);
   app.use("/admin/api/enquiries", adminEnquiriesRouter);
   app.use("/api/content", publicContentRouter);
+  app.use("/api/pages", publicPagesRouter);
 
   // Liveness: is the process up? Deliberately touches nothing external, so a
   // dead database never causes the process to be restarted.
