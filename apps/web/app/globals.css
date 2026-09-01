@@ -1,27 +1,55 @@
 @import "tailwindcss";
 
+/* ============================================================
+   Zolvex — "Fresh Start" world
+   One system across the public marketing site and the admin
+   panel. The admin runs it in an Operate register: same tokens,
+   denser layout, Sora only, motion limited to state feedback.
+   The `slate` / `olive` / `paper-dim` / `font-display|body|stamp`
+   names are legacy aliases the admin markup still uses; they now
+   resolve to Fresh-world values.
+   ============================================================ */
+
 :root {
+  /* Fresh world */
+  --color-cream: #fbfaf5;
+  --color-green: #0fb877;
+  --color-green-ink: #066b44;
+  --color-forest: #0c3a2c;
+  --color-sky: #a9e1ec;
+  --color-mist: #e8f5ec;
+  --color-moss: #55635b;
+
   --color-ink: #161b1f;
-  --color-ink-soft: #232a30;
   --color-paper: #fefefd;
-  --color-paper-dim: #f3f1ea;
-  --color-olive: #ada477;
-  --color-slate: #616054;
   --color-gold: #eed77b;
+  --color-danger: #c1352a;
+  --color-danger-soft: #fdecea;
 
-  /* Darker derivative of olive for small marks (checks, chevrons) on light
-     grounds — the raw brand olive is only 2.5:1 on paper, below the 3:1
-     floor for meaningful graphical UI. This keeps the same hue family. */
-  --color-olive-ink: #6f6841;
+  /* Legacy aliases — resolve into the Fresh palette */
+  --color-ink-soft: #12332a;
+  --color-paper-dim: #f0f3ef;
+  --color-olive: #0fb877;
+  --color-olive-ink: #066b44;
+  --color-slate: #55635b;
 
-  --ledger-rule-dark: rgba(238, 215, 123, 0.28);
-  --ledger-rule-light: rgba(22, 27, 31, 0.1);
+  /* Legacy font aliases — the admin uses these class names */
+  --font-display: var(--font-sora);
+  --font-body: var(--font-sora);
+  --font-stamp: var(--font-sora);
 
   --ease-out-exp: cubic-bezier(0.16, 1, 0.3, 1);
-  --ease-stamp: cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 @theme inline {
+  --color-cream: var(--color-cream);
+  --color-green: var(--color-green);
+  --color-green-ink: var(--color-green-ink);
+  --color-forest: var(--color-forest);
+  --color-sky: var(--color-sky);
+  --color-mist: var(--color-mist);
+  --color-moss: var(--color-moss);
+
   --color-ink: var(--color-ink);
   --color-ink-soft: var(--color-ink-soft);
   --color-paper: var(--color-paper);
@@ -30,34 +58,36 @@
   --color-olive-ink: var(--color-olive-ink);
   --color-slate: var(--color-slate);
   --color-gold: var(--color-gold);
+  --color-danger: var(--color-danger);
+  --color-danger-soft: var(--color-danger-soft);
 
+  --font-anton: var(--font-anton);
+  --font-sora: var(--font-sora);
   --font-display: var(--font-display);
   --font-body: var(--font-body);
   --font-stamp: var(--font-stamp);
+
+  --radius-xl2: 1.75rem;
 }
 
 html {
   scroll-behavior: smooth;
 }
 
-@media (prefers-reduced-motion: reduce) {
-  html {
-    scroll-behavior: auto;
-  }
-  * {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-  }
-}
-
 body {
-  font-feature-settings: "tnum" 1;
+  font-feature-settings: "tnum" 1, "ss01" 1;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
 
+/* ---- Browser surfaces themed from the palette ---- */
 ::selection {
-  background: var(--color-gold);
-  color: var(--color-ink);
+  background: var(--color-green);
+  color: #fff;
+}
+input,
+textarea {
+  caret-color: var(--color-green);
 }
 
 ::-webkit-scrollbar {
@@ -65,133 +95,148 @@ body {
   height: 12px;
 }
 ::-webkit-scrollbar-track {
-  background: var(--color-paper-dim);
+  background: var(--color-mist);
 }
 ::-webkit-scrollbar-thumb {
-  background: var(--color-olive);
-  border: 3px solid var(--color-paper-dim);
+  background: var(--color-green);
+  border: 3px solid var(--color-mist);
   border-radius: 9999px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--color-gold);
+  background: var(--color-green-ink);
 }
-/* Dark-ground sections (hero, services, blog, instagram) get a track that
-   matches their own ground instead of the light default showing through. */
-.ledger-ground-dark ::-webkit-scrollbar-track,
-.bg-ink ::-webkit-scrollbar-track {
-  background: var(--color-ink-soft);
+.on-forest ::-webkit-scrollbar-track {
+  background: var(--color-forest);
 }
-.ledger-ground-dark ::-webkit-scrollbar-thumb,
-.bg-ink ::-webkit-scrollbar-thumb {
-  border-color: var(--color-ink-soft);
-}
-
-input,
-textarea {
-  caret-color: var(--color-olive-ink);
+.on-forest ::-webkit-scrollbar-thumb {
+  border-color: var(--color-forest);
 }
 
 @layer base {
   a {
-    text-underline-offset: 3px;
+    text-underline-offset: 4px;
   }
-  /* Deliberately no a:visited color override: this world's links live on
-     both near-black and near-white grounds, and a single visited color
-     cannot stay AA-contrast on both without fighting every utility class
-     that sets link color per-context. Visited state is not load-bearing
-     here (no long-form archive of links to differentiate). */
-
-  /* Default focus ring: ink, for the paper/paper-dim sections that make up
-     most of the page (2:1 dark:light section ratio). Overridden to gold on
-     dark grounds below, where ink would vanish. */
   :focus-visible {
-    outline: 2px solid var(--color-ink);
+    outline: 2px solid var(--color-green);
     outline-offset: 3px;
   }
-  .ledger-ground-dark :focus-visible,
-  .bg-ink :focus-visible,
-  .site-header :focus-visible {
+  .on-forest :focus-visible {
     outline-color: var(--color-gold);
   }
 }
 
-/* Skip link — visually hidden until focused, first focusable element. */
+/* ---- Skip link ---- */
 .skip-link {
   position: fixed;
-  top: -3rem;
+  top: 1rem;
   left: 1rem;
   z-index: 100;
-  background: var(--color-gold);
-  color: var(--color-ink);
+  background: var(--color-green);
+  color: #fff;
   padding: 0.75rem 1.25rem;
+  border-radius: 9999px;
+  font-family: var(--font-sora), system-ui, sans-serif;
   font-weight: 600;
-  transition: top 0.2s var(--ease-out-exp);
+  transform: translateY(-250%);
+  transition: transform 0.25s var(--ease-out-exp);
 }
-.skip-link:focus-visible {
-  top: 1rem;
+.skip-link:focus {
+  transform: translateY(0);
 }
 
+/* ---- Utilities ---- */
 .balance {
   text-wrap: balance;
 }
-
-/* Ledger rule grid — the world's signature ground texture. */
-.ledger-ground-dark {
-  background-color: var(--color-ink);
-  background-image:
-    linear-gradient(var(--ledger-rule-dark) 1px, transparent 1px),
-    linear-gradient(90deg, var(--ledger-rule-dark) 1px, transparent 1px);
-  background-size: 100% 2.75rem, 6rem 100%;
+.pretty {
+  text-wrap: pretty;
 }
-
-.ledger-ground-light {
-  background-color: var(--color-paper);
-  background-image: linear-gradient(var(--ledger-rule-light) 1px, transparent 1px);
-  background-size: 100% 2.75rem;
+.tabular {
+  font-variant-numeric: tabular-nums;
 }
-
-/* Punch-perforation edge, used at section seams — real round holes, not a
-   dashed rule: the box is tall enough for the radial gradient to resolve
-   as circles rather than being clipped to a hairline. */
-.punch-edge {
-  position: relative;
+.font-anton {
+  letter-spacing: 0.005em;
 }
-.punch-edge::before {
-  content: "";
-  position: absolute;
-  top: -6px;
-  left: 0;
-  right: 0;
-  height: 12px;
-  background-image: radial-gradient(circle, var(--color-paper) 4px, transparent 4.2px);
-  background-size: 1.75rem 12px;
-  background-repeat: repeat-x;
-  background-position: center;
-}
-
+/* Legacy stamp tilt still used by a couple of admin marks */
 .stamp-rotate {
   transform: rotate(-4deg);
 }
 
-/* Section-entrance motion for <Stamped>: plays on paint, not on scroll —
-   see the comment in Stamped.tsx for why. animation-fill-mode: both keeps
-   the pre-animation frame until the delay elapses, then holds the final
-   frame forever after. Reduced-motion users get the instant final frame
-   via the global animation-duration override above. */
-@keyframes stamp-reveal {
-  from {
-    opacity: 0;
-    transform: scale(1.06) translateY(-10px);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1) translateY(0);
-  }
-}
-.stamp-reveal {
-  animation: stamp-reveal 0.6s var(--ease-stamp) both;
+/* Soft organic background shape */
+.blob {
+  position: absolute;
+  border-radius: 42% 58% 63% 37% / 41% 44% 56% 59%;
+  filter: blur(2px);
+  pointer-events: none;
+  z-index: 0;
 }
 
-.tabular {
-  font-variant-numeric: tabular-nums;
+/* Admin modal entrance — quick, state-conveying, Operate-register */
+@keyframes modal-overlay-in {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes modal-panel-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.98);
+  }
+}
+.modal-overlay {
+  animation: modal-overlay-in 0.15s ease-out;
+}
+.modal-panel {
+  animation: modal-panel-in 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Loading skeleton (admin) */
+@keyframes skeleton-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.45;
+  }
+}
+.skeleton {
+  background: var(--color-mist);
+  border-radius: 0.75rem;
+  animation: skeleton-pulse 1.4s ease-in-out infinite;
+}
+
+/* Running strip between sections */
+@keyframes marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+.marquee-track {
+  display: inline-flex;
+  white-space: nowrap;
+  animation: marquee 32s linear infinite;
+}
+.marquee:hover .marquee-track {
+  animation-play-state: paused;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+  .marquee-track {
+    animation: none;
+    transform: none;
+  }
 }

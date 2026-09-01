@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Nav } from "@/components/Nav";
 import { Hero } from "@/components/Hero";
+import { Marquee } from "@/components/Marquee";
 import { Services } from "@/components/Services";
 import { WhyUs } from "@/components/WhyUs";
 import { FeaturedService } from "@/components/FeaturedService";
@@ -51,18 +52,24 @@ export function HomePageClient({
 
   return (
     <>
-      <Nav />
+      <Nav onBookNow={openBooking} />
       <main id="main">
         <Hero onBookNow={openBooking} headline={heroHeadline} subheadline={heroSubheadline} />
+        <Marquee />
         <Services services={services} />
         <WhyUs />
         <FeaturedService service={featuredService} onBookNow={openBooking} />
         <Blog posts={posts} />
-        <FAQ faqs={faqs} />
+        <FAQ faqs={faqs} onBookNow={openBooking} />
         <Testimonials testimonials={testimonials} googleReviewUrl={googleReviewUrl} />
         <InstagramFeed posts={instagramPosts} />
       </main>
-      <Footer onBookNow={openBooking} tagline={footerTagline} instagramUrl={footerInstagramUrl} phoneNumber={phoneNumber} />
+      <Footer
+        onBookNow={openBooking}
+        tagline={footerTagline}
+        instagramUrl={footerInstagramUrl}
+        phoneNumber={phoneNumber}
+      />
       <EnquiryModal open={bookingOpen} onClose={() => setBookingOpen(false)} />
     </>
   );

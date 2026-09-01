@@ -1,5 +1,5 @@
-import { Stamped } from "./Stamped";
-import { PlaceholderPhoto } from "./PlaceholderPhoto";
+import { Reveal } from "./motion-primitives";
+import { Photo } from "./Photo";
 import { IconArrow } from "./icons";
 import { iconForServiceKey } from "@/lib/service-icons";
 import type { PublicService } from "./Services";
@@ -19,31 +19,40 @@ export function FeaturedService({
   const Icon = iconForServiceKey(service.icon);
 
   return (
-    <section className="bg-paper-dim px-5 py-24 sm:px-8 lg:px-12">
-      <div className="mx-auto grid max-w-[90rem] items-center gap-12 lg:grid-cols-2 lg:gap-16">
-        <Stamped>
-          <PlaceholderPhoto label={service.name} tone="light" size="lg" className="aspect-[5/4]" />
-        </Stamped>
+    <section className="on-forest bg-forest px-5 py-20 text-cream sm:px-8 sm:py-28">
+      <div className="mx-auto grid max-w-[80rem] items-center gap-10 lg:grid-cols-2 lg:gap-16">
+        <Reveal className="group relative">
+          <Photo
+            src={service.image}
+            label={service.name}
+            tone="dark"
+            size="lg"
+            width={900}
+            aspect="5 / 4"
+            className="rounded-[2rem] shadow-[0_36px_80px_-36px_rgba(0,0,0,0.6)]"
+          />
+          <span className="absolute left-4 top-4 inline-flex items-center gap-2 rounded-full bg-green px-3.5 py-1.5 font-sora text-sm font-semibold text-forest">
+            <Icon className="h-4 w-4" />
+            Most booked
+          </span>
+        </Reveal>
 
-        <Stamped delayMs={100}>
-          <div className="flex items-center gap-3">
-            <Icon className="h-8 w-8 text-olive-ink" />
-            <h2 className="font-display text-4xl font-semibold leading-tight text-ink sm:text-5xl">
-              {service.name}
-            </h2>
-          </div>
-          <p className="mt-4 max-w-lg font-body text-lg leading-relaxed text-slate">
+        <Reveal delay={0.1}>
+          <h2 className="font-anton text-5xl uppercase leading-[0.95] tracking-tight text-cream sm:text-6xl">
+            {service.name}
+          </h2>
+          <p className="pretty mt-5 max-w-lg font-sora text-lg leading-relaxed text-cream/75">
             {service.fullDescription}
           </p>
           <button
             type="button"
             onClick={onBookNow}
-            className="group mt-8 inline-flex items-center gap-2 border-2 border-ink px-7 py-3.5 font-display font-semibold text-ink transition-colors hover:bg-ink hover:text-paper"
+            className="group mt-8 inline-flex items-center gap-2 rounded-full bg-green px-7 py-4 font-sora text-base font-semibold text-forest shadow-[0_18px_36px_-14px_rgba(15,184,119,0.6)] transition-transform hover:-translate-y-0.5"
           >
-            Book This Service
+            Book this service
             <IconArrow aria-hidden className="h-4 w-4 transition-transform group-hover:translate-x-1" />
           </button>
-        </Stamped>
+        </Reveal>
       </div>
     </section>
   );

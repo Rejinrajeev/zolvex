@@ -1,6 +1,5 @@
-// apps/web/components/Services.tsx
-import { Stamped } from "./Stamped";
-import { PlaceholderPhoto } from "./PlaceholderPhoto";
+import { Reveal, Stagger, StaggerItem } from "./motion-primitives";
+import { Photo } from "./Photo";
 import { iconForServiceKey } from "@/lib/service-icons";
 
 export interface PublicService {
@@ -8,60 +7,65 @@ export interface PublicService {
   name: string;
   shortDescription: string;
   icon?: string | null;
+  image?: string | null;
 }
 
-const ROTATIONS = ["-rotate-1", "rotate-1"] as const;
+const TINTS = ["bg-mist", "bg-sky/50", "bg-gold/40"] as const;
 
 export function Services({ services }: { services: PublicService[] }) {
   return (
-    <section id="services" className="punch-edge relative bg-ink px-5 py-24 sm:px-8 lg:px-12">
-      <div className="mx-auto max-w-[90rem]">
-        <Stamped>
-          <h2 className="max-w-lg font-display text-4xl font-semibold leading-tight text-paper sm:text-5xl">
-            The jobs on our sheet.
-          </h2>
-        </Stamped>
+    <section id="services" className="relative bg-cream px-5 py-20 sm:px-8 sm:py-28">
+      <div className="mx-auto max-w-[80rem]">
+        <Reveal as="h2" className="font-anton text-5xl uppercase leading-[0.95] tracking-tight text-ink sm:text-6xl lg:text-7xl">
+          Everything your
+          <br />
+          space needs
+        </Reveal>
+        <Reveal
+          as="p"
+          delay={0.1}
+          className="mt-5 max-w-lg font-sora text-lg leading-relaxed text-moss"
+        >
+          One crew for the whole building. Published from the Zolvex admin panel,
+          so this list is always the real service menu.
+        </Reveal>
 
         {services.length === 0 ? (
-          <p className="mt-14 font-stamp text-sm uppercase tracking-wide text-paper/60">
-            On file — pending. Services land here once published from the admin panel.
-          </p>
+          <Reveal as="p" delay={0.15} className="mt-14 font-sora text-base text-moss">
+            Services land here the moment they&apos;re published from the admin panel.
+          </Reveal>
         ) : (
-          <div
-            role="region"
-            aria-label="Services, scroll horizontally for more"
-            tabIndex={0}
-            className="mt-14 flex snap-x snap-mandatory gap-6 overflow-x-auto pb-4 [-ms-overflow-style:none] [scrollbar-width:thin] focus-visible:outline-2 focus-visible:outline-gold focus-visible:outline-offset-4"
-          >
+          <Stagger className="mt-14 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {services.map((service, i) => {
               const Icon = iconForServiceKey(service.icon);
               return (
-                <Stamped
+                <StaggerItem
                   key={service.id}
-                  delayMs={i * 70}
-                  className={`w-64 shrink-0 snap-start sm:w-72 ${ROTATIONS[i % 2]}`}
+                  className={`group flex flex-col overflow-hidden rounded-[1.75rem] ${TINTS[i % TINTS.length]} p-4 transition-[transform,box-shadow] duration-300 hover:-translate-y-1.5 hover:shadow-[0_28px_60px_-24px_rgba(12,58,44,0.35)]`}
                 >
-                  <article className="group relative border border-gold/15 bg-ink-soft p-4 pt-6 transition-transform duration-300 hover:-translate-y-1 hover:rotate-0">
-                    {/* perforated tear edge at the top of the ticket */}
-                    <span
-                      aria-hidden
-                      className="absolute -top-2 left-0 right-0 h-2 bg-repeat-x"
-                      style={{
-                        backgroundImage:
-                          "radial-gradient(circle, var(--color-ink) 3px, transparent 3.1px)",
-                        backgroundSize: "1.5rem 100%",
-                      }}
-                    />
-                    <PlaceholderPhoto label={service.name} tone="dark" />
-                    <div className="mt-4 flex items-center justify-between gap-3">
-                      <h3 className="font-body text-lg font-medium text-paper">{service.name}</h3>
-                      <Icon className="h-7 w-7 shrink-0 text-gold" />
+                  <Photo
+                    src={service.image}
+                    label={service.name}
+                    width={520}
+                    className="rounded-[1.25rem]"
+                  />
+                  <div className="mt-5 flex items-start gap-3 px-1 pb-2">
+                    <span className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-paper text-green-ink">
+                      <Icon className="h-5 w-5" />
+                    </span>
+                    <div>
+                      <h3 className="font-anton text-xl uppercase tracking-tight text-ink">
+                        {service.name}
+                      </h3>
+                      <p className="pretty mt-1.5 font-sora text-sm leading-relaxed text-moss">
+                        {service.shortDescription}
+                      </p>
                     </div>
-                  </article>
-                </Stamped>
+                  </div>
+                </StaggerItem>
               );
             })}
-          </div>
+          </Stagger>
         )}
       </div>
     </section>
