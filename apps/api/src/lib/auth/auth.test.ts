@@ -382,3 +382,51 @@ describe("listSessions", () => {
     expect(ids).not.toContain(first.sessionId);
   });
 });
+
+describe("changePassword", () => {
+  it("sets the new password, clears mustChangePassword, and lets the user log in with it", async () => {
+    await prisma.admin.update({ where: { id: adminId }, data: { mustChangePassword: true } });
+
+    await authService.changePassword(adminId, "correct-password", "a-brand-new-password");
+
+    const after = await prisma.admin.findUnique({ where: { id: adminId } });
+    expect(after?.mustChangePassword).toBe(false);
+    await expect(authService.login("login-test@zolvex.test", "a-brand-new-password")).resolves.toMatchObject({
+      twoFAEnabled: false,
+    });
+    await expect(authService.login("login-test@zolvex.test", "correct-password")).rejects.toBeInstanceOf(
+      authService.InvalidCredentialsError
+    );
+  });
+
+  it("rejects a wrong current password", async () => {
+    await expect(
+      authService.changePassword(adminId, "not-my-password", "a-brand-new-password")
+    ).rejects.toBeInstanceOf(authService.WrongCurrentPasswordError);
+  });
+
+  it("rejects a new password shorter than the minimum", async () => {
+    await expect(
+      authService.changePassword(adminId, "correct-password", "short")
+    ).rejects.toBeInstanceOf(authService.WeakPasswordError);
+  });
+
+  it("rejects reusing the current password", async () => {
+    await expect(
+      authService.changePassword(adminId, "correct-password", "correct-password")
+    ).rejects.toBeInstanceOf(authService.WeakPasswordError);
+  });
+
+  it("revokes every existing session for the account", async () => {
+    const { otpauthUrl } = await authService.setupTwoFA(adminId);
+    const secret = /secret=([A-Z0-9]+)/.exec(otpauthUrl)![1];
+    await authService.verifyTwoFASetup(adminId, await generate({ secret }));
+    const { refreshToken } = await authService.verifyTwoFALogin(adminId, await generate({ secret }));
+
+    await authService.changePassword(adminId, "correct-password", "a-brand-new-password");
+
+    await expect(authService.refreshSession(refreshToken)).rejects.toBeInstanceOf(
+      authService.InvalidCredentialsError
+    );
+  });
+});

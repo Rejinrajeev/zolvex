@@ -19,10 +19,13 @@ async function main() {
 
   const tempPassword = generateTempPassword();
   const passwordHash = await hashPassword(tempPassword);
-  await prisma.admin.create({ data: { name, email, passwordHash, role: "superadmin" } });
+  await prisma.admin.create({
+    data: { name, email, passwordHash, role: "superadmin", mustChangePassword: true },
+  });
 
   console.log(`Created superadmin ${email}`);
   console.log(`Temporary password (save this now, it will not be shown again): ${tempPassword}`);
+  console.log("You'll be asked to set your own password right after your first sign-in.");
 }
 
 main()

@@ -45,12 +45,23 @@ describe("AdminUserService.create", () => {
 
     expect(result.admin.email).toBe("new-editor@zolvex.test");
     expect(result.admin.twoFAEnabled).toBe(false);
+    expect(result.admin.mustChangePassword).toBe(true);
     expect(result.tempPassword).toBeTruthy();
     expect(result.admin.passwordHash).not.toBe(result.tempPassword);
 
     const logs = await prisma.auditLog.findMany({ where: { entityId: result.admin.id } });
     expect(logs).toHaveLength(1);
     expect(logs[0].entity).toBe("Admin");
+  });
+
+  it("uses a supplied password and returns no tempPassword", async () => {
+    await seedActors();
+    const result = await users.create(
+      { id: superadminId, role: "superadmin" },
+      { name: "Boss Set", email: "boss-set@zolvex.test", role: "editor", password: "a-password-the-boss-chose" }
+    );
+    expect(result.tempPassword).toBeNull();
+    expect(result.admin.mustChangePassword).toBe(true);
   });
 
   it("rejects a non-superadmin creating an account", async () => {

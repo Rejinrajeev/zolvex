@@ -18,6 +18,7 @@ import express, { type Express, type Request, type Response, type NextFunction }
 import cookieParser from "cookie-parser";
 import { prisma } from "./db/prisma.js";
 import { adminAuthRouter } from "./routes/admin/auth.routes.js";
+import { adminAccountRouter } from "./routes/admin/account.routes.js";
 import { adminSessionsRouter } from "./routes/admin/sessions.routes.js";
 import { adminUsersRouter } from "./routes/admin/users.routes.js";
 import { adminContentRouter } from "./routes/admin/content.routes.js";
@@ -45,6 +46,7 @@ export function createApp(): Express {
   app.use(express.json());
   app.use(cookieParser());
   app.use("/admin/api/auth", adminAuthRouter);
+  app.use("/admin/api/account", adminAccountRouter);
   app.use("/admin/api/sessions", adminSessionsRouter);
   app.use("/admin/api/users", adminUsersRouter);
   app.use("/admin/api/content", adminContentRouter);

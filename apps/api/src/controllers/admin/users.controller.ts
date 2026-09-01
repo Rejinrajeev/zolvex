@@ -2,6 +2,7 @@ import type { Response } from "express";
 import { z } from "zod";
 import { Prisma } from "@prisma/client";
 import { AdminUserService, ForbiddenAdminActionError, AdminNotFoundError } from "../../lib/services/admin-user.js";
+import { MIN_PASSWORD_LENGTH } from "../../lib/auth/auth.js";
 import { prisma } from "../../db/prisma.js";
 import type { AuthedRequest } from "../../lib/auth/middleware.js";
 
@@ -35,6 +36,10 @@ const createSchema = z.object({
   name: z.string().min(1),
   email: z.string().email(),
   role: z.enum(["editor", "superadmin"]),
+  // Optional: the superadmin may set the sign-in password directly. Blank/
+  // absent means "generate a one-time password". Same length floor as
+  // authService.changePassword.
+  password: z.string().min(MIN_PASSWORD_LENGTH).max(200).optional(),
 });
 
 export async function create(req: AuthedRequest, res: Response) {
