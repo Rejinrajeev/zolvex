@@ -3,6 +3,9 @@
 import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ErrorBanner } from "@/components/admin/ErrorBanner";
+import { Table } from "@/components/admin/Table";
+import { PageHeader, SelectField, TextField, SkeletonRows } from "@/components/admin/ui";
+import { adminFetch } from "@/lib/admin/fetch";
 
 interface AuditLogEntry {
   id: string;
@@ -48,7 +51,7 @@ function AuditLogInner() {
     if (from) qs.set("from", from);
     if (to) qs.set("to", to);
     const qstr = qs.toString();
-    fetch(`/admin/api/audit-log${qstr ? `?${qstr}` : ""}`)
+    adminFetch(`/admin/api/audit-log${qstr ? `?${qstr}` : ""}`)
       .then(async (res) => {
         if (!res.ok) throw new Error("load_failed");
         return res.json() as Promise<AuditLogEntry[]>;
@@ -72,99 +75,100 @@ function AuditLogInner() {
 
   return (
     <div>
-      <h1 className="mb-6 font-display text-3xl text-ink">Audit Log</h1>
-      <div className="mb-4 flex flex-wrap gap-3">
-        <select
+      <PageHeader title="Audit log" description="Every change staff made, newest first. Filter to narrow it down." />
+
+      <div className="mb-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <SelectField
+          id="entity"
+          label="Entity"
           value={entity}
           onChange={(e) => updateParam("entity", e.target.value)}
-          className="h-11 border border-ink/20 bg-paper px-3.5 font-body text-sm text-ink focus:border-olive-ink focus:outline-none"
         >
           {ENTITY_OPTIONS.map((opt) => (
             <option key={opt} value={opt}>
               {opt === "" ? "All entities" : opt}
             </option>
           ))}
-        </select>
-        <input
-          type="text"
-          placeholder="Admin ID"
+        </SelectField>
+        <TextField
+          id="adminId"
+          label="Admin ID"
+          placeholder="Any"
           value={adminId}
           onChange={(e) => updateParam("adminId", e.target.value)}
-          className="h-11 border border-ink/20 bg-paper px-3.5 font-body text-sm text-ink placeholder:text-slate focus:border-olive-ink focus:outline-none"
         />
-        <input
+        <TextField
+          id="from"
+          label="From"
           type="date"
           value={from}
           onChange={(e) => updateParam("from", e.target.value)}
-          className="h-11 border border-ink/20 bg-paper px-3.5 font-body text-sm text-ink focus:border-olive-ink focus:outline-none"
         />
-        <input
+        <TextField
+          id="to"
+          label="To"
           type="date"
           value={to}
           onChange={(e) => updateParam("to", e.target.value)}
-          className="h-11 border border-ink/20 bg-paper px-3.5 font-body text-sm text-ink focus:border-olive-ink focus:outline-none"
         />
       </div>
+
       {error && (
         <div className="mb-4">
           <ErrorBanner message={error} />
         </div>
       )}
+
       {loading ? (
-        <p className="font-body text-sm text-slate">Loading…</p>
-      ) : logs.length === 0 ? (
-        <p className="font-body text-sm text-slate">No audit log entries.</p>
+        <SkeletonRows />
       ) : (
-        <table className="w-full border-collapse font-body text-sm">
-          <thead>
-            <tr className="border-b border-ink/10 text-left">
-              {["Time", "Action", "Entity", "Admin", "Changes"].map((h) => (
-                <th
-                  key={h}
-                  className="py-2 pr-4 font-stamp text-[0.7rem] uppercase tracking-wide text-slate"
-                >
-                  {h}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {logs.map((log) => {
-              const diffStr = JSON.stringify(log.diff);
-              return (
-                <tr key={log.id} className="border-b border-ink/10 align-top">
-                  <td className="py-3 pr-4 text-slate">
-                    {new Date(log.timestamp).toLocaleString()}
-                  </td>
-                  <td className="py-3 pr-4">
-                    <span className="font-stamp text-[0.65rem] uppercase tracking-wide text-ink">
-                      {log.action}
-                    </span>
-                  </td>
-                  <td className="py-3 pr-4 text-slate">
-                    {log.entity}
-                    <span className="ml-1 font-mono text-[0.65rem] text-slate/60">
-                      {log.entityId.slice(0, 8)}…
-                    </span>
-                  </td>
-                  <td className="py-3 pr-4 font-mono text-xs text-slate">
-                    {log.adminId.slice(0, 8)}…
-                  </td>
-                  <td className="py-3 pr-4">
-                    <span
-                      title={diffStr}
-                      className="cursor-default font-mono text-xs text-slate"
-                    >
-                      {diffStr.length > 80
-                        ? `${diffStr.slice(0, 80)}…`
-                        : diffStr}
-                    </span>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+        <Table
+          columns={[
+            {
+              key: "timestamp",
+              label: "Time",
+              render: (l) => new Date(l.timestamp).toLocaleString(),
+            },
+            {
+              key: "action",
+              label: "Action",
+              render: (l) => (
+                <span className="font-sora text-xs font-semibold uppercase tracking-wide text-ink">
+                  {l.action}
+                </span>
+              ),
+            },
+            {
+              key: "entity",
+              label: "Entity",
+              render: (l) => (
+                <span>
+                  {l.entity}{" "}
+                  <span className="font-mono text-xs text-moss/70">{l.entityId.slice(0, 8)}…</span>
+                </span>
+              ),
+            },
+            {
+              key: "adminId",
+              label: "Admin",
+              render: (l) => <span className="font-mono text-xs text-moss">{l.adminId.slice(0, 8)}…</span>,
+            },
+            {
+              key: "diff",
+              label: "Changes",
+              render: (l) => {
+                const s = JSON.stringify(l.diff);
+                return (
+                  <span title={s} className="font-mono text-xs text-moss">
+                    {s.length > 80 ? `${s.slice(0, 80)}…` : s}
+                  </span>
+                );
+              },
+            },
+          ]}
+          rows={logs}
+          emptyMessage="No audit log entries."
+        />
       )}
     </div>
   );
@@ -172,9 +176,7 @@ function AuditLogInner() {
 
 export default function AuditLogPage() {
   return (
-    <Suspense
-      fallback={<p className="font-body text-sm text-slate">Loading…</p>}
-    >
+    <Suspense fallback={<SkeletonRows />}>
       <AuditLogInner />
     </Suspense>
   );

@@ -1,32 +1,28 @@
 const LABELS: Record<string, string> = {
   draft: "Draft",
-  pending_approval: "Pending approval",
+  pending_approval: "Pending",
   published: "Published",
   rejected: "Rejected",
 };
 
-/**
- * The five generic types' approvalStatus, rendered as a "logged" stamp --
- * font-stamp is DESIGN.md's role reserved for dates/statuses/tags, never
- * headings or body copy. No red anywhere: the palette has none by design.
- */
+const STYLES: Record<string, string> = {
+  published: "bg-green/18 text-green-ink",
+  pending_approval: "bg-gold/40 text-ink",
+  rejected: "bg-danger-soft text-danger",
+  draft: "bg-ink/8 text-moss",
+};
+
+/** A record's approval status as a small rounded pill. Colour carries the
+ *  state (green = live, gold = waiting, outline = rejected, grey = draft),
+ *  never on its own — the label always says which. */
 export function StatusBadge({ status }: { status: string }) {
   const label = LABELS[status] ?? status;
-  const base = "inline-block font-stamp text-[0.7rem] uppercase tracking-wide px-2 py-1";
-
-  if (status === "published") {
-    return <span className={`${base} bg-gold text-ink`}>{label}</span>;
-  }
-  if (status === "pending_approval") {
-    return <span className={`${base} border border-olive-ink/60 text-olive-ink`}>{label}</span>;
-  }
-  if (status === "rejected") {
-    return (
-      <span className={`${base} border-2 border-ink text-ink`}>
-        <span aria-hidden="true" className="stamp-rotate inline-block mr-1">◆</span>
-        {label}
-      </span>
-    );
-  }
-  return <span className={`${base} text-slate`}>{label}</span>;
+  const style = STYLES[status] ?? "bg-ink/8 text-moss";
+  return (
+    <span
+      className={`inline-flex items-center rounded-full px-2.5 py-1 font-sora text-xs font-semibold uppercase tracking-wide ${style}`}
+    >
+      {label}
+    </span>
+  );
 }

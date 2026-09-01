@@ -177,3 +177,13 @@ export function IconWhatsApp(props: SVGProps<SVGSVGElement>) {
   );
 }
 
+export function IconAlert(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...base} {...props}>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 7.5v5" />
+      <path d="M12 16h.01" />
+    </svg>
+  );
+}
+

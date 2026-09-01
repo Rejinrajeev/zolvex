@@ -2,6 +2,9 @@
 
 import { useEffect, useState } from "react";
 import { ErrorBanner } from "@/components/admin/ErrorBanner";
+import { Table } from "@/components/admin/Table";
+import { PageHeader, SkeletonRows } from "@/components/admin/ui";
+import { adminFetch } from "@/lib/admin/fetch";
 
 interface AdminSession {
   id: string;
@@ -23,7 +26,7 @@ export default function SessionsPage() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch("/admin/api/sessions");
+      const res = await adminFetch("/admin/api/sessions");
       if (!res.ok) {
         setError("Could not load sessions.");
         return;
@@ -47,9 +50,7 @@ export default function SessionsPage() {
       )
     )
       return;
-    const res = await fetch(`/admin/api/sessions/${session.id}/revoke`, {
-      method: "POST",
-    });
+    const res = await adminFetch(`/admin/api/sessions/${session.id}/revoke`, { method: "POST" });
     if (!res.ok) {
       const data = await res.json();
       setError(data?.message ?? "Could not revoke session.");
@@ -60,62 +61,54 @@ export default function SessionsPage() {
 
   return (
     <div>
-      <h1 className="mb-6 font-display text-3xl text-ink">Active sessions</h1>
+      <PageHeader
+        title="Active sessions"
+        description="Every signed-in admin device. Revoke one to sign that device out."
+      />
       {error && (
         <div className="mb-4">
           <ErrorBanner message={error} />
         </div>
       )}
       {loading ? (
-        <p className="font-body text-sm text-slate">Loading…</p>
-      ) : sessions.length === 0 ? (
-        <p className="font-body text-sm text-slate">No active sessions.</p>
+        <SkeletonRows />
       ) : (
-        <table className="w-full border-collapse font-body text-sm">
-          <thead>
-            <tr className="border-b border-ink/10 text-left">
-              {["Admin", "IP", "Last active", "Expires"].map((h) => (
-                <th
-                  key={h}
-                  className="py-2 pr-4 font-stamp text-[0.7rem] uppercase tracking-wide text-slate"
-                >
-                  {h}
-                </th>
-              ))}
-              <th className="py-2" />
-            </tr>
-          </thead>
-          <tbody>
-            {sessions.map((session) => (
-              <tr key={session.id} className="border-b border-ink/10">
-                <td className="py-3 pr-4 text-ink">
-                  <div>{session.admin.name}</div>
-                  <div className="font-body text-xs text-slate">
-                    {session.admin.email}
-                  </div>
-                </td>
-                <td className="py-3 pr-4 text-slate">
-                  {session.ipAddress ?? "—"}
-                </td>
-                <td className="py-3 pr-4 text-slate">
-                  {new Date(session.lastActiveAt).toLocaleString()}
-                </td>
-                <td className="py-3 pr-4 text-slate">
-                  {new Date(session.expiresAt).toLocaleString()}
-                </td>
-                <td className="py-3 text-right">
-                  <button
-                    type="button"
-                    onClick={() => handleRevoke(session)}
-                    className="font-body text-sm text-ink underline"
-                  >
-                    Revoke
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <Table
+          columns={[
+            {
+              key: "admin",
+              label: "Admin",
+              render: (s) => (
+                <div>
+                  <div className="font-medium text-ink">{s.admin.name}</div>
+                  <div className="font-sora text-xs text-moss">{s.admin.email}</div>
+                </div>
+              ),
+            },
+            { key: "ipAddress", label: "IP", render: (s) => s.ipAddress ?? "—" },
+            {
+              key: "lastActiveAt",
+              label: "Last active",
+              render: (s) => new Date(s.lastActiveAt).toLocaleString(),
+            },
+            {
+              key: "expiresAt",
+              label: "Expires",
+              render: (s) => new Date(s.expiresAt).toLocaleString(),
+            },
+          ]}
+          rows={sessions}
+          renderActions={(s) => (
+            <button
+              type="button"
+              onClick={() => handleRevoke(s)}
+              className="font-sora text-sm font-semibold text-ink underline underline-offset-4 transition-colors hover:text-danger"
+            >
+              Revoke
+            </button>
+          )}
+          emptyMessage="No active sessions."
+        />
       )}
     </div>
   );

@@ -4,6 +4,8 @@ import { useParams, useRouter } from "next/navigation";
 import { configFor } from "@/lib/admin-content/configs";
 import { ContentForm, type FormValues } from "@/components/admin/ContentForm";
 import { ErrorBanner } from "@/components/admin/ErrorBanner";
+import { PageHeader } from "@/components/admin/ui";
+import { adminFetch } from "@/lib/admin/fetch";
 
 interface ZodIssue {
   path: (string | number)[];
@@ -21,7 +23,7 @@ export default function NewContentPage() {
   }
 
   async function handleSubmit(values: Partial<FormValues>) {
-    const res = await fetch(`/admin/api/content/${type}`, {
+    const res = await adminFetch(`/admin/api/content/${type}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(values),
@@ -46,7 +48,7 @@ export default function NewContentPage() {
 
   return (
     <div>
-      <h1 className="mb-6 font-display text-3xl text-ink">New {config.displayName.toLowerCase()}</h1>
+      <PageHeader title={`New ${config.displayName.toLowerCase()}`} />
       <ContentForm config={config} onSubmit={handleSubmit} submitLabel="Create" />
     </div>
   );

@@ -6,6 +6,7 @@ import {
   setRefreshTokenCookie,
   clearPending2FACookie,
 } from "@/lib/admin-auth/cookies";
+import { decodeJwtPayload } from "@/lib/admin-auth/jwt";
 
 function extractRefreshToken(setCookieHeader: string | null): string | undefined {
   if (!setCookieHeader) return undefined;
@@ -40,7 +41,8 @@ export async function POST(request: Request) {
     }
     await setAccessTokenCookie(data.accessToken);
     await clearPending2FACookie();
-    return NextResponse.json({ ok: true }, { status: 200 });
+    const mustChangePassword = decodeJwtPayload(data.accessToken)?.mustChangePassword === true;
+    return NextResponse.json({ ok: true, mustChangePassword }, { status: 200 });
   }
 
   return NextResponse.json(data ?? { error: "upstream_error" }, { status: upstream.status });

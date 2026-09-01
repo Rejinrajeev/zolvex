@@ -2,13 +2,24 @@
 
 import { Suspense, useCallback, useEffect, useState } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
-import Link from "next/link";
 import { configFor } from "@/lib/admin-content/configs";
 import { Table } from "@/components/admin/Table";
 import { StatusBadge } from "@/components/admin/StatusBadge";
 import { ErrorBanner } from "@/components/admin/ErrorBanner";
 import { Modal } from "@/components/admin/Modal";
+import {
+  Button,
+  LinkButton,
+  PageHeader,
+  SkeletonRows,
+  EmptyState,
+  TextField,
+  SelectField,
+  TextAreaField,
+  Notice,
+} from "@/components/admin/ui";
 import { IconDragHandle } from "@/components/icons";
+import { adminFetch } from "@/lib/admin/fetch";
 
 interface ContentRecord {
   id: string;
@@ -39,6 +50,7 @@ function ContentListForType() {
   const [error, setError] = useState<string | null>(null);
   const [rejectTarget, setRejectTarget] = useState<ContentRecord | null>(null);
   const [rejectReason, setRejectReason] = useState("");
+  const [rejectError, setRejectError] = useState<string | null>(null);
   const [draggedId, setDraggedId] = useState<string | null>(null);
   const isSuperadmin = role === "superadmin";
 
@@ -50,19 +62,19 @@ function ContentListForType() {
     if (status) qs.set("status", status);
     if (q) qs.set("q", q);
     try {
-      const res = await fetch(`/admin/api/content/${type}${qs.toString() ? `?${qs}` : ""}`);
+      const res = await adminFetch(`/admin/api/content/${type}${qs.toString() ? `?${qs}` : ""}`);
       const data = await res.json();
       if (!res.ok) {
-        // On a non-ok response, `data` is always the error object (never the
-        // records array) -- res.ok being false is exactly what routes here.
-        setError(data?.error === "forbidden" ? "You don't have permission for this action." : "Could not load records.");
+        setError(
+          data?.error === "forbidden"
+            ? "You don't have permission for this action."
+            : "Could not load records."
+        );
         setRecords([]);
       } else {
         setRecords(data as ContentRecord[]);
       }
     } catch {
-      // A rejected fetch (network error, not just a bad HTTP status) must
-      // not leave `loading` stuck true forever with no way to recover.
       setError("Could not reach the server. Check your connection and try again.");
       setRecords([]);
     } finally {
@@ -76,7 +88,7 @@ function ContentListForType() {
 
   useEffect(() => {
     (async () => {
-      const res = await fetch("/admin/api/auth/me");
+      const res = await adminFetch("/admin/api/auth/me");
       if (res.ok) {
         const data = await res.json();
         setRole(data.role);
@@ -92,10 +104,14 @@ function ContentListForType() {
   }
 
   async function handleApprove(record: ContentRecord) {
-    const res = await fetch(`/admin/api/content/${type}/${record.id}/approve`, { method: "POST" });
+    const res = await adminFetch(`/admin/api/content/${type}/${record.id}/approve`, { method: "POST" });
     if (!res.ok) {
       const data = await res.json();
-      setError(data?.error === "forbidden" ? "You don't have permission for this action." : data?.message ?? "Could not approve this record.");
+      setError(
+        data?.error === "forbidden"
+          ? "You don't have permission for this action."
+          : data?.message ?? "Could not approve this record."
+      );
       if (res.status === 409) fetchRecords();
       return;
     }
@@ -104,16 +120,25 @@ function ContentListForType() {
 
   async function handleReject() {
     if (!rejectTarget) return;
-    const res = await fetch(`/admin/api/content/${type}/${rejectTarget.id}/reject`, {
+    if (!rejectReason.trim()) {
+      setRejectError("Give a reason so the editor knows what to fix.");
+      return;
+    }
+    const res = await adminFetch(`/admin/api/content/${type}/${rejectTarget.id}/reject`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ reason: rejectReason }),
     });
     setRejectTarget(null);
     setRejectReason("");
+    setRejectError(null);
     if (!res.ok) {
       const data = await res.json();
-      setError(data?.error === "forbidden" ? "You don't have permission for this action." : data?.message ?? "Could not reject this record.");
+      setError(
+        data?.error === "forbidden"
+          ? "You don't have permission for this action."
+          : data?.message ?? "Could not reject this record."
+      );
       if (res.status === 409) fetchRecords();
       return;
     }
@@ -121,23 +146,25 @@ function ContentListForType() {
   }
 
   async function handleDelete(record: ContentRecord) {
-    if (!window.confirm(`Delete this ${config?.displayName.toLowerCase()}? It can be restored from Trash later.`)) return;
-    const res = await fetch(`/admin/api/content/${type}/${record.id}`, { method: "DELETE" });
+    if (
+      !window.confirm(
+        `Delete this ${config?.displayName.toLowerCase()}? It can be restored from Trash later.`
+      )
+    )
+      return;
+    const res = await adminFetch(`/admin/api/content/${type}/${record.id}`, { method: "DELETE" });
     if (!res.ok) {
       const data = await res.json();
-      setError(data?.error === "forbidden" ? "You don't have permission for this action." : "Could not delete this record.");
+      setError(
+        data?.error === "forbidden"
+          ? "You don't have permission for this action."
+          : "Could not delete this record."
+      );
       return;
     }
     fetchRecords();
   }
 
-  // Reordering writes `order: 0..N-1` across whatever's in `records` right
-  // now. That's only correct when `records` IS the full, unfiltered list --
-  // reordering a filtered subset would write colliding order values that
-  // clash with the hidden records' existing order, corrupting the real
-  // display order every visitor to the public site sees. Only reachable
-  // when no filter is active (see the `canReorder` check below); this
-  // guard is a second, explicit line of defense against that same mistake.
   const canReorder = isSuperadmin && isReorderable(config?.fields ?? []) && !status && !q;
 
   async function handleDrop(targetId: string) {
@@ -154,10 +181,10 @@ function ContentListForType() {
     const reordered = [...records];
     const [moved] = reordered.splice(fromIndex, 1);
     reordered.splice(toIndex, 0, moved);
-    setRecords(reordered); // optimistic
+    setRecords(reordered);
     setDraggedId(null);
 
-    const res = await fetch(`/admin/api/content/${type}/reorder`, {
+    const res = await adminFetch(`/admin/api/content/${type}/reorder`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ items: reordered.map((r, i) => ({ id: r.id, order: i })) }),
@@ -174,40 +201,84 @@ function ContentListForType() {
 
   const filterActive = Boolean(status || q);
 
+  function rowActions(row: ContentRecord) {
+    return (
+      <div className="flex flex-wrap justify-end gap-3">
+        <button
+          type="button"
+          onClick={() => router.push(`/admin/content/${type}/${row.id}`)}
+          className="font-sora text-sm font-semibold text-green-ink underline underline-offset-4 transition-colors hover:text-forest"
+        >
+          Edit
+        </button>
+        {isSuperadmin && row.approvalStatus === "pending_approval" && (
+          <>
+            <button
+              type="button"
+              onClick={() => handleApprove(row)}
+              className="font-sora text-sm font-semibold text-green-ink underline underline-offset-4 transition-colors hover:text-forest"
+            >
+              Approve
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setRejectTarget(row);
+                setRejectError(null);
+              }}
+              className="font-sora text-sm font-semibold text-ink underline underline-offset-4 transition-colors hover:text-danger"
+            >
+              Reject
+            </button>
+          </>
+        )}
+        <button
+          type="button"
+          onClick={() => handleDelete(row)}
+          className="font-sora text-sm font-semibold text-ink underline underline-offset-4 transition-colors hover:text-danger"
+        >
+          Delete
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div>
-      <div className="mb-6 flex items-center justify-between">
-        <h1 className="font-display text-3xl text-ink">{config.displayNamePlural}</h1>
-        <Link
-          href={`/admin/content/${type}/new`}
-          className="border-2 border-ink px-6 py-3 font-display text-ink hover:bg-ink hover:text-paper"
-        >
-          New {config.displayName.toLowerCase()}
-        </Link>
-      </div>
+      <PageHeader
+        title={config.displayNamePlural}
+        action={
+          <LinkButton href={`/admin/content/${type}/new`}>
+            New {config.displayName.toLowerCase()}
+          </LinkButton>
+        }
+      />
 
-      <div className="mb-4 flex flex-wrap gap-3">
-        <input
+      <div className="mb-4 flex flex-wrap items-end gap-3">
+        <TextField
+          id="search"
+          label="Search"
           type="search"
-          placeholder="Search..."
+          placeholder="Filter by text…"
           defaultValue={q}
+          wrapperClassName="w-56"
           onBlur={(e) => updateFilter("q", e.target.value)}
           onKeyDown={(e) => {
             if (e.key === "Enter") updateFilter("q", (e.target as HTMLInputElement).value);
           }}
-          className="h-11 border border-ink/20 bg-paper px-3.5 font-body text-ink focus:border-olive-ink focus:outline-none"
         />
-        <select
+        <SelectField
+          id="status-filter"
+          label="Status"
           value={status}
           onChange={(e) => updateFilter("status", e.target.value)}
-          className="h-11 border border-ink/20 bg-paper px-3.5 font-body text-ink"
         >
           {STATUS_OPTIONS.map((opt) => (
             <option key={opt} value={opt}>
               {opt === "" ? "All statuses" : opt.replace("_", " ")}
             </option>
           ))}
-        </select>
+        </SelectField>
       </div>
 
       {error && (
@@ -217,72 +288,68 @@ function ContentListForType() {
       )}
 
       {isSuperadmin && isReorderable(config.fields) && filterActive && (
-        <p className="mb-3 font-body text-sm text-slate">
-          Clear the search/status filters to drag-and-drop reorder — reordering only works against the full list.
+        <p className="mb-3 font-sora text-sm text-moss">
+          Clear the filters to drag-and-drop reorder — reordering works on the full list only.
         </p>
       )}
 
       {loading ? (
-        <p className="font-body text-sm text-slate">Loading…</p>
+        <SkeletonRows />
       ) : canReorder ? (
-        <table className="w-full border-collapse font-body text-sm">
-          <thead>
-            <tr className="border-b border-ink/10 text-left">
-              <th className="py-2 pr-2" />
-              {config.listColumns.map((col) => (
-                <th key={col.key} className="py-2 pr-4 font-stamp text-[0.7rem] uppercase tracking-wide text-slate">
-                  {col.label}
-                </th>
-              ))}
-              <th className="py-2 pr-4 font-stamp text-[0.7rem] uppercase tracking-wide text-slate">Status</th>
-              <th className="py-2" />
-            </tr>
-          </thead>
-          <tbody>
-            {records.map((row) => (
-              <tr
-                key={row.id}
-                draggable
-                onDragStart={() => setDraggedId(row.id)}
-                onDragOver={(e) => e.preventDefault()}
-                onDrop={() => handleDrop(row.id)}
-                className={`border-b border-ink/10 ${draggedId === row.id ? "stamp-rotate opacity-70" : ""}`}
-              >
-                <td className="py-3 pr-2 cursor-grab text-slate">
-                  <IconDragHandle className="h-5 w-5" />
-                </td>
-                {config.listColumns.map((col) => (
-                  <td key={col.key} className="py-3 pr-4 align-top text-ink">
-                    {String(row[col.key] ?? "")}
-                  </td>
-                ))}
-                <td className="py-3 pr-4 align-top">
-                  <StatusBadge status={row.approvalStatus} />
-                </td>
-                <td className="py-3 text-right">
-                  <div className="flex justify-end gap-2">
-                    <Link href={`/admin/content/${type}/${row.id}`} className="font-body text-sm text-olive-ink underline">
-                      Edit
-                    </Link>
-                    {row.approvalStatus === "pending_approval" && (
-                      <>
-                        <button type="button" onClick={() => handleApprove(row)} className="font-body text-sm text-olive-ink underline">
-                          Approve
-                        </button>
-                        <button type="button" onClick={() => setRejectTarget(row)} className="font-body text-sm text-ink underline">
-                          Reject
-                        </button>
-                      </>
-                    )}
-                    <button type="button" onClick={() => handleDelete(row)} className="font-body text-sm text-ink underline">
-                      Delete
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        records.length === 0 ? (
+          <EmptyState title={`No ${config.displayNamePlural.toLowerCase()} yet.`} />
+        ) : (
+          <div className="overflow-hidden rounded-2xl bg-paper shadow-[0_18px_44px_-28px_rgba(12,58,44,0.28)] ring-1 ring-ink/5">
+            <div className="overflow-x-auto">
+              <table className="w-full border-collapse font-sora text-sm">
+                <thead>
+                  <tr className="bg-mist text-left">
+                    <th className="px-4 py-3" />
+                    {config.listColumns.map((col) => (
+                      <th
+                        key={col.key}
+                        className="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-moss"
+                      >
+                        {col.label}
+                      </th>
+                    ))}
+                    <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-moss">
+                      Status
+                    </th>
+                    <th className="px-4 py-3" />
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-ink/5">
+                  {records.map((row) => (
+                    <tr
+                      key={row.id}
+                      draggable
+                      onDragStart={() => setDraggedId(row.id)}
+                      onDragOver={(e) => e.preventDefault()}
+                      onDrop={() => handleDrop(row.id)}
+                      className={`transition-colors ${
+                        draggedId === row.id ? "opacity-60" : "hover:bg-mist/50"
+                      }`}
+                    >
+                      <td className="cursor-grab px-4 py-3.5 text-moss">
+                        <IconDragHandle className="h-5 w-5" />
+                      </td>
+                      {config.listColumns.map((col) => (
+                        <td key={col.key} className="px-4 py-3.5 align-top text-ink">
+                          {String(row[col.key] ?? "")}
+                        </td>
+                      ))}
+                      <td className="px-4 py-3.5 align-top">
+                        <StatusBadge status={row.approvalStatus} />
+                      </td>
+                      <td className="px-4 py-3.5 text-right">{rowActions(row)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )
       ) : (
         <Table
           columns={[
@@ -294,55 +361,37 @@ function ContentListForType() {
             },
           ]}
           rows={records}
-          renderActions={(row) => (
-            <div className="flex justify-end gap-2">
-              <Link href={`/admin/content/${type}/${row.id}`} className="font-body text-sm text-olive-ink underline">
-                Edit
-              </Link>
-              {isSuperadmin && row.approvalStatus === "pending_approval" && (
-                <>
-                  <button type="button" onClick={() => handleApprove(row)} className="font-body text-sm text-olive-ink underline">
-                    Approve
-                  </button>
-                  <button type="button" onClick={() => setRejectTarget(row)} className="font-body text-sm text-ink underline">
-                    Reject
-                  </button>
-                </>
-              )}
-              <button type="button" onClick={() => handleDelete(row)} className="font-body text-sm text-ink underline">
-                Delete
-              </button>
-            </div>
-          )}
+          renderActions={rowActions}
           emptyMessage={`No ${config.displayNamePlural.toLowerCase()} yet.`}
         />
       )}
 
-
       {rejectTarget && (
-        <Modal title={`Reject this ${config.displayName.toLowerCase()}`} onClose={() => setRejectTarget(null)}>
-          <label className="mb-4 block font-body text-sm text-ink">
-            Reason
-            <textarea
+        <Modal
+          title={`Reject this ${config.displayName.toLowerCase()}`}
+          onClose={() => setRejectTarget(null)}
+        >
+          <div className="flex flex-col gap-4">
+            <TextAreaField
+              id="reject-reason"
+              label="Reason"
               required
               value={rejectReason}
-              onChange={(e) => setRejectReason(e.target.value)}
-              className="mt-1 block w-full border border-ink/20 bg-paper p-3 font-body text-ink focus:border-olive-ink focus:outline-none"
+              onChange={(e) => {
+                setRejectReason(e.target.value);
+                setRejectError(null);
+              }}
+              error={rejectError ?? undefined}
               rows={3}
             />
-          </label>
-          <div className="flex justify-end gap-3">
-            <button type="button" onClick={() => setRejectTarget(null)} className="border-2 border-ink px-6 py-3 font-display text-ink">
+          </div>
+          <div className="mt-6 flex justify-end gap-3">
+            <Button variant="ghost" onClick={() => setRejectTarget(null)}>
               Cancel
-            </button>
-            <button
-              type="button"
-              onClick={handleReject}
-              disabled={!rejectReason.trim()}
-              className="bg-gold px-6 py-3 font-display text-ink disabled:opacity-50"
-            >
+            </Button>
+            <Button variant="danger" onClick={handleReject}>
               Reject
-            </button>
+            </Button>
           </div>
         </Modal>
       )}
@@ -352,7 +401,7 @@ function ContentListForType() {
 
 export default function ContentListPage() {
   return (
-    <Suspense fallback={<p className="font-body text-sm text-slate">Loading…</p>}>
+    <Suspense fallback={<SkeletonRows />}>
       <ContentListForType />
     </Suspense>
   );

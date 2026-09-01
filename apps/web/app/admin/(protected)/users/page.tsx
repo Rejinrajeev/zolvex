@@ -3,6 +3,17 @@
 import { useEffect, useState } from "react";
 import { ErrorBanner } from "@/components/admin/ErrorBanner";
 import { Modal } from "@/components/admin/Modal";
+import { Table } from "@/components/admin/Table";
+import {
+  Button,
+  PageHeader,
+  SkeletonRows,
+  TextField,
+  SelectField,
+  Notice,
+} from "@/components/admin/ui";
+import { isEmail, isFilled } from "@/lib/admin/validate";
+import { adminFetch } from "@/lib/admin/fetch";
 
 interface AdminUser {
   id: string;
@@ -14,13 +25,16 @@ interface AdminUser {
   lastLogin: string | null;
 }
 
+const MIN_PASSWORD_LENGTH = 12;
+
 interface CreateForm {
   name: string;
   email: string;
   role: "editor" | "superadmin";
+  password: string;
 }
 
-const EMPTY_CREATE: CreateForm = { name: "", email: "", role: "editor" };
+const EMPTY_CREATE: CreateForm = { name: "", email: "", role: "editor", password: "" };
 
 export default function UsersPage() {
   const [users, setUsers] = useState<AdminUser[]>([]);
@@ -28,16 +42,18 @@ export default function UsersPage() {
   const [error, setError] = useState<string | null>(null);
   const [showCreate, setShowCreate] = useState(false);
   const [createForm, setCreateForm] = useState<CreateForm>(EMPTY_CREATE);
+  const [createErrors, setCreateErrors] = useState<{ name?: string; email?: string; password?: string }>({});
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
-  // Plaintext temp password shown once after creation, then cleared on dismiss
-  const [tempPassword, setTempPassword] = useState<string | null>(null);
+  // After a successful create: { tempPassword } if we generated one, else the
+  // superadmin set it themselves.
+  const [created, setCreated] = useState<{ tempPassword: string | null } | null>(null);
 
   async function load() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch("/admin/api/users");
+      const res = await adminFetch("/admin/api/users");
       if (!res.ok) {
         const data = await res.json().catch(() => null);
         setError(
@@ -60,12 +76,29 @@ export default function UsersPage() {
   }, []);
 
   async function handleCreate() {
+    const next: { name?: string; email?: string; password?: string } = {};
+    if (!isFilled(createForm.name)) next.name = "Enter a name.";
+    if (!isFilled(createForm.email)) next.email = "Enter an email.";
+    else if (!isEmail(createForm.email)) next.email = "Enter a valid email address.";
+    if (createForm.password && createForm.password.length < MIN_PASSWORD_LENGTH) {
+      next.password = `Use at least ${MIN_PASSWORD_LENGTH} characters, or leave blank.`;
+    }
+    setCreateErrors(next);
+    if (Object.keys(next).length > 0) return;
+
     setCreating(true);
     setCreateError(null);
-    const res = await fetch("/admin/api/users", {
+    const body: Record<string, string> = {
+      name: createForm.name,
+      email: createForm.email,
+      role: createForm.role,
+    };
+    if (createForm.password) body.password = createForm.password;
+
+    const res = await adminFetch("/admin/api/users", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(createForm),
+      body: JSON.stringify(body),
     });
     setCreating(false);
     const data = await res.json();
@@ -75,11 +108,13 @@ export default function UsersPage() {
           ? "That email is already in use."
           : data?.error === "forbidden"
             ? "You don't have permission to create users."
-            : data?.message ?? "Could not create user."
+            : data?.error === "invalid_request"
+              ? "Check the details and try again."
+              : data?.message ?? "Could not create user."
       );
       return;
     }
-    setTempPassword(data.tempPassword as string);
+    setCreated({ tempPassword: (data.tempPassword as string | null) ?? null });
     setShowCreate(false);
     setCreateForm(EMPTY_CREATE);
     load();
@@ -87,13 +122,8 @@ export default function UsersPage() {
 
   async function toggleActive(user: AdminUser) {
     const next = !user.isActive;
-    if (
-      !window.confirm(
-        `${next ? "Reactivate" : "Deactivate"} ${user.name}?`
-      )
-    )
-      return;
-    const res = await fetch(`/admin/api/users/${user.id}`, {
+    if (!window.confirm(`${next ? "Reactivate" : "Deactivate"} ${user.name}?`)) return;
+    const res = await adminFetch(`/admin/api/users/${user.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ isActive: next }),
@@ -111,15 +141,14 @@ export default function UsersPage() {
   }
 
   async function toggleRole(user: AdminUser) {
-    const next: "editor" | "superadmin" =
-      user.role === "editor" ? "superadmin" : "editor";
+    const next: "editor" | "superadmin" = user.role === "editor" ? "superadmin" : "editor";
     if (
       !window.confirm(
         `Change ${user.name}'s role to ${next}? This will revoke all their active sessions.`
       )
     )
       return;
-    const res = await fetch(`/admin/api/users/${user.id}`, {
+    const res = await adminFetch(`/admin/api/users/${user.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ role: next }),
@@ -138,172 +167,167 @@ export default function UsersPage() {
 
   return (
     <div>
-      <div className="mb-6 flex items-center justify-between">
-        <h1 className="font-display text-3xl text-ink">Users</h1>
-        <button
-          type="button"
-          onClick={() => {
-            setShowCreate(true);
-            setCreateForm(EMPTY_CREATE);
-            setCreateError(null);
-          }}
-          className="bg-gold px-5 py-2.5 font-display text-sm text-ink"
-        >
-          New user
-        </button>
-      </div>
+      <PageHeader
+        title="Users"
+        description="Admin and editor accounts. Give a new user a password (or let one be generated), then they sign in, set up 2FA and choose their own password."
+        action={
+          <Button
+            onClick={() => {
+              setShowCreate(true);
+              setCreateForm(EMPTY_CREATE);
+              setCreateErrors({});
+              setCreateError(null);
+            }}
+          >
+            New user
+          </Button>
+        }
+      />
+
       {error && (
         <div className="mb-4">
           <ErrorBanner message={error} />
         </div>
       )}
-      {tempPassword && (
-        <div className="mb-6 border border-olive-ink/40 bg-olive-ink/5 px-5 py-4">
-          <p className="mb-1 font-display text-sm text-ink">
-            User created. Temporary password — shown once, copy it now:
-          </p>
-          <p className="font-mono text-base text-ink">{tempPassword}</p>
-          <button
-            type="button"
-            onClick={() => setTempPassword(null)}
-            className="mt-3 border border-ink/20 px-3 py-1.5 font-body text-xs text-ink"
-          >
-            Dismiss
-          </button>
+
+      {created && (
+        <div className="mb-6">
+          <Notice tone="success">
+            {created.tempPassword ? (
+              <>
+                <p className="font-semibold">
+                  User created. Send them this one-time password — it&apos;s shown once:
+                </p>
+                <p className="mt-1 font-mono text-base text-forest">{created.tempPassword}</p>
+              </>
+            ) : (
+              <p className="font-semibold">
+                User created. They can sign in with the password you set.
+              </p>
+            )}
+            <p className="mt-1.5 text-xs text-moss">
+              They&apos;ll be asked to choose their own password right after signing in.
+            </p>
+            <button
+              type="button"
+              onClick={() => setCreated(null)}
+              className="mt-2 font-sora text-xs font-semibold text-green-ink underline underline-offset-2"
+            >
+              Dismiss
+            </button>
+          </Notice>
         </div>
       )}
+
       {loading ? (
-        <p className="font-body text-sm text-slate">Loading…</p>
-      ) : users.length === 0 ? (
-        <p className="font-body text-sm text-slate">No users yet.</p>
+        <SkeletonRows />
       ) : (
-        <table className="w-full border-collapse font-body text-sm">
-          <thead>
-            <tr className="border-b border-ink/10 text-left">
-              {["Name", "Email", "Role", "Status", "2FA"].map((h) => (
-                <th
-                  key={h}
-                  className="py-2 pr-4 font-stamp text-[0.7rem] uppercase tracking-wide text-slate"
+        <Table
+          columns={[
+            { key: "name", label: "Name" },
+            { key: "email", label: "Email", render: (u) => <span className="text-moss">{u.email}</span> },
+            { key: "role", label: "Role", render: (u) => <span className="text-moss">{u.role}</span> },
+            {
+              key: "isActive",
+              label: "Status",
+              render: (u) => (
+                <span
+                  className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold uppercase tracking-wide ${
+                    u.isActive ? "bg-green/18 text-green-ink" : "bg-ink/8 text-moss"
+                  }`}
                 >
-                  {h}
-                </th>
-              ))}
-              <th className="py-2" />
-            </tr>
-          </thead>
-          <tbody>
-            {users.map((user) => (
-              <tr key={user.id} className="border-b border-ink/10">
-                <td className="py-3 pr-4 text-ink">{user.name}</td>
-                <td className="py-3 pr-4 text-slate">{user.email}</td>
-                <td className="py-3 pr-4 text-slate">{user.role}</td>
-                <td className="py-3 pr-4">
-                  <span
-                    className={`font-stamp text-[0.65rem] uppercase tracking-wide ${
-                      user.isActive ? "text-olive-ink" : "text-slate"
-                    }`}
-                  >
-                    {user.isActive ? "Active" : "Deactivated"}
-                  </span>
-                </td>
-                <td className="py-3 pr-4 text-slate">
-                  {user.twoFAEnabled ? "Enabled" : "Not set"}
-                </td>
-                <td className="py-3 text-right">
-                  <div className="flex justify-end gap-2">
-                    <button
-                      type="button"
-                      onClick={() => toggleActive(user)}
-                      className="font-body text-sm text-ink underline"
-                    >
-                      {user.isActive ? "Deactivate" : "Reactivate"}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => toggleRole(user)}
-                      className="font-body text-sm text-slate underline"
-                    >
-                      Make {user.role === "editor" ? "superadmin" : "editor"}
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+                  {u.isActive ? "Active" : "Deactivated"}
+                </span>
+              ),
+            },
+            {
+              key: "twoFAEnabled",
+              label: "2FA",
+              render: (u) => <span className="text-moss">{u.twoFAEnabled ? "Enabled" : "Not set"}</span>,
+            },
+          ]}
+          rows={users}
+          renderActions={(user) => (
+            <div className="flex justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => toggleActive(user)}
+                className="font-sora text-sm font-semibold text-ink underline underline-offset-4 transition-colors hover:text-danger"
+              >
+                {user.isActive ? "Deactivate" : "Reactivate"}
+              </button>
+              <button
+                type="button"
+                onClick={() => toggleRole(user)}
+                className="font-sora text-sm font-semibold text-green-ink underline underline-offset-4 transition-colors hover:text-forest"
+              >
+                Make {user.role === "editor" ? "superadmin" : "editor"}
+              </button>
+            </div>
+          )}
+          emptyMessage="No users yet."
+        />
       )}
 
       {showCreate && (
         <Modal title="New user" onClose={() => setShowCreate(false)}>
           <div className="flex flex-col gap-4">
-            {createError && <ErrorBanner message={createError} />}
-            <div>
-              <label className="mb-1 block font-body text-sm text-ink">
-                Name *
-              </label>
-              <input
-                type="text"
-                required
-                value={createForm.name}
-                onChange={(e) =>
-                  setCreateForm((f) => ({ ...f, name: e.target.value }))
-                }
-                className="block h-11 w-full border border-ink/20 bg-paper px-3.5 font-body text-ink focus:border-olive-ink focus:outline-none"
-              />
-            </div>
-            <div>
-              <label className="mb-1 block font-body text-sm text-ink">
-                Email *
-              </label>
-              <input
-                type="email"
-                required
-                value={createForm.email}
-                onChange={(e) =>
-                  setCreateForm((f) => ({ ...f, email: e.target.value }))
-                }
-                className="block h-11 w-full border border-ink/20 bg-paper px-3.5 font-body text-ink focus:border-olive-ink focus:outline-none"
-              />
-            </div>
-            <div>
-              <label className="mb-1 block font-body text-sm text-ink">
-                Role
-              </label>
-              <select
-                value={createForm.role}
-                onChange={(e) =>
-                  setCreateForm((f) => ({
-                    ...f,
-                    role: e.target.value as "editor" | "superadmin",
-                  }))
-                }
-                className="block h-11 w-full border border-ink/20 bg-paper px-3.5 font-body text-ink focus:border-olive-ink focus:outline-none"
-              >
-                <option value="editor">Editor</option>
-                <option value="superadmin">Superadmin</option>
-              </select>
-            </div>
+            {createError && <Notice tone="error">{createError}</Notice>}
+            <TextField
+              id="user-name"
+              label="Name"
+              required
+              value={createForm.name}
+              onChange={(e) => {
+                setCreateForm((f) => ({ ...f, name: e.target.value }));
+                setCreateErrors((p) => ({ ...p, name: undefined }));
+              }}
+              error={createErrors.name}
+            />
+            <TextField
+              id="user-email"
+              label="Email"
+              type="email"
+              required
+              value={createForm.email}
+              onChange={(e) => {
+                setCreateForm((f) => ({ ...f, email: e.target.value }));
+                setCreateErrors((p) => ({ ...p, email: undefined }));
+              }}
+              error={createErrors.email}
+            />
+            <TextField
+              id="user-password"
+              label="Initial password"
+              type="password"
+              autoComplete="new-password"
+              value={createForm.password}
+              onChange={(e) => {
+                setCreateForm((f) => ({ ...f, password: e.target.value }));
+                setCreateErrors((p) => ({ ...p, password: undefined }));
+              }}
+              error={createErrors.password}
+              help={`At least ${MIN_PASSWORD_LENGTH} characters. Leave blank to generate a one-time password.`}
+            />
+            <SelectField
+              id="user-role"
+              label="Role"
+              value={createForm.role}
+              onChange={(e) =>
+                setCreateForm((f) => ({ ...f, role: e.target.value as "editor" | "superadmin" }))
+              }
+            >
+              <option value="editor">Editor</option>
+              <option value="superadmin">Superadmin</option>
+            </SelectField>
           </div>
           <div className="mt-6 flex justify-end gap-3">
-            <button
-              type="button"
-              onClick={() => setShowCreate(false)}
-              className="border border-ink/20 px-4 py-2 font-body text-sm text-ink"
-            >
+            <Button variant="ghost" onClick={() => setShowCreate(false)}>
               Cancel
-            </button>
-            <button
-              type="button"
-              onClick={handleCreate}
-              disabled={
-                creating ||
-                !createForm.name.trim() ||
-                !createForm.email.trim()
-              }
-              className="bg-gold px-4 py-2 font-display text-sm text-ink disabled:opacity-50"
-            >
-              {creating ? "Creating…" : "Create user"}
-            </button>
+            </Button>
+            <Button onClick={handleCreate} loading={creating}>
+              Create user
+            </Button>
           </div>
         </Modal>
       )}

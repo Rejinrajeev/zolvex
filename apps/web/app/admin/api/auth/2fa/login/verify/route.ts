@@ -6,6 +6,7 @@ import {
   setRefreshTokenCookie,
   clearPending2FACookie,
 } from "@/lib/admin-auth/cookies";
+import { decodeJwtPayload } from "@/lib/admin-auth/jwt";
 
 /** Pulls the raw refresh-token value out of Express's own Set-Cookie header. */
 function extractRefreshToken(setCookieHeader: string | null): string | undefined {
@@ -43,7 +44,11 @@ export async function POST(request: Request) {
     await clearPending2FACookie();
     // Never echo the raw accessToken to the browser -- it already lives in
     // this app's own httpOnly cookie, which the browser can't read anyway.
-    return NextResponse.json({ ok: true }, { status: 200 });
+    // The one bit the client does need: whether this account is still on its
+    // generated temp password, so the verify page can route straight to the
+    // change-password screen instead of the dashboard.
+    const mustChangePassword = decodeJwtPayload(data.accessToken)?.mustChangePassword === true;
+    return NextResponse.json({ ok: true, mustChangePassword }, { status: 200 });
   }
 
   return NextResponse.json(data ?? { error: "upstream_error" }, { status: upstream.status });

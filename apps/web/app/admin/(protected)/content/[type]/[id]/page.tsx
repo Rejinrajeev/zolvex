@@ -5,6 +5,8 @@ import { useParams, useRouter } from "next/navigation";
 import { configFor } from "@/lib/admin-content/configs";
 import { ContentForm, type FormValues } from "@/components/admin/ContentForm";
 import { ErrorBanner } from "@/components/admin/ErrorBanner";
+import { PageHeader, Button, SkeletonRows } from "@/components/admin/ui";
+import { adminFetch } from "@/lib/admin/fetch";
 
 interface ZodIssue {
   path: (string | number)[];
@@ -23,7 +25,7 @@ export default function EditContentPage() {
   useEffect(() => {
     if (!config) return;
     (async () => {
-      const res = await fetch(`/admin/api/content/${type}/${id}`);
+      const res = await adminFetch(`/admin/api/content/${type}/${id}`);
       if (res.status === 404) {
         setLoadError("This record no longer exists. It may have been deleted.");
         return;
@@ -47,21 +49,22 @@ export default function EditContentPage() {
 
   if (loadError) {
     return (
-      <div>
+      <div className="max-w-2xl">
         <ErrorBanner message={loadError} />
-        <button
+        <Button
           type="button"
+          variant="ghost"
           onClick={() => router.push(`/admin/content/${type}`)}
-          className="mt-4 border-2 border-ink px-6 py-3 font-display text-ink"
+          className="mt-4"
         >
           Back to {config.displayNamePlural.toLowerCase()}
-        </button>
+        </Button>
       </div>
     );
   }
 
   async function handleSubmit(values: Partial<FormValues>) {
-    const res = await fetch(`/admin/api/content/${type}/${id}`, {
+    const res = await adminFetch(`/admin/api/content/${type}/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(values),
@@ -88,12 +91,16 @@ export default function EditContentPage() {
   }
 
   if (!initialValues) {
-    return <p className="font-body text-sm text-slate">Loading…</p>;
+    return (
+      <div className="max-w-2xl">
+        <SkeletonRows rows={6} />
+      </div>
+    );
   }
 
   return (
     <div>
-      <h1 className="mb-6 font-display text-3xl text-ink">Edit {config.displayName.toLowerCase()}</h1>
+      <PageHeader title={`Edit ${config.displayName.toLowerCase()}`} />
       <ContentForm config={config} initialValues={initialValues} onSubmit={handleSubmit} submitLabel="Save" />
     </div>
   );
