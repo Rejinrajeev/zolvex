@@ -1,12 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { motion, AnimatePresence } from "motion/react";
 import { IconPhone, IconMenu, IconClose } from "./icons";
 
 const LINKS = [
-  { href: "#services", label: "Services" },
-  { href: "#about", label: "About Us" },
+  { href: "/#services", label: "Services" },
+  { href: "/#about", label: "About Us" },
 ];
 
 export function Nav({ onBookNow }: { onBookNow: () => void }) {
@@ -35,12 +36,12 @@ export function Nav({ onBookNow }: { onBookNow: () => void }) {
         aria-label="Primary"
         className="mx-auto flex h-16 max-w-[80rem] items-center justify-between px-5 sm:h-20 sm:px-8"
       >
-        <a
-          href="#top"
+        <Link
+          href="/"
           className="font-anton text-2xl uppercase tracking-tight text-ink sm:text-3xl"
         >
           Zolvex
-        </a>
+        </Link>
 
         <div className="hidden items-center gap-8 md:flex">
           {LINKS.map((link) => (

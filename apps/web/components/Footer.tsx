@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { IconPhone, IconInstagram, IconArrow } from "./icons";
 import { safeHref } from "@/lib/safe-url";
 
@@ -20,9 +21,9 @@ export function Footer({
       <div className="mx-auto max-w-[80rem] overflow-hidden rounded-t-[2.5rem] bg-forest px-6 pb-10 pt-14 text-cream sm:px-12 sm:pb-12 sm:pt-16">
         <div className="grid gap-12 lg:grid-cols-[1.4fr_1fr_1fr_1fr]">
           <div>
-            <a href="#top" className="font-anton text-3xl uppercase tracking-tight text-cream">
+            <Link href="/" className="font-anton text-3xl uppercase tracking-tight text-cream">
               Zolvex
-            </a>
+            </Link>
             <p className="pretty mt-4 max-w-xs font-sora text-sm leading-relaxed text-cream/70">
               {tagline || DEFAULT_TAGLINE}
             </p>
@@ -37,8 +38,8 @@ export function Footer({
           </div>
 
           <FooterCol title="Company">
-            <FooterLink href="#about">About Us</FooterLink>
-            <FooterLink href="#services">Services</FooterLink>
+            <FooterLink href="/#about">About Us</FooterLink>
+            <FooterLink href="/#services">Services</FooterLink>
             <li>
               <button
                 type="button"

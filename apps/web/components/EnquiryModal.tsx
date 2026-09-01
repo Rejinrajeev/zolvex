@@ -26,10 +26,13 @@ export function EnquiryModal({
   open,
   onClose,
   places,
+  service,
 }: {
   open: boolean;
   onClose: () => void;
   places: Place[];
+  /** When opened from a service page, the enquiry is tagged with that service. */
+  service?: { id: string; name: string };
 }) {
   const [status, setStatus] = useState<Status>("idle");
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -103,7 +106,14 @@ export function EnquiryModal({
       const res = await fetch("/api/enquiries", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, phone, place, preferredDate: date || undefined }),
+        body: JSON.stringify({
+          name,
+          phone,
+          place,
+          preferredDate: date || undefined,
+          serviceId: service?.id,
+          serviceName: service?.name,
+        }),
       });
       setStatus(res.ok ? "success" : "error");
     } catch {
@@ -138,9 +148,17 @@ export function EnquiryModal({
             className="relative max-h-[92svh] w-full max-w-lg overflow-y-auto rounded-t-[2rem] bg-cream p-7 sm:rounded-[2rem] sm:p-9"
           >
             <div className="flex items-start justify-between gap-4">
-              <h2 id="enquiry-title" className="font-anton text-3xl uppercase tracking-tight text-ink">
-                Book a walkthrough
-              </h2>
+              <div>
+                <h2 id="enquiry-title" className="font-anton text-3xl uppercase tracking-tight text-ink">
+                  Book a walkthrough
+                </h2>
+                {service && (
+                  <p className="mt-1.5 font-sora text-sm text-moss">
+                    Enquiry for{" "}
+                    <span className="font-semibold text-green-ink">{service.name}</span>
+                  </p>
+                )}
+              </div>
               <button
                 type="button"
                 onClick={onClose}

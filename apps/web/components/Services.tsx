@@ -1,16 +1,7 @@
 import { Reveal, Stagger, StaggerItem } from "./motion-primitives";
-import { Photo } from "./Photo";
-import { iconForServiceKey } from "@/lib/service-icons";
+import { ServiceTile, type PublicService } from "./ServiceTile";
 
-export interface PublicService {
-  id: string;
-  name: string;
-  shortDescription: string;
-  icon?: string | null;
-  image?: string | null;
-}
-
-const TINTS = ["bg-mist", "bg-sky/50", "bg-gold/40"] as const;
+export type { PublicService };
 
 export function Services({ services }: { services: PublicService[] }) {
   return (
@@ -35,36 +26,12 @@ export function Services({ services }: { services: PublicService[] }) {
             Services land here the moment they&apos;re published from the admin panel.
           </Reveal>
         ) : (
-          <Stagger className="mt-14 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {services.map((service, i) => {
-              const Icon = iconForServiceKey(service.icon);
-              return (
-                <StaggerItem
-                  key={service.id}
-                  className={`group flex flex-col overflow-hidden rounded-[1.75rem] ${TINTS[i % TINTS.length]} p-4 transition-[transform,box-shadow] duration-300 hover:-translate-y-1.5 hover:shadow-[0_28px_60px_-24px_rgba(12,58,44,0.35)]`}
-                >
-                  <Photo
-                    src={service.image}
-                    label={service.name}
-                    width={520}
-                    className="rounded-[1.25rem]"
-                  />
-                  <div className="mt-5 flex items-start gap-3 px-1 pb-2">
-                    <span className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-paper text-green-ink">
-                      <Icon className="h-5 w-5" />
-                    </span>
-                    <div>
-                      <h3 className="font-anton text-xl uppercase tracking-tight text-ink">
-                        {service.name}
-                      </h3>
-                      <p className="pretty mt-1.5 font-sora text-sm leading-relaxed text-moss">
-                        {service.shortDescription}
-                      </p>
-                    </div>
-                  </div>
-                </StaggerItem>
-              );
-            })}
+          <Stagger className="mt-12 grid auto-rows-fr grid-cols-3 gap-3 sm:mt-14 sm:grid-cols-4 sm:gap-4 lg:grid-cols-6">
+            {services.map((service, i) => (
+              <StaggerItem key={service.id} className="h-full">
+                <ServiceTile service={service} index={i} />
+              </StaggerItem>
+            ))}
           </Stagger>
         )}
       </div>

@@ -1,3 +1,5 @@
+import { createElement } from "react";
+import Link from "next/link";
 import { Reveal } from "./motion-primitives";
 import { Photo } from "./Photo";
 import { IconArrow } from "./icons";
@@ -16,7 +18,6 @@ export function FeaturedService({
   onBookNow: () => void;
 }) {
   if (!service) return null;
-  const Icon = iconForServiceKey(service.icon);
 
   return (
     <section className="on-forest bg-forest px-5 py-20 text-cream sm:px-8 sm:py-28">
@@ -32,7 +33,7 @@ export function FeaturedService({
             className="rounded-[2rem] shadow-[0_36px_80px_-36px_rgba(0,0,0,0.6)]"
           />
           <span className="absolute left-4 top-4 inline-flex items-center gap-2 rounded-full bg-green px-3.5 py-1.5 font-sora text-sm font-semibold text-forest">
-            <Icon className="h-4 w-4" />
+            {createElement(iconForServiceKey(service.icon), { className: "h-4 w-4", "aria-hidden": true })}
             Most booked
           </span>
         </Reveal>
@@ -44,14 +45,23 @@ export function FeaturedService({
           <p className="pretty mt-5 max-w-lg font-sora text-lg leading-relaxed text-cream/75">
             {service.fullDescription}
           </p>
-          <button
-            type="button"
-            onClick={onBookNow}
-            className="group mt-8 inline-flex items-center gap-2 rounded-full bg-green px-7 py-4 font-sora text-base font-semibold text-forest shadow-[0_18px_36px_-14px_rgba(15,184,119,0.6)] transition-transform hover:-translate-y-0.5"
-          >
-            Book this service
-            <IconArrow aria-hidden className="h-4 w-4 transition-transform group-hover:translate-x-1" />
-          </button>
+          <div className="mt-8 flex flex-wrap items-center gap-x-6 gap-y-4">
+            <button
+              type="button"
+              onClick={onBookNow}
+              className="group inline-flex items-center gap-2 rounded-full bg-green px-7 py-4 font-sora text-base font-semibold text-forest shadow-[0_18px_36px_-14px_rgba(15,184,119,0.6)] transition-transform hover:-translate-y-0.5"
+            >
+              Book this service
+              <IconArrow aria-hidden className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+            </button>
+            <Link
+              href={`/services/${service.slug}`}
+              className="group inline-flex items-center gap-1.5 font-sora text-sm font-semibold text-cream underline decoration-cream/30 underline-offset-4 transition-colors hover:decoration-cream"
+            >
+              Full details
+              <IconArrow aria-hidden className="h-3.5 w-3.5 transition-transform group-hover:translate-x-1" />
+            </Link>
+          </div>
         </Reveal>
       </div>
     </section>

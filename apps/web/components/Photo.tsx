@@ -7,7 +7,7 @@ import { PhotoFrame } from "./PhotoFrame";
  * instead of the multi-MB original the admin uploaded. Any non-Cloudinary
  * URL is returned untouched.
  */
-function cloudinaryTransform(src: string, width: number): string {
+export function cloudinaryTransform(src: string, width: number): string {
   const marker = "/image/upload/";
   const at = src.indexOf(marker);
   if (at === -1 || !src.includes("://res.cloudinary.com/")) return src;
