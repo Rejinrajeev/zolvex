@@ -17,6 +17,7 @@ import type { FeaturedServiceRecord } from "@/components/FeaturedService";
 import type { PublicBlogPost } from "@/components/Blog";
 import type { PublicTestimonial } from "@/components/Testimonials";
 import type { PublicFaq } from "@/components/FAQ";
+import type { PublicInstagramPost } from "@/components/InstagramFeed";
 
 export function HomePageClient({
   heroHeadline,
@@ -27,6 +28,7 @@ export function HomePageClient({
   testimonials,
   googleReviewUrl,
   faqs,
+  instagramPosts,
 }: {
   heroHeadline?: string;
   heroSubheadline?: string;
@@ -36,6 +38,7 @@ export function HomePageClient({
   testimonials: PublicTestimonial[];
   googleReviewUrl?: string | null;
   faqs: PublicFaq[];
+  instagramPosts: PublicInstagramPost[];
 }) {
   const [bookingOpen, setBookingOpen] = useState(false);
   const openBooking = () => setBookingOpen(true);
@@ -51,7 +54,7 @@ export function HomePageClient({
         <Blog posts={posts} />
         <FAQ faqs={faqs} />
         <Testimonials testimonials={testimonials} googleReviewUrl={googleReviewUrl} />
-        <InstagramFeed />
+        <InstagramFeed posts={instagramPosts} />
       </main>
       <Footer onBookNow={openBooking} />
       <EnquiryModal open={bookingOpen} onClose={() => setBookingOpen(false)} />

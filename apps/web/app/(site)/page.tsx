@@ -5,6 +5,7 @@ import type { FeaturedServiceRecord } from "@/components/FeaturedService";
 import type { PublicBlogPost } from "@/components/Blog";
 import type { PublicTestimonial } from "@/components/Testimonials";
 import type { PublicFaq } from "@/components/FAQ";
+import type { PublicInstagramPost } from "@/components/InstagramFeed";
 
 interface HeroContent {
   headline?: string;
@@ -12,13 +13,14 @@ interface HeroContent {
 }
 
 export default async function Home() {
-  const [hero, services, blogPosts, testimonials, googleReview, faqs] = await Promise.all([
+  const [hero, services, blogPosts, testimonials, googleReview, faqs, instagramPosts] = await Promise.all([
     getPageContent<HeroContent>("hero"),
     getPublicContent<FeaturedServiceRecord & { isHighlighted?: boolean }>("service"),
     getPublicContent<PublicBlogPost>("blog-post"),
     getPublicContent<PublicTestimonial>("testimonial"),
     getPageContent<{ url?: string }>("google-review"),
     getPublicContent<PublicFaq>("faq"),
+    getPublicContent<PublicInstagramPost>("instagram-post"),
   ]);
 
   const highlighted = services.find((s) => s.isHighlighted) ?? null;
@@ -33,6 +35,7 @@ export default async function Home() {
       testimonials={testimonials}
       googleReviewUrl={googleReview?.url}
       faqs={faqs}
+      instagramPosts={instagramPosts}
     />
   );
 }

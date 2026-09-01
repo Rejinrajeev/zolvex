@@ -1,16 +1,15 @@
 import { Stamped } from "./Stamped";
 import { PlaceholderPhoto } from "./PlaceholderPhoto";
 import { IconInstagram } from "./icons";
+import { safeHref } from "@/lib/safe-url";
 
-/**
- * No real Instagram handle exists yet (PRODUCT.md). Tiles link out to
- * Instagram generically rather than a fabricated handle; once a real handle
- * and posts are configured in the backend, each tile's href becomes that
- * post's real permalink.
- */
-const TILE_COUNT = 6;
+export interface PublicInstagramPost {
+  id: string;
+  image: string;
+  permalink: string;
+}
 
-export function InstagramFeed() {
+export function InstagramFeed({ posts }: { posts: PublicInstagramPost[] }) {
   return (
     <section className="ledger-ground-dark px-5 py-24 sm:px-8 lg:px-12">
       <div className="mx-auto max-w-[90rem]">
@@ -23,24 +22,30 @@ export function InstagramFeed() {
           </div>
         </Stamped>
 
-        <div className="mt-12 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-6">
-          {Array.from({ length: TILE_COUNT }).map((_, i) => (
-            <Stamped key={i} delayMs={i * 60}>
-              <a
-                href="https://www.instagram.com/"
-                target="_blank"
-                rel="noreferrer noopener"
-                aria-label="Open this post on Instagram"
-                className="group relative block"
-              >
-                <PlaceholderPhoto label={`Post ${i + 1}`} tone="dark" className="aspect-square" />
-                <span className="absolute inset-0 flex items-center justify-center bg-ink/0 opacity-0 transition-all duration-300 group-hover:bg-ink/60 group-hover:opacity-100">
-                  <IconInstagram className="h-6 w-6 text-gold" />
-                </span>
-              </a>
-            </Stamped>
-          ))}
-        </div>
+        {posts.length === 0 ? (
+          <p className="mt-12 font-stamp text-sm uppercase tracking-wide text-paper/60">
+            On file — pending. Posts land here once published from the admin panel.
+          </p>
+        ) : (
+          <div className="mt-12 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-6">
+            {posts.map((post, i) => (
+              <Stamped key={post.id} delayMs={i * 60}>
+                <a
+                  href={safeHref(post.permalink)}
+                  target="_blank"
+                  rel="noreferrer noopener"
+                  aria-label="Open this post on Instagram"
+                  className="group relative block"
+                >
+                  <PlaceholderPhoto label={post.image} tone="dark" className="aspect-square" />
+                  <span className="absolute inset-0 flex items-center justify-center bg-ink/0 opacity-0 transition-all duration-300 group-hover:bg-ink/60 group-hover:opacity-100">
+                    <IconInstagram className="h-6 w-6 text-gold" />
+                  </span>
+                </a>
+              </Stamped>
+            ))}
+          </div>
+        )}
       </div>
     </section>
   );
