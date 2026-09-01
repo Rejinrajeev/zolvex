@@ -403,9 +403,10 @@ export class ApprovableResourceService {
    * narrow type here makes the HTTP layer's validation a compile-time
    * obligation rather than a convention a future caller can forget.
    */
-  async list(filter?: { status?: ApprovalStatus; search?: string }) {
+  async list(filter?: { status?: ApprovalStatus; search?: string; isActive?: boolean }) {
     const where: Record<string, unknown> = { deletedAt: null };
     if (filter?.status) where.approvalStatus = filter.status;
+    if (filter?.isActive !== undefined) where.isActive = filter.isActive;
     if (filter?.search) {
       where[SEARCH_FIELDS[this.delegateName]] = { contains: filter.search, mode: "insensitive" };
     }
