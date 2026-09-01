@@ -13,7 +13,8 @@ export async function getPublicContent<T = Record<string, unknown>>(type: string
       next: { revalidate: REVALIDATE_SECONDS },
     });
     if (!res.ok) return [];
-    return (await res.json()) as T[];
+    const data = await res.json();
+    return Array.isArray(data) ? (data as T[]) : [];
   } catch {
     return [];
   }

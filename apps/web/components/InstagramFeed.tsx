@@ -37,7 +37,7 @@ export function InstagramFeed({ posts }: { posts: PublicInstagramPost[] }) {
                   aria-label="Open this post on Instagram"
                   className="group relative block"
                 >
-                  <PlaceholderPhoto label={post.image} tone="dark" className="aspect-square" />
+                  <PlaceholderPhoto label={`Post ${i + 1}`} tone="dark" className="aspect-square" />
                   <span className="absolute inset-0 flex items-center justify-center bg-ink/0 opacity-0 transition-all duration-300 group-hover:bg-ink/60 group-hover:opacity-100">
                     <IconInstagram className="h-6 w-6 text-gold" />
                   </span>

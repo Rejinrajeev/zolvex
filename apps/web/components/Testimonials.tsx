@@ -36,7 +36,7 @@ export function Testimonials({
         <Stamped>
           <div className="flex flex-wrap items-end justify-between gap-4">
             <h2 className="font-display text-4xl font-semibold leading-tight text-ink sm:text-5xl">
-              On the client's record.
+              On the client’s record.
             </h2>
             {googleReviewUrl && (
               <a
@@ -71,7 +71,7 @@ export function Testimonials({
                 <figure className="flex h-full flex-col border border-ink/12 bg-paper p-6">
                   <Stars rating={review.rating} />
                   <blockquote className="mt-4 flex-1 font-body text-lg italic leading-relaxed text-ink">
-                    "{review.message}"
+                    “{review.message}”
                   </blockquote>
                   <figcaption className="mt-5 border-t border-ink/10 pt-4 font-body text-sm text-slate">
                     {review.name}

@@ -42,6 +42,18 @@ describe("getPublicContent", () => {
     const result = await getPublicContent("faq");
     expect(result).toEqual([]);
   });
+
+  it("returns an empty array when the parsed JSON is a non-array object", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response("{}", { status: 200 }));
+    const result = await getPublicContent("faq");
+    expect(result).toEqual([]);
+  });
+
+  it("returns an empty array when the parsed JSON is a non-array string", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response('"oops"', { status: 200 }));
+    const result = await getPublicContent("faq");
+    expect(result).toEqual([]);
+  });
 });
 
 describe("getPageContent", () => {

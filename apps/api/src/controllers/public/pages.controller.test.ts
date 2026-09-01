@@ -38,4 +38,19 @@ describe("GET /api/pages/:pageKey", () => {
     expect(res.status).toBe(200);
     expect(res.body).toEqual({ data: { headline: "Real headline", subheadline: "Real sub" } });
   });
+
+  it("returns 404 not_found for a key not on the allowlist, even before any DB lookup", async () => {
+    const res = await request(app).get("/api/pages/totally-made-up-key");
+    expect(res.status).toBe(404);
+    expect(res.body).toEqual({ error: "not_found" });
+  });
+
+  it.each(["hero", "footer", "whatsapp", "google-review"])(
+    "allows the known key %s through to the not-configured 404",
+    async (pageKey) => {
+      const res = await request(app).get(`/api/pages/${pageKey}`);
+      expect(res.status).toBe(404);
+      expect(res.body).toEqual({ error: "not_found" });
+    }
+  );
 });

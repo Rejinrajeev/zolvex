@@ -1,6 +1,6 @@
 import { getPageContent, getPublicContent } from "@/lib/public-content/fetch";
+import { asString } from "@/lib/public-content/coerce";
 import { HomePageClient } from "./HomePageClient";
-import type { PublicService } from "@/components/Services";
 import type { FeaturedServiceRecord } from "@/components/FeaturedService";
 import type { PublicBlogPost } from "@/components/Blog";
 import type { PublicTestimonial } from "@/components/Testimonials";
@@ -29,18 +29,18 @@ export default async function Home() {
 
   return (
     <HomePageClient
-      heroHeadline={hero?.headline}
-      heroSubheadline={hero?.subheadline}
+      heroHeadline={asString(hero?.headline)}
+      heroSubheadline={asString(hero?.subheadline)}
       services={services}
       featuredService={highlighted}
       posts={blogPosts}
       testimonials={testimonials}
-      googleReviewUrl={googleReview?.url}
+      googleReviewUrl={asString(googleReview?.url)}
       faqs={faqs}
       instagramPosts={instagramPosts}
-      footerTagline={footer?.tagline}
-      footerInstagramUrl={footer?.instagramUrl}
-      phoneNumber={whatsapp?.phoneNumber}
+      footerTagline={asString(footer?.tagline)}
+      footerInstagramUrl={asString(footer?.instagramUrl)}
+      phoneNumber={asString(whatsapp?.phoneNumber)}
     />
   );
 }
