@@ -29,6 +29,9 @@ export function HomePageClient({
   googleReviewUrl,
   faqs,
   instagramPosts,
+  footerTagline,
+  footerInstagramUrl,
+  phoneNumber,
 }: {
   heroHeadline?: string;
   heroSubheadline?: string;
@@ -39,6 +42,9 @@ export function HomePageClient({
   googleReviewUrl?: string | null;
   faqs: PublicFaq[];
   instagramPosts: PublicInstagramPost[];
+  footerTagline?: string;
+  footerInstagramUrl?: string;
+  phoneNumber?: string;
 }) {
   const [bookingOpen, setBookingOpen] = useState(false);
   const openBooking = () => setBookingOpen(true);
@@ -56,7 +62,7 @@ export function HomePageClient({
         <Testimonials testimonials={testimonials} googleReviewUrl={googleReviewUrl} />
         <InstagramFeed posts={instagramPosts} />
       </main>
-      <Footer onBookNow={openBooking} />
+      <Footer onBookNow={openBooking} tagline={footerTagline} instagramUrl={footerInstagramUrl} phoneNumber={phoneNumber} />
       <EnquiryModal open={bookingOpen} onClose={() => setBookingOpen(false)} />
     </>
   );

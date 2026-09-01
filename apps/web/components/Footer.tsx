@@ -1,6 +1,20 @@
 import { IconPhone, IconInstagram } from "./icons";
+import { safeHref } from "@/lib/safe-url";
 
-export function Footer({ onBookNow }: { onBookNow: () => void }) {
+const DEFAULT_TAGLINE =
+  "Commercial cleaning, logged and on time — for offices, retail, and commercial spaces.";
+
+export function Footer({
+  onBookNow,
+  tagline,
+  instagramUrl,
+  phoneNumber,
+}: {
+  onBookNow: () => void;
+  tagline?: string;
+  instagramUrl?: string;
+  phoneNumber?: string;
+}) {
   return (
     <footer className="punch-edge relative bg-ink px-5 pb-10 pt-16 sm:px-8 lg:px-12">
       <div className="mx-auto max-w-[90rem]">
@@ -10,8 +24,7 @@ export function Footer({ onBookNow }: { onBookNow: () => void }) {
               Zolvex
             </a>
             <p className="mt-3 max-w-xs font-body text-sm leading-relaxed text-paper/70">
-              Commercial cleaning, logged and on time — for offices, retail,
-              and commercial spaces.
+              {tagline || DEFAULT_TAGLINE}
             </p>
           </div>
 
@@ -35,23 +48,22 @@ export function Footer({ onBookNow }: { onBookNow: () => void }) {
               Contact
             </h3>
             <ul className="mt-4 space-y-2.5 font-body text-sm text-paper/75">
-              <li className="flex items-center gap-2">
-                <IconPhone className="h-4 w-4 text-gold" />
-                <a href="tel:+10000000000" className="hover:text-gold">
-                  Call for a quote
-                </a>
-              </li>
-              <li className="flex items-center gap-2">
-                <IconInstagram className="h-4 w-4 text-gold" />
-                <a
-                  href="https://www.instagram.com/"
-                  target="_blank"
-                  rel="noreferrer noopener"
-                  className="hover:text-gold"
-                >
-                  Instagram
-                </a>
-              </li>
+              {phoneNumber && (
+                <li className="flex items-center gap-2">
+                  <IconPhone className="h-4 w-4 text-gold" />
+                  <a href={`tel:${phoneNumber}`} className="hover:text-gold">
+                    Call for a quote
+                  </a>
+                </li>
+              )}
+              {instagramUrl && (
+                <li className="flex items-center gap-2">
+                  <IconInstagram className="h-4 w-4 text-gold" />
+                  <a href={safeHref(instagramUrl)} target="_blank" rel="noreferrer noopener" className="hover:text-gold">
+                    Instagram
+                  </a>
+                </li>
+              )}
             </ul>
           </div>
 

@@ -13,7 +13,7 @@ interface HeroContent {
 }
 
 export default async function Home() {
-  const [hero, services, blogPosts, testimonials, googleReview, faqs, instagramPosts] = await Promise.all([
+  const [hero, services, blogPosts, testimonials, googleReview, faqs, instagramPosts, footer, whatsapp] = await Promise.all([
     getPageContent<HeroContent>("hero"),
     getPublicContent<FeaturedServiceRecord & { isHighlighted?: boolean }>("service"),
     getPublicContent<PublicBlogPost>("blog-post"),
@@ -21,6 +21,8 @@ export default async function Home() {
     getPageContent<{ url?: string }>("google-review"),
     getPublicContent<PublicFaq>("faq"),
     getPublicContent<PublicInstagramPost>("instagram-post"),
+    getPageContent<{ tagline?: string; instagramUrl?: string }>("footer"),
+    getPageContent<{ phoneNumber?: string }>("whatsapp"),
   ]);
 
   const highlighted = services.find((s) => s.isHighlighted) ?? null;
@@ -36,6 +38,9 @@ export default async function Home() {
       googleReviewUrl={googleReview?.url}
       faqs={faqs}
       instagramPosts={instagramPosts}
+      footerTagline={footer?.tagline}
+      footerInstagramUrl={footer?.instagramUrl}
+      phoneNumber={whatsapp?.phoneNumber}
     />
   );
 }
