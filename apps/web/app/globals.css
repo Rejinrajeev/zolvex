@@ -224,6 +224,26 @@ textarea {
   animation-play-state: paused;
 }
 
+/* Testimonial rows — a heavier marquee carrying content cards. The track
+   holds two identical halves, so translateX(-50%) is one seamless loop. */
+.cards-marquee-group {
+  overflow: hidden;
+  -webkit-mask-image: linear-gradient(to right, transparent, #000 5%, #000 95%, transparent);
+  mask-image: linear-gradient(to right, transparent, #000 5%, #000 95%, transparent);
+}
+.cards-marquee {
+  display: flex;
+  width: max-content;
+  will-change: transform;
+  animation: marquee var(--cards-marquee-duration, 46s) linear infinite;
+}
+.cards-marquee--reverse {
+  animation-direction: reverse;
+}
+.cards-marquee-group:hover .cards-marquee {
+  animation-play-state: paused;
+}
+
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;
@@ -238,5 +258,12 @@ textarea {
   .marquee-track {
     animation: none;
     transform: none;
+  }
+  .cards-marquee {
+    animation: none;
+    transform: none;
+  }
+  .cards-marquee-group {
+    overflow-x: auto;
   }
 }
