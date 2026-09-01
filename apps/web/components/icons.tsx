@@ -168,3 +168,12 @@ export function IconDragHandle(props: SVGProps<SVGSVGElement>) {
   );
 }
 
+export function IconWhatsApp(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...base} {...props}>
+      <path d="M4 20l1.3-4.7A8 8 0 1 1 8.7 19.7L4 20z" />
+      <path d="M8.5 9.5c0 3.5 2.5 6 6 6" strokeOpacity="0.55" />
+    </svg>
+  );
+}
+
