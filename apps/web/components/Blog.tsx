@@ -2,28 +2,14 @@ import { Stamped } from "./Stamped";
 import { PlaceholderPhoto } from "./PlaceholderPhoto";
 import { IconArrow } from "./icons";
 
-const POSTS = [
-  {
-    title: "What our crews actually do on a walkthrough",
-    excerpt:
-      "A behind-the-scenes look at the checklist every Zolvex site visit runs through, floor by floor.",
-    tag: "The things we do",
-  },
-  {
-    title: "Why commercial cleaning isn't optional overhead",
-    excerpt:
-      "Air quality, first impressions, and staff sick days — the real cost of an inconsistent cleaning schedule.",
-    tag: "Why it matters",
-  },
-  {
-    title: "Reading a service log like a facilities manager",
-    excerpt:
-      "What to actually check for when a vendor says a job is 'done' — and how our logs make that verifiable.",
-    tag: "The things we do",
-  },
-];
+export interface PublicBlogPost {
+  id: string;
+  title: string;
+  image: string;
+  instagramUrl: string;
+}
 
-export function Blog() {
+export function Blog({ posts }: { posts: PublicBlogPost[] }) {
   return (
     <section className="ledger-ground-dark punch-edge relative px-5 py-24 sm:px-8 lg:px-12">
       <div className="mx-auto max-w-[90rem]">
@@ -33,31 +19,35 @@ export function Blog() {
           </h2>
         </Stamped>
 
-        <div className="mt-14 grid gap-8 md:grid-cols-3">
-          {POSTS.map((post, i) => (
-            <Stamped key={post.title} delayMs={i * 90}>
-              <article className="group flex h-full flex-col">
-                <PlaceholderPhoto label={post.title} tone="dark" />
-                <h3 className="mt-5 font-display text-xl font-medium leading-snug text-paper">
-                  {post.title}
-                </h3>
-                <p className="mt-3 flex-1 font-body text-[0.95rem] leading-relaxed text-paper/70">
-                  {post.excerpt}
-                </p>
-                <div className="mt-4 flex items-center gap-2.5">
-                  <span className="font-stamp text-[0.72rem] uppercase tracking-[0.15em] text-gold/80">
-                    {post.tag}
-                  </span>
-                  <span aria-hidden className="h-3 w-px bg-gold/25" />
-                  <span className="inline-flex w-fit items-center gap-1.5 font-body text-sm text-gold underline decoration-gold/30 underline-offset-4 transition-colors group-hover:decoration-gold">
-                    Read the entry
-                    <IconArrow aria-hidden className="h-3.5 w-3.5" />
-                  </span>
-                </div>
-              </article>
-            </Stamped>
-          ))}
-        </div>
+        {posts.length === 0 ? (
+          <p className="mt-14 font-stamp text-sm uppercase tracking-wide text-paper/60">
+            On file — pending. Posts land here once published from the admin panel.
+          </p>
+        ) : (
+          <div className="mt-14 grid gap-8 md:grid-cols-3">
+            {posts.map((post, i) => (
+              <Stamped key={post.id} delayMs={i * 90}>
+                <a
+                  href={post.instagramUrl}
+                  target="_blank"
+                  rel="noreferrer noopener"
+                  className="group flex h-full flex-col"
+                >
+                  <PlaceholderPhoto label={post.title} tone="dark" />
+                  <h3 className="mt-5 font-display text-xl font-medium leading-snug text-paper">
+                    {post.title}
+                  </h3>
+                  <div className="mt-4 flex items-center gap-2.5">
+                    <span className="inline-flex w-fit items-center gap-1.5 font-body text-sm text-gold underline decoration-gold/30 underline-offset-4 transition-colors group-hover:decoration-gold">
+                      View on Instagram
+                      <IconArrow aria-hidden className="h-3.5 w-3.5" />
+                    </span>
+                  </div>
+                </a>
+              </Stamped>
+            ))}
+          </div>
+        )}
       </div>
     </section>
   );

@@ -14,17 +14,20 @@ import { Footer } from "@/components/Footer";
 import { EnquiryModal } from "@/components/EnquiryModal";
 import type { PublicService } from "@/components/Services";
 import type { FeaturedServiceRecord } from "@/components/FeaturedService";
+import type { PublicBlogPost } from "@/components/Blog";
 
 export function HomePageClient({
   heroHeadline,
   heroSubheadline,
   services,
   featuredService,
+  posts,
 }: {
   heroHeadline?: string;
   heroSubheadline?: string;
   services: PublicService[];
   featuredService: FeaturedServiceRecord | null;
+  posts: PublicBlogPost[];
 }) {
   const [bookingOpen, setBookingOpen] = useState(false);
   const openBooking = () => setBookingOpen(true);
@@ -37,7 +40,7 @@ export function HomePageClient({
         <Services services={services} />
         <WhyUs />
         <FeaturedService service={featuredService} onBookNow={openBooking} />
-        <Blog />
+        <Blog posts={posts} />
         <FAQ />
         <Testimonials />
         <InstagramFeed />
