@@ -164,7 +164,7 @@ textarea {
 
 /* Long-form legal / policy copy (terms, privacy) */
 .legal-body {
-  font-size: 1.02rem;
+  font-size: 1rem;
   line-height: 1.7;
   color: var(--color-moss);
 }
@@ -186,7 +186,6 @@ textarea {
   margin-top: 1.1rem;
   font-weight: 600;
   color: var(--color-ink);
-  font-size: 0.95rem;
 }
 .legal-body h3 + ul,
 .legal-body h3 + p {
