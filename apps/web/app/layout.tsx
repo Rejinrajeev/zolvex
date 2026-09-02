@@ -13,6 +13,15 @@ export const metadata: Metadata = {
   description:
     "Zolvex Home Services covers cleaning, maintenance, repairs and installation for homes and businesses — trained, background-verified technicians, on schedule, every visit logged.",
 };
+// Deliberately no manual `icons` field here -- setting it at all replaces
+// Next's auto-discovered file-convention set (app/favicon.ico, app/icon.png,
+// app/apple-icon.png) rather than merging with it, confirmed by testing:
+// adding an `icons.icon` array dropped the icon.png/apple-icon.png <link>
+// tags entirely. public/favicon-16x16.png and favicon-32x32.png stay as
+// plain static files -- unlinked, but reachable at their conventional
+// paths -- since favicon.ico already carries 16x16/32x32 frames internally
+// and losing the higher-value auto-linked icon.png/apple-icon.png isn't
+// worth adding those two explicit link tags.
 
 const DIRECTION_CONTRACT = `
 THESIS: Zolvex is the home-and-commercial services company that keeps a space clean, working and cared for, so the site is bright, plainspoken and in motion — it refuses the dark industrial-ledger look that buried the reassurance under a filing metaphor.
