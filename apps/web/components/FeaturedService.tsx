@@ -48,11 +48,9 @@ export function FeaturedService({
             {service.fullDescription}
           </p>
           {price && (
-            <p className="mt-5 font-sora text-cream/75">
-              Starts at{" "}
-              <span className="font-anton text-2xl uppercase tracking-tight text-gold">
-                {price}
-              </span>
+            <p className="mt-5 inline-flex items-baseline gap-2 rounded-full bg-cream/10 px-4 py-2 font-sora text-sm text-cream/70 ring-1 ring-cream/15">
+              From
+              <span className="font-anton text-xl uppercase tracking-tight text-gold">{price}</span>
             </p>
           )}
           <div className="mt-7 flex flex-wrap items-center gap-x-6 gap-y-4">

@@ -73,22 +73,36 @@ export function ServiceDetail({
               <p className="pretty mt-5 max-w-lg font-sora text-lg leading-relaxed text-moss">
                 {service.fullDescription}
               </p>
-              {price && (
-                <p className="mt-6 flex items-center gap-2 font-sora text-moss">
-                  Starts at
-                  <span className="rounded-md bg-gold/45 px-2 py-0.5 font-anton text-xl uppercase tracking-tight text-ink">
-                    {price}
-                  </span>
-                </p>
-              )}
-              <button
-                type="button"
-                onClick={openBooking}
-                className={`group inline-flex items-center gap-2 rounded-full bg-green px-7 py-4 font-sora text-base font-semibold text-forest shadow-[0_18px_36px_-14px_rgba(15,184,119,0.6)] transition-transform hover:-translate-y-0.5 active:translate-y-0 ${price ? "mt-4" : "mt-8"}`}
-              >
-                Book this service
-                <IconArrow aria-hidden className="h-4 w-4 transition-transform group-hover:translate-x-1" />
-              </button>
+
+              <div className="mt-8 max-w-md rounded-[1.5rem] bg-gold/25 p-6 ring-1 ring-ink/5 sm:p-7">
+                {price ? (
+                  <>
+                    <div className="flex items-baseline gap-2.5">
+                      <span className="font-sora text-sm font-semibold uppercase tracking-wide text-moss">
+                        From
+                      </span>
+                      <span className="font-anton text-4xl uppercase leading-none tracking-tight text-ink sm:text-[2.75rem]">
+                        {price}
+                      </span>
+                    </div>
+                    <p className="mt-2.5 font-sora text-sm leading-relaxed text-moss">
+                      We confirm the full quote once we&apos;ve seen the job.
+                    </p>
+                  </>
+                ) : (
+                  <p className="font-sora leading-relaxed text-moss">
+                    Tell us about the job and we&apos;ll come back with a quote.
+                  </p>
+                )}
+                <button
+                  type="button"
+                  onClick={openBooking}
+                  className="group mt-5 flex w-full items-center justify-center gap-2 rounded-full bg-green px-7 py-4 font-sora text-base font-semibold text-forest shadow-[0_16px_32px_-14px_rgba(15,184,119,0.55)] transition-transform hover:-translate-y-0.5 active:translate-y-0"
+                >
+                  Book this service
+                  <IconArrow aria-hidden className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+                </button>
+              </div>
             </Reveal>
           </div>
         </section>
