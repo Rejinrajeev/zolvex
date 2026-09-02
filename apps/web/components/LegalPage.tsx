@@ -54,7 +54,7 @@ export function LegalPage({
           <p className="mt-4 font-sora text-sm font-medium text-moss">Last updated {updated}</p>
         )}
 
-        {intro && <div className="legal-body mt-7">{intro}</div>}
+        {intro && <div className="legal-body mt-7 text-base">{intro}</div>}
 
         {sections && sections.length > 0 && (
           <>
@@ -83,14 +83,14 @@ export function LegalPage({
                   <h2 className="font-anton text-xl uppercase tracking-tight text-ink sm:text-2xl">
                     {section.title}
                   </h2>
-                  <div className="legal-body mt-3">{section.body}</div>
+                  <div className="legal-body mt-3 text-base">{section.body}</div>
                 </section>
               ))}
             </div>
           </>
         )}
 
-        {children && <div className="legal-body mt-8 max-w-xl">{children}</div>}
+        {children && <div className="legal-body mt-8 max-w-xl text-base">{children}</div>}
       </main>
     </div>
   );

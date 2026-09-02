@@ -162,9 +162,9 @@ textarea {
   transform: rotate(-4deg);
 }
 
-/* Long-form legal / policy copy (terms, privacy) */
+/* Long-form legal / policy copy (terms, privacy). Font size comes from a
+   `text-base` utility on the container; this rule owns rhythm and colour. */
 .legal-body {
-  font-size: 1rem;
   line-height: 1.7;
   color: var(--color-moss);
 }
