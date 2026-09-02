@@ -74,9 +74,9 @@ export function ServiceDetail({
                 {service.fullDescription}
               </p>
               {price && (
-                <p className="mt-6 font-sora text-moss">
-                  Starts at{" "}
-                  <span className="font-anton text-2xl uppercase tracking-tight text-green-ink">
+                <p className="mt-6 flex items-center gap-2 font-sora text-moss">
+                  Starts at
+                  <span className="rounded-md bg-gold/45 px-2 py-0.5 font-anton text-xl uppercase tracking-tight text-ink">
                     {price}
                   </span>
                 </p>

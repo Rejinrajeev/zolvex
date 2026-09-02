@@ -2,7 +2,6 @@ import { createElement } from "react";
 import Link from "next/link";
 import { cloudinaryTransform } from "./Photo";
 import { iconForServiceKey } from "@/lib/service-icons";
-import { formatRupees } from "@/lib/money";
 
 export interface PublicService {
   id: string;
@@ -20,10 +19,10 @@ const TINTS = ["bg-mist", "bg-sky/50", "bg-gold/40"] as const;
  * One service in the compact grid — a tinted tile holding the service photo
  * (or its icon while no photo is uploaded) and the name, linking through to
  * the service's own page. Shared by the home Services section and the
- * "other services" strip on a service page.
+ * "other services" strip on a service page. Price is shown on the service
+ * page, not here.
  */
 export function ServiceTile({ service, index }: { service: PublicService; index: number }) {
-  const price = formatRupees(service.startingPrice);
   return (
     <Link
       href={`/services/${service.slug}`}
@@ -50,11 +49,6 @@ export function ServiceTile({ service, index }: { service: PublicService; index:
       <h3 className="mt-2 px-1 pb-1 font-anton text-sm uppercase leading-[1.05] tracking-tight text-ink sm:text-base lg:text-lg">
         {service.name}
       </h3>
-      {price && (
-        <p className="-mt-0.5 px-1 pb-0.5 font-sora text-xs font-semibold text-green-ink">
-          From {price}
-        </p>
-      )}
     </Link>
   );
 }
