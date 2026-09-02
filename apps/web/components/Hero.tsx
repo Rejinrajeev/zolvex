@@ -1,107 +1,139 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { IconClock, IconArrow } from "./icons";
+import { motion } from "motion/react";
+import { IconArrow, IconCheck } from "./icons";
+import { Seal, Blob } from "./motion-primitives";
+import { splitLastWord } from "@/lib/split-last-word";
 
-function useTodayStamp() {
-  const [date, setDate] = useState<string | null>(null);
-  useEffect(() => {
-    setDate(
-      new Intl.DateTimeFormat("en-US", {
-        weekday: "short",
-        month: "short",
-        day: "numeric",
-        year: "numeric",
-      }).format(new Date())
-    );
-  }, []);
-  return date;
-}
+const DEFAULT_HEADLINE = "Your space, well kept";
+const DEFAULT_SUBHEADLINE =
+  "Zolvex Home Services covers cleaning, maintenance, repairs and installation for homes and businesses — trained, background-verified people, on schedule, every visit logged.";
 
-export function Hero({ onBookNow }: { onBookNow: () => void }) {
-  const today = useTodayStamp();
+const EASE = [0.16, 1, 0.3, 1] as const;
+const ZONES = ["Kitchen", "Bathrooms", "Bedrooms", "Living areas", "Balcony", "Utility"];
+
+const wordV = {
+  hidden: { opacity: 0, y: 40 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.7, ease: EASE } },
+};
+
+export function Hero({
+  onBookNow,
+  headline,
+  subheadline,
+}: {
+  onBookNow: () => void;
+  headline?: string;
+  subheadline?: string;
+}) {
+  const { rest, last } = splitLastWord(headline || DEFAULT_HEADLINE);
 
   return (
     <section
       id="top"
-      className="ledger-ground-dark relative flex min-h-[100svh] flex-col justify-center overflow-hidden px-5 pb-20 pt-28 sm:px-8 lg:px-12"
+      className="relative flex flex-col justify-center overflow-hidden bg-cream px-5 pb-20 pt-32 sm:px-8 sm:pb-24 sm:pt-40 lg:min-h-[90vh]"
     >
-      {/* corner vignette so the grid recedes rather than tiling flat */}
-      <div
-        className="pointer-events-none absolute inset-0"
-        style={{
-          background:
-            "radial-gradient(ellipse 80% 60% at 30% 20%, rgba(238,215,123,0.14), transparent 60%), radial-gradient(ellipse 60% 50% at 100% 100%, rgba(0,0,0,0.55), transparent 60%)",
-        }}
+      <Blob
+        color="var(--color-green)"
+        className="right-[-11rem] top-[-8rem] h-[24rem] w-[24rem] opacity-15"
+        distance={90}
+      />
+      <Blob
+        color="var(--color-sky)"
+        className="bottom-[-12rem] left-[-9rem] h-[22rem] w-[22rem] opacity-45"
+        distance={60}
       />
 
-      <div className="relative mx-auto w-full max-w-[90rem]">
-        <div className="mb-8 flex flex-wrap items-center gap-3 font-stamp text-[0.72rem] uppercase tracking-wide text-gold/90">
-          <span className="tabular" suppressHydrationWarning>
-            {today ?? " "}
-          </span>
-          <span className="h-3 w-px bg-gold/30" aria-hidden />
-          <span className="stamp-rotate inline-flex items-center gap-1.5 rounded-sm border border-gold/60 px-2 py-0.5">
-            <IconClock className="h-3 w-3" />
-            Status: On Duty
-          </span>
-          <span className="h-3 w-px bg-gold/30" aria-hidden />
-          <span className="tabular">Visit Log — Entry Open</span>
-        </div>
+      <div className="relative mx-auto grid w-full max-w-[80rem] items-center gap-12 lg:grid-cols-[1fr_1fr] lg:gap-14">
+        <div>
+          <motion.h1
+            className="font-anton text-[12vw] uppercase leading-[0.9] tracking-tight text-ink sm:text-6xl lg:text-7xl"
+            initial="hidden"
+            animate="show"
+            variants={{ show: { transition: { staggerChildren: 0.1, delayChildren: 0.12 } } }}
+          >
+            <motion.span className="block" variants={wordV}>
+              {rest}
+            </motion.span>
+            <motion.span className="block text-green-ink" variants={wordV}>
+              {last}
+            </motion.span>
+          </motion.h1>
 
-        <h1 className="balance max-w-4xl font-display text-[clamp(2.75rem,7vw,5.5rem)] font-semibold leading-[0.98] text-paper">
-          Commercial cleaning you can set your{" "}
-          <span className="relative inline-block">
-            clock
-            <svg
-              viewBox="0 0 300 24"
-              className="pointer-events-none absolute -bottom-2 left-0 h-3.5 w-full text-gold sm:h-4"
-              aria-hidden
-              preserveAspectRatio="none"
+          <motion.p
+            className="pretty mt-6 max-w-xl font-sora text-lg leading-relaxed text-moss sm:text-xl"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.7, ease: EASE, delay: 0.45 }}
+          >
+            {subheadline || DEFAULT_SUBHEADLINE}
+          </motion.p>
+
+          <motion.div
+            className="mt-9 flex flex-wrap items-center gap-4"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.7, ease: EASE, delay: 0.58 }}
+          >
+            <button
+              type="button"
+              onClick={onBookNow}
+              className="group inline-flex items-center gap-2 rounded-full bg-green px-7 py-4 font-sora text-base font-semibold text-forest shadow-[0_18px_36px_-14px_rgba(15,184,119,0.75)] transition-transform hover:-translate-y-0.5 active:translate-y-0"
             >
-              <path
-                d="M4 18 C 70 6, 150 22, 230 8 S 285 4, 296 12"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="6"
-                strokeLinecap="round"
-                pathLength={1}
-                style={{
-                  strokeDasharray: 1,
-                  strokeDashoffset: 1,
-                  animation: "draw-underline 1s var(--ease-out-exp) 0.6s forwards",
-                }}
-              />
-            </svg>
-          </span>{" "}
-          to.
-        </h1>
-        <style>{`@keyframes draw-underline { to { stroke-dashoffset: 0; } }`}</style>
-
-        <p className="mt-8 max-w-xl font-body text-lg leading-relaxed text-paper/80 sm:text-xl">
-          Every visit logged, every job on time. Zolvex keeps commercial
-          spaces audit-ready — without you lifting a finger.
-        </p>
-
-        <div className="mt-10 flex flex-wrap items-center gap-5">
-          <button
-            type="button"
-            onClick={onBookNow}
-            className="group relative inline-flex items-center gap-2 bg-gold px-8 py-4 font-display text-base font-semibold text-ink shadow-[0_1px_0_rgba(0,0,0,0.2)] transition-transform duration-200 hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98]"
-          >
-            Book Now
-            <IconArrow
-              aria-hidden
-              className="h-4 w-4 transition-transform group-hover:translate-x-1"
-            />
-          </button>
-          <a
-            href="#services"
-            className="font-body text-paper/75 underline decoration-gold/40 underline-offset-4 transition-colors hover:text-gold"
-          >
-            See what we cover
-          </a>
+              Book a visit
+              <IconArrow aria-hidden className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+            </button>
+            <a
+              href="#services"
+              className="rounded-full border-2 border-ink px-7 py-4 font-sora text-base font-semibold text-ink transition-colors hover:bg-ink hover:text-cream"
+            >
+              See what we cover
+            </a>
+          </motion.div>
         </div>
+
+        {/* Authored hero graphic — a live "today's visit" panel, not a stock photo. */}
+        <motion.div
+          className="relative mt-4 lg:mt-0"
+          initial={{ opacity: 0, scale: 0.94, y: 24 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          transition={{ duration: 0.9, ease: EASE, delay: 0.28 }}
+        >
+          <div className="overflow-hidden rounded-[2rem] bg-paper shadow-[0_44px_100px_-40px_rgba(12,58,44,0.45)] ring-1 ring-ink/5">
+            <div className="flex items-center justify-between bg-forest px-6 py-4 text-cream">
+              <span className="font-anton text-lg uppercase tracking-tight">Today&apos;s visit</span>
+              <span className="tabular font-sora text-sm text-cream/70">in progress</span>
+            </div>
+            <div className="p-6">
+              <ul className="grid grid-cols-2 gap-2.5">
+                {ZONES.map((zone, i) => (
+                  <motion.li
+                    key={zone}
+                    initial={{ opacity: 0, x: -8 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ duration: 0.4, ease: EASE, delay: 0.7 + i * 0.09 }}
+                    className="flex items-center gap-2 rounded-xl bg-mist px-3 py-2.5 font-sora text-sm font-medium text-ink"
+                  >
+                    <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-green text-forest">
+                      <IconCheck className="h-3.5 w-3.5" />
+                    </span>
+                    {zone}
+                  </motion.li>
+                ))}
+              </ul>
+              <div className="mt-4 flex items-center justify-between rounded-xl bg-green px-4 py-3 font-sora text-sm font-semibold text-forest">
+                <span>All 6 areas done</span>
+                <span className="tabular font-normal text-forest/70">logged 08:12</span>
+              </div>
+            </div>
+          </div>
+
+          <Seal
+            filled
+            size={150}
+            className="absolute -top-14 right-0 hidden text-forest sm:block lg:-right-12"
+          />
+        </motion.div>
       </div>
     </section>
   );

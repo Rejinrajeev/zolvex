@@ -1,63 +1,54 @@
 import type { Metadata } from "next";
-import { Zilla_Slab, Archivo, Special_Elite } from "next/font/google";
+import { Anton, Sora } from "next/font/google";
 import "./globals.css";
+import { MotionProvider } from "@/components/MotionProvider";
 
-const zillaSlab = Zilla_Slab({
-  variable: "--font-display",
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
-});
-
-const archivo = Archivo({
-  variable: "--font-body",
-  subsets: ["latin"],
-});
-
-const specialElite = Special_Elite({
-  variable: "--font-stamp",
-  subsets: ["latin"],
-  weight: "400",
-});
+// "Fresh Start" world — two families across the whole site.
+// Anton: display only (wordmark + marketing headlines). Sora: everything else.
+const anton = Anton({ variable: "--font-anton", subsets: ["latin"], weight: "400" });
+const sora = Sora({ variable: "--font-sora", subsets: ["latin"], weight: ["400", "500", "600", "700"] });
 
 export const metadata: Metadata = {
-  title: "Zolvex — Commercial Cleaning, On the Record",
+  title: "Zolvex Home Services — Cleaning, Maintenance & Repairs, Done Right",
   description:
-    "Zolvex delivers commercial cleaning with 100% dedication, on time, every visit logged.",
+    "Zolvex Home Services covers cleaning, maintenance, repairs and installation for homes and businesses — trained, background-verified technicians, on schedule, every visit logged.",
 };
+// Deliberately no manual `icons` field here -- setting it at all replaces
+// Next's auto-discovered file-convention set (app/favicon.ico, app/icon.png,
+// app/apple-icon.png) rather than merging with it, confirmed by testing:
+// adding an `icons.icon` array dropped the icon.png/apple-icon.png <link>
+// tags entirely. public/favicon-16x16.png and favicon-32x32.png stay as
+// plain static files -- unlinked, but reachable at their conventional
+// paths -- since favicon.ico already carries 16x16/32x32 frames internally
+// and losing the higher-value auto-linked icon.png/apple-icon.png isn't
+// worth adding those two explicit link tags.
+
+const DIRECTION_CONTRACT = `
+THESIS: Zolvex is the home-and-commercial services company that keeps a space clean, working and cared for, so the site is bright, plainspoken and in motion — it refuses the dark industrial-ledger look that buried the reassurance under a filing metaphor.
+OWN-WORLD: Warm off-white ground (#FBFAF5), near-black ink text (#16211C); one confident spring green (#0FB877) carries every CTA and highlight; warm gold (#EED77B), soft sky (#A9E1EC) and deep forest (#0C3A2C) tint the section blocks. Anton, compressed and uppercase, set huge for display; Sora for everything else. Fully rounded corners (pill buttons, 28px cards), soft organic blob shapes drifting behind content, big photography in rounded frames.
+STORY: A homeowner or business owner lands, reads "one team keeps your space clean, working and cared for — on schedule, every visit logged" in one breath, scrolls through what is covered / why it is reliable / the proof, and books a visit.
+FIRST VIEWPORT: Full-bleed cream. A drifting green blob top-right. A huge Anton headline left, one line of Sora sub, a green pill "Book a visit" beside a ghost "See what we cover". Bottom-right, a slowly rotating seal reads "ON TIME · EVERY VISIT LOGGED ·". A rounded hero photograph sits right on desktop, below the copy on mobile.
+FORM: travelessentia.com's fresh editorial-playful world, pinned by the user; not on the concept-seed list. Seed key 616428b4 (three rolls declined, then the user pinned a reference).
+FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, DESIGN.md, and every shipping raster carrying its provenance.
+`;
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="en"
-      className={`${zillaSlab.variable} ${archivo.variable} ${specialElite.variable} h-full antialiased`}
+      className={`${anton.variable} ${sora.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col bg-paper text-ink font-body">
-        {/*
-          THESIS: Zolvex proves reliability the way a ledger does — an
-          accumulating, timestamped record — refusing the industry's default
-          of pastel spray-bottle branding and soft rounded cards.
-          OWN-WORLD: near-black (#161B1F) ledger ground, warm-white (#FEFEFD)
-          paper sections, ruled grids, punch-perforation edges, gold
-          (#EED77B) ink-stamp accents on olive-gold (#ADA477) and warm-gray
-          (#616054) structure; Zilla Slab display, Archivo body, Special
-          Elite for stamped timestamps and numerals.
-          STORY: a facilities buyer scrolls past proof, not promises — every
-          completed job reads as a stamped ledger entry — and books, trusting
-          a company that clearly tracks its own discipline.
-          FIRST VIEWPORT: full-bleed dark ruled-ledger hero; today's date and
-          a gold-stamped tally line at top; headline set as the ledger's
-          boldest entry; one-line sub; Book Now as the next waiting
-          punch-line, bottom-left.
-          FORM: The Punch-Clock Ledger, candidate 5 of 7 grounded directions,
-          seed key cb273c1a.
-          FINISH: unreviewed and undocumented is unfinished; this build ends
-          with the finish review, the verdict, DESIGN.md, and every shipping
-          raster carrying its provenance.
-        */}
+      <body className="flex min-h-full flex-col bg-cream font-sora text-ink">
+        <script
+          type="text/plain"
+          id="direction-contract"
+          data-seed="616428b4"
+          dangerouslySetInnerHTML={{ __html: DIRECTION_CONTRACT }}
+        />
         <a href="#main" className="skip-link">
           Skip to content
         </a>
-        {children}
+        <MotionProvider>{children}</MotionProvider>
       </body>
     </html>
   );

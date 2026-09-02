@@ -168,3 +168,66 @@ export function IconDragHandle(props: SVGProps<SVGSVGElement>) {
   );
 }
 
+export function IconWhatsApp(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...base} {...props}>
+      <path d="M4 20l1.3-4.7A8 8 0 1 1 8.7 19.7L4 20z" />
+      <path d="M8.5 9.5c0 3.5 2.5 6 6 6" strokeOpacity="0.55" />
+    </svg>
+  );
+}
+
+export function IconAlert(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...base} {...props}>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 7.5v5" />
+      <path d="M12 16h.01" />
+    </svg>
+  );
+}
+
+export function IconMail(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...base} {...props}>
+      <rect x="3" y="5" width="18" height="14" rx="2.5" />
+      <path d="M4 7l8 6 8-6" />
+    </svg>
+  );
+}
+
+export function IconPin(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...base} {...props}>
+      <path d="M12 21s7-5.7 7-11a7 7 0 10-14 0c0 5.3 7 11 7 11z" />
+      <circle cx="12" cy="10" r="2.5" />
+    </svg>
+  );
+}
+
+export function IconHome(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...base} {...props}>
+      <path d="M4 11.5 12 4l8 7.5" />
+      <path d="M6 10.5V20h12v-9.5" />
+      <path d="M10.5 20v-5h3v5" />
+    </svg>
+  );
+}
+
+export function IconWrench(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...base} {...props}>
+      <path d="M14.5 6.5a4 4 0 01-5 5L4 17l3 3 5.5-5.5a4 4 0 005-5l-2.6 2.6-2.4-.6-.6-2.4 2.6-2.6z" />
+    </svg>
+  );
+}
+
+export function IconBolt(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...base} {...props}>
+      <path d="M13 3 4 14h6l-1 7 9-11h-6l1-7z" />
+    </svg>
+  );
+}
+

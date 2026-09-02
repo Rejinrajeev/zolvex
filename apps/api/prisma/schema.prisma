@@ -45,6 +45,7 @@ model Admin {
   lastLogin           DateTime?
   failedLoginAttempts Int       @default(0)
   lockedUntil         DateTime?
+  mustChangePassword  Boolean   @default(false)
   twoFAEnabled        Boolean   @default(false)
   twoFASecret         String?
   twoFARecoveryCodes  String[]  @default([])

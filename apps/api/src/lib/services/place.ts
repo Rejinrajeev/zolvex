@@ -16,6 +16,19 @@ export class PlaceService {
     return this.prisma.place.findMany({ where: { deletedAt: null }, orderBy: { order: "asc" } });
   }
 
+  /**
+   * The service areas a public enquiry can pick from: active and not
+   * soft-deleted, name + id only. The public enquiry form both renders this
+   * list and is validated against it server-side.
+   */
+  async listPublic() {
+    return this.prisma.place.findMany({
+      where: { deletedAt: null, isActive: true },
+      orderBy: { order: "asc" },
+      select: { id: true, name: true },
+    });
+  }
+
   async create(actor: Actor, data: { name: string; order?: number; isActive?: boolean }) {
     return this.prisma.$transaction(async (tx) => {
       const record = await tx.place.create({ data });

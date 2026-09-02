@@ -1,94 +1,79 @@
-import { Stamped } from "./Stamped";
+import { Reveal, Stagger, StaggerItem, Seal } from "./motion-primitives";
 import { IconCheck } from "./icons";
 
 const OFFER_ITEMS = [
-  "Recurring office & commercial deep cleans",
-  "Carpet, upholstery & floor care",
-  "Window & glass detailing",
-  "Post-construction cleanup",
-  "Sanitization & disinfection",
-  "Custom schedules — daily to quarterly",
+  "Home & commercial deep cleaning",
+  "AC service, repair & annual contracts",
+  "Plumbing & electrical work",
+  "Handyman jobs & installations",
+  "Painting & home improvement",
+  "Recurring maintenance — weekly to yearly",
 ];
 
-const VALUES = ["100% Dedication", "Hard-Working Crews", "On-Time, Every Time"];
+const VALUES = [
+  { word: "100% dedication", line: "The same standard on visit one and visit two hundred." },
+  { word: "Verified people", line: "Background-checked, police-cleared, trained before they knock." },
+  { word: "On time, every time", line: "Booked slots we keep — and log the moment we're done." },
+];
 
 export function WhyUs() {
   return (
-    <section id="about" className="bg-paper px-5 py-24 sm:px-8 lg:px-12">
-      <div className="mx-auto max-w-[90rem] divide-y divide-ink/10">
-        {/* Row 1 — What We Offer: statement + checklist ledger */}
-        <Stamped className="grid gap-10 py-14 lg:grid-cols-[1fr_1fr] lg:gap-16">
-          <div>
-            <h2 className="balance max-w-md font-display text-4xl font-semibold leading-tight text-ink sm:text-5xl">
-              One crew, every line on the sheet.
+    <section id="about" className="bg-cream px-5 py-20 sm:px-8 sm:py-28">
+      <div className="mx-auto max-w-[80rem]">
+        <div className="grid gap-10 lg:grid-cols-2 lg:gap-16">
+          <Reveal>
+            <h2 className="font-anton text-5xl uppercase leading-[0.95] tracking-tight text-ink sm:text-6xl lg:text-7xl">
+              Why one call
+              <br />
+              covers the
+              <br />
+              whole list
             </h2>
-            <p className="mt-5 max-w-md font-body text-lg leading-relaxed text-slate">
-              You don’t coordinate six vendors. Zolvex covers the whole
-              commercial-cleaning ledger under one contract, one crew, one
-              point of contact.
+            <p className="pretty mt-6 max-w-md font-sora text-lg leading-relaxed text-moss">
+              You don&apos;t line up a cleaner, a plumber, an electrician and a
+              handyman separately. Zolvex covers the lot — one team, one point of
+              contact, verified people — and every visit is checked against the
+              same standard.
             </p>
-          </div>
-          <ul className="grid grid-cols-1 gap-x-8 gap-y-4 sm:grid-cols-2">
+          </Reveal>
+
+          <Stagger as="ul" className="grid gap-3 self-center sm:grid-cols-2">
             {OFFER_ITEMS.map((item) => (
-              <li
+              <StaggerItem
                 key={item}
-                className="flex items-start gap-3 border-b border-ink/10 pb-4 font-body text-ink"
+                as="li"
+                className="flex items-start gap-3 rounded-2xl bg-mist px-4 py-3.5 font-sora text-[0.95rem] font-medium text-ink"
               >
-                <IconCheck className="mt-0.5 h-5 w-5 shrink-0 text-olive-ink" />
+                <IconCheck className="mt-0.5 h-5 w-5 shrink-0 text-green-ink" />
                 {item}
-              </li>
+              </StaggerItem>
             ))}
-          </ul>
-        </Stamped>
+          </Stagger>
+        </div>
 
-        {/* Row 2 — Why Us: pull statement + stamped value tags */}
-        <Stamped className="py-14">
-          <p className="balance max-w-3xl font-display text-3xl font-medium leading-snug text-ink sm:text-4xl">
-            “Will they actually show up and do it right?” is the
-            only question that matters. Ours is the crew you stop asking it
-            about.
-          </p>
-          <div className="mt-8 flex flex-wrap gap-4">
-            {VALUES.map((value, i) => (
-              <span
-                key={value}
-                className={`stamp-rotate inline-block rounded-sm border-2 border-olive-ink/70 px-4 py-2 font-stamp text-sm uppercase tracking-wide text-slate ${
-                  i % 2 === 1 ? "-rotate-2" : "rotate-1"
-                }`}
-              >
-                {value}
-              </span>
-            ))}
+        <Reveal className="mt-16 overflow-hidden rounded-[2.25rem] bg-forest px-6 py-12 text-cream sm:mt-24 sm:px-12 sm:py-16">
+          <div className="on-forest relative grid gap-10 lg:grid-cols-[1fr_auto] lg:items-center lg:gap-16">
+            <div>
+              <p className="pretty max-w-2xl font-anton text-3xl uppercase leading-[1.05] tracking-tight sm:text-4xl">
+                &ldquo;Will they actually show up and do it right?&rdquo; is the only
+                question that matters. Ours is the crew you stop asking it about.
+              </p>
+              <dl className="mt-10 grid gap-6 sm:grid-cols-3">
+                {VALUES.map((v) => (
+                  <div key={v.word}>
+                    <dt className="font-anton text-lg uppercase tracking-tight text-green">
+                      {v.word}
+                    </dt>
+                    <dd className="mt-1.5 font-sora text-sm leading-relaxed text-cream/75">
+                      {v.line}
+                    </dd>
+                  </div>
+                ))}
+              </dl>
+            </div>
+            <Seal size={168} className="hidden shrink-0 text-green lg:block" />
           </div>
-        </Stamped>
-
-        {/* Row 3 — Service Quality: verification stamp + description */}
-        <Stamped className="grid items-center gap-10 py-14 lg:grid-cols-[auto_1fr] lg:gap-16">
-          <div
-            className="stamp-rotate flex h-40 w-40 shrink-0 items-center justify-center rounded-full border-4 border-gold text-center font-stamp uppercase leading-tight text-ink"
-            aria-hidden
-          >
-            <span className="text-sm">
-              Quality
-              <br />
-              Verified
-              <br />
-              On Every
-              <br />
-              Visit
-            </span>
-          </div>
-          <div>
-            <h3 className="balance max-w-lg font-display text-3xl font-semibold leading-tight text-ink sm:text-4xl">
-              Every visit is checked against the same sheet.
-            </h3>
-            <p className="mt-4 max-w-lg font-body text-lg leading-relaxed text-slate">
-              A standard checklist, followed the same way whether it’s
-              week one or week two hundred — so consistency is something you
-              can actually verify, not just a word on our homepage.
-            </p>
-          </div>
-        </Stamped>
+        </Reveal>
       </div>
     </section>
   );

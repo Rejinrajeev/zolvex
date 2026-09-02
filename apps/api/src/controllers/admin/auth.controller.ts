@@ -1,6 +1,7 @@
 import type { Request, Response } from "express";
 import { z } from "zod";
 import * as authService from "../../lib/auth/auth.js";
+import type { AuthedRequest } from "../../lib/auth/middleware.js";
 import { verifyPendingTwoFAToken } from "../../lib/auth/jwt.js";
 import { loginPendingView, twoFASetupView, sessionAccessTokenView } from "../../views/admin/auth.view.js";
 
@@ -142,4 +143,32 @@ export async function logout(req: Request, res: Response) {
   const { maxAge: _maxAge, ...clearCookieOpts } = REFRESH_COOKIE_OPTS;
   res.clearCookie(REFRESH_COOKIE, clearCookieOpts);
   res.status(204).send();
+}
+
+const changePasswordSchema = z.object({
+  currentPassword: z.string().min(1).max(200),
+  newPassword: z.string().min(1).max(200),
+});
+
+export async function changePassword(req: AuthedRequest, res: Response) {
+  const parsed = changePasswordSchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: "invalid_request" });
+    return;
+  }
+  try {
+    await authService.changePassword(req.actor!.id, parsed.data.currentPassword, parsed.data.newPassword);
+    res.status(200).json({ ok: true });
+  } catch (error) {
+    if (error instanceof authService.WrongCurrentPasswordError) {
+      res.status(422).json({ error: "wrong_current_password" });
+      return;
+    }
+    if (error instanceof authService.WeakPasswordError) {
+      res.status(422).json({ error: "weak_password", message: error.message });
+      return;
+    }
+    // InvalidCredentialsError: the account was deactivated/deleted mid-session.
+    res.status(401).json({ error: "unauthorized" });
+  }
 }

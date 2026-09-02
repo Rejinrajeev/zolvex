@@ -3,6 +3,15 @@
 import { useEffect, useState } from "react";
 import { ErrorBanner } from "@/components/admin/ErrorBanner";
 import { Modal } from "@/components/admin/Modal";
+import { Table } from "@/components/admin/Table";
+import { adminFetch } from "@/lib/admin/fetch";
+import {
+  Button,
+  PageHeader,
+  SkeletonRows,
+  EmptyState,
+  TextAreaField,
+} from "@/components/admin/ui";
 
 interface PendingRecord {
   id: string;
@@ -36,6 +45,7 @@ export default function ApprovalsPage() {
   const [role, setRole] = useState<string | null>(null);
   const [rejectTarget, setRejectTarget] = useState<PendingRecord | null>(null);
   const [rejectReason, setRejectReason] = useState("");
+  const [rejectError, setRejectError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
   async function load() {
@@ -43,8 +53,8 @@ export default function ApprovalsPage() {
     setError(null);
     try {
       const [approvalRes, meRes] = await Promise.all([
-        fetch("/admin/api/dashboard/approvals"),
-        fetch("/admin/api/auth/me"),
+        adminFetch("/admin/api/dashboard/approvals"),
+        adminFetch("/admin/api/auth/me"),
       ]);
       if (!approvalRes.ok) {
         setError("Could not load pending approvals.");
@@ -70,7 +80,7 @@ export default function ApprovalsPage() {
     const type = ENTITY_TO_TYPE[record.entity];
     if (!type) return;
     setSubmitting(true);
-    const res = await fetch(`/admin/api/content/${type}/${record.id}/approve`, {
+    const res = await adminFetch(`/admin/api/content/${type}/${record.id}/approve`, {
       method: "POST",
     });
     setSubmitting(false);
@@ -91,6 +101,10 @@ export default function ApprovalsPage() {
     if (!rejectTarget) return;
     const type = ENTITY_TO_TYPE[rejectTarget.entity];
     if (!type) return;
+    if (!rejectReason.trim()) {
+      setRejectError("Give a reason so the editor knows what to fix.");
+      return;
+    }
     setSubmitting(true);
     const res = await fetch(
       `/admin/api/content/${type}/${rejectTarget.id}/reject`,
@@ -103,6 +117,7 @@ export default function ApprovalsPage() {
     setSubmitting(false);
     setRejectTarget(null);
     setRejectReason("");
+    setRejectError(null);
     if (!res.ok) {
       const data = await res.json();
       setError(
@@ -120,78 +135,74 @@ export default function ApprovalsPage() {
 
   return (
     <div>
-      <h1 className="mb-6 font-display text-3xl text-ink">Pending approvals</h1>
+      <PageHeader
+        title="Pending approvals"
+        description={
+          isSuperadmin
+            ? "Content editors submitted these. Approve to publish, or reject with a note."
+            : "Content waiting for a superadmin to review."
+        }
+      />
       {error && (
         <div className="mb-4">
           <ErrorBanner message={error} />
         </div>
       )}
       {loading ? (
-        <p className="font-body text-sm text-slate">Loading…</p>
+        <SkeletonRows />
       ) : records.length === 0 ? (
-        <p className="font-body text-sm text-slate">
-          No records pending approval.
-        </p>
+        <EmptyState title="Nothing waiting for approval.">
+          Submitted content shows up here for review.
+        </EmptyState>
       ) : (
-        <table className="w-full border-collapse font-body text-sm">
-          <thead>
-            <tr className="border-b border-ink/10 text-left">
-              <th className="py-2 pr-4 font-stamp text-[0.7rem] uppercase tracking-wide text-slate">
-                Type
-              </th>
-              <th className="py-2 pr-4 font-stamp text-[0.7rem] uppercase tracking-wide text-slate">
-                Record
-              </th>
-              <th className="py-2 pr-4 font-stamp text-[0.7rem] uppercase tracking-wide text-slate">
-                Submitted
-              </th>
-              {isSuperadmin && <th className="py-2" />}
-            </tr>
-          </thead>
-          <tbody>
-            {records.map((record) => {
-              const labelField = ENTITY_LABEL_FIELD[record.entity] ?? "id";
-              return (
-                <tr
-                  key={`${record.entity}-${record.id}`}
-                  className="border-b border-ink/10"
-                >
-                  <td className="py-3 pr-4 text-ink">{record.entity}</td>
-                  <td className="py-3 pr-4 text-ink">
-                    {String(record[labelField] ?? record.id)}
-                  </td>
-                  <td className="py-3 pr-4 text-slate">
-                    {record.createdAt
-                      ? new Date(record.createdAt as string).toLocaleDateString()
-                      : "—"}
-                  </td>
-                  {isSuperadmin && (
-                    <td className="py-3 text-right">
-                      <div className="flex justify-end gap-2">
-                        <button
-                          type="button"
-                          disabled={submitting}
-                          onClick={() => handleApprove(record)}
-                          className="font-body text-sm text-olive-ink underline disabled:opacity-50"
-                        >
-                          Approve
-                        </button>
-                        <button
-                          type="button"
-                          disabled={submitting}
-                          onClick={() => setRejectTarget(record)}
-                          className="font-body text-sm text-ink underline disabled:opacity-50"
-                        >
-                          Reject
-                        </button>
-                      </div>
-                    </td>
-                  )}
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+        <Table
+          columns={[
+            { key: "entity", label: "Type" },
+            {
+              key: "record",
+              label: "Record",
+              render: (r) =>
+                String(r[ENTITY_LABEL_FIELD[r.entity] ?? "id"] ?? r.id),
+            },
+            {
+              key: "createdAt",
+              label: "Submitted",
+              render: (r) =>
+                r.createdAt ? new Date(r.createdAt as string).toLocaleDateString() : "—",
+            },
+          ]}
+          rows={records.map((r): PendingRecord => ({ ...r, id: `${r.entity}-${r.id}` }))}
+          renderActions={
+            isSuperadmin
+              ? (r) => {
+                  const original = { ...r, id: (r.id as string).replace(`${r.entity}-`, "") };
+                  return (
+                    <div className="flex justify-end gap-3">
+                      <button
+                        type="button"
+                        disabled={submitting}
+                        onClick={() => handleApprove(original)}
+                        className="font-sora text-sm font-semibold text-green-ink underline underline-offset-4 transition-colors hover:text-forest disabled:opacity-50"
+                      >
+                        Approve
+                      </button>
+                      <button
+                        type="button"
+                        disabled={submitting}
+                        onClick={() => {
+                          setRejectTarget(original);
+                          setRejectError(null);
+                        }}
+                        className="font-sora text-sm font-semibold text-ink underline underline-offset-4 transition-colors hover:text-danger disabled:opacity-50"
+                      >
+                        Reject
+                      </button>
+                    </div>
+                  );
+                }
+              : undefined
+          }
+        />
       )}
 
       {rejectTarget && (
@@ -200,37 +211,35 @@ export default function ApprovalsPage() {
           onClose={() => {
             setRejectTarget(null);
             setRejectReason("");
+            setRejectError(null);
           }}
         >
-          <label className="mb-4 block font-body text-sm text-ink">
-            Reason
-            <textarea
-              required
-              value={rejectReason}
-              onChange={(e) => setRejectReason(e.target.value)}
-              className="mt-1 block w-full border border-ink/20 bg-paper p-3 font-body text-ink focus:border-olive-ink focus:outline-none"
-              rows={3}
-            />
-          </label>
-          <div className="flex justify-end gap-3">
-            <button
-              type="button"
+          <TextAreaField
+            id="approval-reject-reason"
+            label="Reason"
+            required
+            rows={3}
+            value={rejectReason}
+            onChange={(e) => {
+              setRejectReason(e.target.value);
+              setRejectError(null);
+            }}
+            error={rejectError ?? undefined}
+          />
+          <div className="mt-6 flex justify-end gap-3">
+            <Button
+              variant="ghost"
               onClick={() => {
                 setRejectTarget(null);
                 setRejectReason("");
+                setRejectError(null);
               }}
-              className="border border-ink/20 px-4 py-2 font-body text-sm text-ink"
             >
               Cancel
-            </button>
-            <button
-              type="button"
-              onClick={handleReject}
-              disabled={submitting || !rejectReason.trim()}
-              className="bg-ink px-4 py-2 font-body text-sm text-paper disabled:opacity-50"
-            >
+            </Button>
+            <Button variant="danger" onClick={handleReject} loading={submitting}>
               {submitting ? "Rejecting…" : "Reject"}
-            </button>
+            </Button>
           </div>
         </Modal>
       )}

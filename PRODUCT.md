@@ -12,33 +12,35 @@ Next.js (App Router). Carried over from the `/plan-eng-review` architecture deci
 
 ## Users
 
-**Primary: commercial clients** — businesses (offices, commercial spaces) evaluating whether to trust Zolvex with recurring cleaning work. They are deciding whether this company is reliable enough to commit to, not browsing for entertainment.
+**Primary: home and business customers** — homeowners and businesses in Kerala deciding whether to trust Zolvex with a service in their home or premises. They are weighing whether this company will show up, send a trustworthy person, do the job right, and keep doing it reliably — not browsing for entertainment.
 
 **Secondary: Zolvex's own admin/editor staff (3+ people)** — manage all site content (services, blog posts, testimonials, FAQ) through the backend admin panel. Not a design audience for the public site, but a durable constraint: every piece of public content originates from an admin upload, not hardcoded copy.
 
 ## Product Purpose
 
-A marketing website for Zolvex, a commercial deep-cleaning service company, that builds enough trust for a business decision-maker to submit an enquiry — and pushes that enquiry into Zolvex's existing CRM. The site is the first real digital storefront the company has had.
+A marketing website for **Zolvex Home Services**, a residential and commercial services company (cleaning, maintenance, repairs, installation, AC service, plumbing, electrical, handyman work, home improvement, property management), that builds enough trust for a customer to submit an enquiry — and pushes that enquiry into Zolvex's existing CRM. The site is the first real digital storefront the company has had.
 
 ## Positioning
 
-100% dedication, hard-working, on-time. Commercial-focused — Zolvex serves businesses and commercial spaces, not primarily residential homes. The trust question a visitor is answering is not "can I let a stranger into my home" but "will this company actually show up, do the job right, and keep doing it reliably." Design personality follows from that: disciplined, dependable, professional — not soft/domestic warmth.
+100% dedication, hard-working, on-time. Zolvex is one team for the whole to-do list — home or business — so a customer doesn't line up separate vendors for a cleaner, a plumber, an electrician and a handyman. Every technician is background-verified, police-cleared and trained; every visit is logged. The trust question a visitor is answering is "will a stranger I let into my home or premises show up, be honest, do the job right, and be reliable." Design personality follows from that: disciplined, dependable, professional — warm and approachable, never sloppy or gimmicky.
 
 ## Operating Context
 
-All public content (services, blog posts, testimonials, FAQ, page copy) is created and published by admin staff through a backend admin panel (already built — see `apps/api/src/lib/services/approvable-resource.ts`), not hardcoded into the site. Enquiries submitted on the public site are pushed into an existing external CRM. A WhatsApp click-to-chat entry point exists site-wide. Content moves through an editor → superadmin approval workflow before going live.
+All public content (services, blog posts, testimonials, FAQ, page copy) is created and published by admin staff through a backend admin panel (already built — see `apps/api/src/lib/services/approvable-resource.ts`), not hardcoded into the site. Enquiries submitted on the public site are pushed into an existing external CRM. A WhatsApp click-to-chat entry point exists site-wide. Content moves through an editor → superadmin approval workflow before going live. Each published service has its own page at `/services/[slug]` with its own SEO metadata; the home page's Services grid links to them.
 
 ## Capabilities and Constraints
 
 - Every content section on the public site (services list, blog posts, testimonials, FAQ) is backend-driven and starts genuinely empty until admin staff publish real content — the design must handle a real zero-content state gracefully, not just a "coming soon" placeholder.
-- The enquiry form is the single conversion-critical action on the site; it must feel effortless, not bureaucratic.
-- No specific service list, exact city/region, or confirmed differentiator beyond the positioning above was provided — do not invent specific service SKUs, pricing, or regional claims as if confirmed. Illustrative service categories (e.g. "office deep cleaning," "carpet & upholstery," "post-construction cleanup") may be used as placeholder labels, clearly understood as swappable once real services are published from the backend.
+- The enquiry form is the single conversion-critical action on the site; it must feel effortless, not bureaucratic. It can be opened from any "Book a visit" CTA and, from a service page, is tagged with that service.
+- The service list spans several trades (cleaning, AC, plumbing, electrical, handyman, painting, maintenance, property management); real services, copy and pricing come from the backend — do not invent specific SKUs, prices, or regional claims as if confirmed.
 
 ## Brand Commitments
 
-- Name: **Zolvex**. Logo/wordmark sits top-left in the nav.
+- Name: **Zolvex** (legal entity: **Zolvex Home Services**). Logo/wordmark sits top-left in the nav.
 - Confirmed color palette (binding, not illustrative): `#161B1F` (near-black — primary dark), `#FEFEFD` (near-white — primary light), `#ADA477` (muted gold/olive), `#616054` (warm gray), `#EED77B` (bright gold — accent).
 - Nav structure (user-specified): logo left; Services, About Us, and a Contact icon at the right end.
+- Contact (single source of truth is `apps/web/lib/contact.ts`): email `info@zolvex.in`, phone `+91 80896 31909`, WhatsApp `+91 85905 70373`, location Kerala, India.
+- Primary CTA wording site-wide: **"Book a visit."**
 
 ## Evidence on Hand
 
@@ -46,8 +48,8 @@ All public content (services, blog posts, testimonials, FAQ, page copy) is creat
 
 ## Product Principles
 
-1. **Reliability over flash.** The design communicates dependability and punctuality first — commercial clients are evaluating trustworthiness, not novelty.
-2. **Speaks to a business decision-maker, not a homeowner.** Tone, imagery direction, and copy register skew professional/commercial, not domestic/cozy.
+1. **Reliability over flash.** The design communicates dependability, punctuality and a trustworthy person at the door first — customers are evaluating trustworthiness, not novelty.
+2. **Speaks to both a homeowner and a business owner.** Tone and copy stay professional and plainspoken and work whether the space is a house or an office; avoid language that assumes only one ("the whole building", "facilities manager").
 3. **Content is backend-driven, so design for real emptiness.** Every content section must have a considered placeholder/empty state, because that is genuinely the starting condition, not an edge case.
 4. **Trust is earned by specificity, not decoration.** When real testimonials, photos, and an Instagram feed do land, the design should reward that specificity (real names, real quotes, real work) rather than burying it under generic ornamentation.
 

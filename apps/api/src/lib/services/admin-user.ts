@@ -19,14 +19,30 @@ export class AdminUserService {
     });
   }
 
-  async create(actor: Actor, data: { name: string; email: string; role: AdminRole }) {
+  async create(
+    actor: Actor,
+    data: { name: string; email: string; role: AdminRole; password?: string }
+  ) {
     if (actor.role !== "superadmin") throw new ForbiddenAdminActionError("Only superadmin can create admin accounts");
 
-    const tempPassword = generateTempPassword();
-    const passwordHash = await hashPassword(tempPassword);
+    // The superadmin may set the sign-in password directly; if they don't, we
+    // generate a one-time password that's returned to them exactly once.
+    const generated = data.password ? null : generateTempPassword();
+    const passwordHash = await hashPassword(data.password ?? generated!);
 
     const admin = await this.prisma.$transaction(async (tx) => {
-      const created = await tx.admin.create({ data: { ...data, passwordHash } });
+      // Every new account is forced to choose its own password on first
+      // sign-in (see authService.changePassword), whether the superadmin set
+      // the initial one or we generated it.
+      const created = await tx.admin.create({
+        data: {
+          name: data.name,
+          email: data.email,
+          role: data.role,
+          passwordHash,
+          mustChangePassword: true,
+        },
+      });
       await writeAuditRow(tx, {
         entity: "Admin",
         entityId: created.id,
@@ -38,8 +54,9 @@ export class AdminUserService {
       return created;
     });
 
-    // tempPassword returned in plaintext exactly once; never stored or logged plaintext again.
-    return { admin, tempPassword };
+    // A generated password is returned in plaintext exactly once here; a
+    // superadmin-supplied one is never echoed back (they already have it).
+    return { admin, tempPassword: generated };
   }
 
   async setActive(actor: Actor, id: string, isActive: boolean) {

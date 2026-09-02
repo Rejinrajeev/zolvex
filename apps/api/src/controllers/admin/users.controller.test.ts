@@ -74,6 +74,33 @@ describe("POST /admin/api/users", () => {
     expect(res.body.tempPassword).toBeTruthy();
   });
 
+  it("uses a superadmin-supplied initial password and does not echo it back", async () => {
+    const res = await request(app)
+      .post("/admin/api/users")
+      .set("Authorization", `Bearer ${superadminAccessToken}`)
+      .send({
+        name: "Set PW",
+        email: "set-pw@zolvex.test",
+        role: "editor",
+        password: "chosen-by-the-boss",
+      });
+    expect(res.status).toBe(201);
+    expect(res.body.tempPassword).toBeNull();
+
+    const login = await request(app)
+      .post("/admin/api/auth/login")
+      .send({ email: "set-pw@zolvex.test", password: "chosen-by-the-boss" });
+    expect(login.status).toBe(200);
+  });
+
+  it("rejects an initial password shorter than the minimum", async () => {
+    const res = await request(app)
+      .post("/admin/api/users")
+      .set("Authorization", `Bearer ${superadminAccessToken}`)
+      .send({ name: "Short PW", email: "short-pw@zolvex.test", role: "editor", password: "short" });
+    expect(res.status).toBe(400);
+  });
+
   it("returns 409 on a duplicate email", async () => {
     const res = await request(app)
       .post("/admin/api/users")

@@ -1,7 +1,20 @@
 import { generateSecret, generateURI, generate, verify } from "otplib";
 import { prisma } from "../../db/prisma.js";
-import { verifyPassword, encryptSecret, decryptSecret, generateRecoveryCodes, hashRecoveryCode, generateRawToken, hashToken, verifyRecoveryCode } from "./crypto.js";
+import { verifyPassword, hashPassword, encryptSecret, decryptSecret, generateRecoveryCodes, hashRecoveryCode, generateRawToken, hashToken, verifyRecoveryCode } from "./crypto.js";
 import { signPendingTwoFAToken, signAccessToken } from "./jwt.js";
+
+export const MIN_PASSWORD_LENGTH = 12;
+
+/** Thrown by changePassword when the new password fails a policy rule. */
+export class WeakPasswordError extends Error {}
+
+/**
+ * Thrown by changePassword when the supplied current password is wrong.
+ * Distinct from InvalidCredentialsError so the HTTP layer can answer with a
+ * form-field error (422) instead of a 401 the web client would read as
+ * "session expired" and bounce to the login screen.
+ */
+export class WrongCurrentPasswordError extends Error {}
 
 const MAX_FAILED_ATTEMPTS = 5;
 const LOCK_DURATION_MS = 15 * 60 * 1000;
@@ -85,8 +98,14 @@ export async function verifyTwoFASetup(adminId: string, code: string): Promise<v
 async function createSession(
   adminId: string,
   role: "superadmin" | "editor",
+  mustChangePassword: boolean,
   meta?: { ipAddress?: string; userAgent?: string }
-): Promise<{ accessToken: string; refreshToken: string; sessionId: string }> {
+): Promise<{
+  accessToken: string;
+  refreshToken: string;
+  sessionId: string;
+  mustChangePassword: boolean;
+}> {
   const refreshToken = generateRawToken();
   const session = await prisma.adminSession.create({
     data: {
@@ -98,7 +117,12 @@ async function createSession(
     },
   });
 
-  return { accessToken: signAccessToken(adminId, role), refreshToken, sessionId: session.id };
+  return {
+    accessToken: signAccessToken(adminId, role, mustChangePassword),
+    refreshToken,
+    sessionId: session.id,
+    mustChangePassword,
+  };
 }
 
 export async function verifyTwoFALogin(
@@ -131,7 +155,7 @@ export async function verifyTwoFALogin(
 
   await prisma.admin.update({ where: { id: admin.id }, data: { failedLoginAttempts: 0 } });
 
-  return createSession(admin.id, admin.role, meta);
+  return createSession(admin.id, admin.role, admin.mustChangePassword, meta);
 }
 
 export async function loginWithRecoveryCode(
@@ -177,7 +201,7 @@ export async function loginWithRecoveryCode(
     data: { twoFARecoveryCodes: remaining, failedLoginAttempts: 0 },
   });
 
-  return createSession(admin.id, admin.role, meta);
+  return createSession(admin.id, admin.role, admin.mustChangePassword, meta);
 }
 
 export async function refreshSession(rawRefreshToken: string): Promise<{ accessToken: string }> {
@@ -191,7 +215,7 @@ export async function refreshSession(rawRefreshToken: string): Promise<{ accessT
   if (!admin || !admin.isActive) throw new InvalidCredentialsError();
 
   await prisma.adminSession.update({ where: { id: session.id }, data: { lastActiveAt: new Date() } });
-  return { accessToken: signAccessToken(admin.id, admin.role) };
+  return { accessToken: signAccessToken(admin.id, admin.role, admin.mustChangePassword) };
 }
 
 export async function logout(rawRefreshToken: string): Promise<void> {
@@ -200,6 +224,44 @@ export async function logout(rawRefreshToken: string): Promise<void> {
     where: { refreshTokenHash: tokenHash },
     data: { revokedAt: new Date() },
   });
+}
+
+/**
+ * Lets a signed-in admin set their own password. Verifies the current one,
+ * enforces the length policy, clears the `mustChangePassword` flag (so a new
+ * user is done being onboarded), and revokes every session for the account —
+ * changing a password is a security event, and the web client re-authenticates
+ * with the new one immediately.
+ */
+export async function changePassword(
+  adminId: string,
+  currentPassword: string,
+  newPassword: string
+): Promise<void> {
+  const admin = await prisma.admin.findUnique({ where: { id: adminId } });
+  if (!admin || !admin.isActive) throw new InvalidCredentialsError();
+
+  const currentValid = await verifyPassword(currentPassword, admin.passwordHash);
+  if (!currentValid) throw new WrongCurrentPasswordError("Current password is incorrect");
+
+  if (newPassword.length < MIN_PASSWORD_LENGTH) {
+    throw new WeakPasswordError(`Password must be at least ${MIN_PASSWORD_LENGTH} characters.`);
+  }
+  if (await verifyPassword(newPassword, admin.passwordHash)) {
+    throw new WeakPasswordError("Choose a password different from your current one.");
+  }
+
+  const passwordHash = await hashPassword(newPassword);
+  await prisma.$transaction([
+    prisma.admin.update({
+      where: { id: adminId },
+      data: { passwordHash, mustChangePassword: false, failedLoginAttempts: 0 },
+    }),
+    prisma.adminSession.updateMany({
+      where: { adminId, revokedAt: null },
+      data: { revokedAt: new Date() },
+    }),
+  ]);
 }
 
 export async function revokeSession(sessionId: string): Promise<void> {

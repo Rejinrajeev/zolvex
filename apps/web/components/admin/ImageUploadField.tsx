@@ -1,12 +1,15 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { Label, FieldError } from "./ui";
+import { IconSanitize } from "@/components/icons";
+import { adminFetch } from "@/lib/admin/fetch";
 
 /**
- * Extends PlaceholderPhoto's empty-frame-with-corner-marks treatment
- * (components/PlaceholderPhoto.tsx) as an interactive dropzone: drag-over
- * shifts the border to Olive Ink (matching DESIGN.md's input focus
- * language), and a successful upload swaps the frame for the real image.
+ * A click-or-drag image dropzone that swaps to a preview once an upload
+ * succeeds. Drag-over shifts the ring to green; either an upload failure
+ * (this component's own `error`) or a server field error (`serverError`)
+ * shows beneath it.
  */
 export function ImageUploadField({
   label,
@@ -19,13 +22,6 @@ export function ImageUploadField({
   value: string;
   onChange: (url: string) => void;
   required?: boolean;
-  /**
-   * A field-level validation error from the server (e.g. Express's Zod
-   * schema rejecting a missing required image). Distinct from this
-   * component's own `error` state below, which is an upload-attempt
-   * failure (wrong file type, too large, network error) -- both need to
-   * be visible, since either can be the reason the field is invalid.
-   */
   serverError?: string;
 }) {
   const [dragOver, setDragOver] = useState(false);
@@ -39,13 +35,13 @@ export function ImageUploadField({
     setError(null);
     const formData = new FormData();
     formData.append("file", file);
-    const res = await fetch("/admin/api/uploads", { method: "POST", body: formData });
+    const res = await adminFetch("/admin/api/uploads", { method: "POST", body: formData });
     const data = await res.json();
     setUploading(false);
     if (!res.ok) {
       const messages: Record<string, string> = {
         file_too_large: "That file is too large (5MB max).",
-        invalid_file_type: "Only JPEG, PNG, and WebP images are allowed.",
+        invalid_file_type: "Only JPEG, PNG and WebP images are allowed.",
         no_file: "No file was received.",
         upload_failed: "Upload failed. Please try again.",
       };
@@ -57,10 +53,7 @@ export function ImageUploadField({
 
   return (
     <div>
-      <label className="mb-1 block font-body text-sm text-ink">
-        {label}
-        {required && " *"}
-      </label>
+      <Label required={required}>{label}</Label>
       <div
         onDragOver={(e) => {
           e.preventDefault();
@@ -74,15 +67,22 @@ export function ImageUploadField({
           if (file) uploadFile(file);
         }}
         onClick={() => inputRef.current?.click()}
-        className={`relative flex aspect-[4/3] max-w-xs cursor-pointer items-center justify-center overflow-hidden border bg-paper-dim ${
-          dragOver ? "border-2 border-olive-ink" : displayError ? "border-2 border-ink" : "border-ink/12"
+        className={`relative mt-1.5 flex aspect-[4/3] max-w-xs cursor-pointer items-center justify-center overflow-hidden rounded-2xl bg-mist transition-shadow ${
+          dragOver
+            ? "ring-2 ring-green"
+            : displayError
+              ? "ring-2 ring-danger"
+              : "ring-1 ring-ink/10 hover:ring-ink/25"
         }`}
       >
         {value ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={value} alt="" className="h-full w-full object-cover" />
         ) : (
-          <span className="font-stamp text-[0.7rem] uppercase tracking-wide text-slate">
+          <span className="flex flex-col items-center gap-2 font-sora text-sm font-medium text-moss">
+            <span className="flex h-11 w-11 items-center justify-center rounded-full bg-green/15 text-green-ink">
+              <IconSanitize className="h-5 w-5" />
+            </span>
             {uploading ? "Uploading…" : "Click or drag an image"}
           </span>
         )}
@@ -97,12 +97,7 @@ export function ImageUploadField({
           }}
         />
       </div>
-      {displayError && (
-        <p role="alert" className="mt-1 font-body text-sm text-ink">
-          <span aria-hidden="true" className="stamp-rotate inline-block mr-1">◆</span>
-          {displayError}
-        </p>
-      )}
+      {displayError && <FieldError>{displayError}</FieldError>}
     </div>
   );
 }

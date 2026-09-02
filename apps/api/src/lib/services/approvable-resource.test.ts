@@ -617,6 +617,37 @@ describe("ApprovableResourceService.list", () => {
   });
 });
 
+describe("ApprovableResourceService.list — isActive filter", () => {
+  it("filters by isActive when the option is passed", async () => {
+    const service = new ApprovableResourceService(prisma, "faq");
+    await prisma.faq.create({
+      data: { question: "Active", answer: "A", approvalStatus: "published", isActive: true },
+    });
+    await prisma.faq.create({
+      data: { question: "Inactive", answer: "A", approvalStatus: "published", isActive: false },
+    });
+
+    const activeOnly = await service.list({ isActive: true });
+    expect(activeOnly.map((r: { question: string }) => r.question)).toEqual(["Active"]);
+
+    const inactiveOnly = await service.list({ isActive: false });
+    expect(inactiveOnly.map((r: { question: string }) => r.question)).toEqual(["Inactive"]);
+  });
+
+  it("does not filter by isActive when the option is omitted (existing behavior unchanged)", async () => {
+    const service = new ApprovableResourceService(prisma, "faq");
+    await prisma.faq.create({
+      data: { question: "Active", answer: "A", approvalStatus: "published", isActive: true },
+    });
+    await prisma.faq.create({
+      data: { question: "Inactive", answer: "A", approvalStatus: "published", isActive: false },
+    });
+
+    const all = await service.list({});
+    expect(all.map((r: { question: string }) => r.question).sort()).toEqual(["Active", "Inactive"]);
+  });
+});
+
 describe("ApprovableResourceService.reorder", () => {
   it("updates order on every listed record and writes one audit row per record", async () => {
     const a = await faqs.create({ id: superadminId, role: "superadmin" }, { question: "A", answer: "A" });

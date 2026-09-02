@@ -62,6 +62,40 @@ describe("callExpress", () => {
     expect(fetchMock).toHaveBeenCalledTimes(1); // no refresh attempt was made
   });
 
+  it("refreshes and retries a protected-route 401 even when the access-token cookie is gone (dropped after its 15-min max-age) as long as a refresh token remains", async () => {
+    // No ACCESS_TOKEN_COOKIE -- the common "admin came back after being idle
+    // 15+ minutes" case. The session is NOT over: the 30-day refresh cookie
+    // is still there.
+    store.set(REFRESH_TOKEN_COOKIE, { value: "real-refresh-token" });
+
+    const fetchMock = vi
+      .spyOn(globalThis, "fetch")
+      .mockResolvedValueOnce(new Response(JSON.stringify({ error: "unauthorized" }), { status: 401 })) // original, no token
+      .mockResolvedValueOnce(new Response(JSON.stringify({ accessToken: "fresh-token" }), { status: 200 })) // refresh
+      .mockResolvedValueOnce(new Response(JSON.stringify({ ok: true }), { status: 200 })); // retry
+
+    const res = await callExpress("/admin/api/content/faq");
+
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ ok: true });
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+    const [, retryInit] = fetchMock.mock.calls[2];
+    expect((retryInit?.headers as Record<string, string>)?.Authorization).toBe("Bearer fresh-token");
+  });
+
+  it("does NOT refresh a 401 from an /admin/api/auth/* endpoint even if a refresh token happens to be present", async () => {
+    store.set(REFRESH_TOKEN_COOKIE, { value: "real-refresh-token" });
+    const fetchMock = vi
+      .spyOn(globalThis, "fetch")
+      .mockResolvedValueOnce(new Response(JSON.stringify({ error: "invalid_credentials" }), { status: 401 }));
+
+    const res = await callExpress("/admin/api/auth/login", { method: "POST", body: "{}" });
+
+    expect(res.status).toBe(401);
+    expect(await res.json()).toEqual({ error: "invalid_credentials" });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
   it("refreshes once and retries on a 401, returning the retried response", async () => {
     store.set(ACCESS_TOKEN_COOKIE, { value: "expired-token" });
     store.set(REFRESH_TOKEN_COOKIE, { value: "real-refresh-token" });

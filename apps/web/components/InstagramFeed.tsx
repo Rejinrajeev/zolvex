@@ -1,46 +1,57 @@
-import { Stamped } from "./Stamped";
-import { PlaceholderPhoto } from "./PlaceholderPhoto";
+import { Reveal, Stagger, StaggerItem } from "./motion-primitives";
+import { Photo } from "./Photo";
 import { IconInstagram } from "./icons";
+import { safeHref } from "@/lib/safe-url";
 
-/**
- * No real Instagram handle exists yet (PRODUCT.md). Tiles link out to
- * Instagram generically rather than a fabricated handle; once a real handle
- * and posts are configured in the backend, each tile's href becomes that
- * post's real permalink.
- */
-const TILE_COUNT = 6;
+export interface PublicInstagramPost {
+  id: string;
+  image: string;
+  permalink: string;
+}
 
-export function InstagramFeed() {
+export function InstagramFeed({ posts }: { posts: PublicInstagramPost[] }) {
   return (
-    <section className="ledger-ground-dark px-5 py-24 sm:px-8 lg:px-12">
-      <div className="mx-auto max-w-[90rem]">
-        <Stamped>
-          <div className="flex flex-wrap items-center gap-3">
-            <IconInstagram className="h-7 w-7 text-gold" />
-            <h2 className="font-display text-4xl font-semibold leading-tight text-paper sm:text-5xl">
-              Follow the crew.
-            </h2>
-          </div>
-        </Stamped>
+    <section className="bg-cream px-5 py-20 sm:px-8 sm:py-28">
+      <div className="mx-auto max-w-[80rem]">
+        <Reveal className="flex items-center gap-3">
+          <span className="flex h-11 w-11 items-center justify-center rounded-full bg-green text-forest">
+            <IconInstagram className="h-6 w-6" />
+          </span>
+          <h2 className="font-anton text-5xl uppercase leading-[0.95] tracking-tight text-ink sm:text-6xl">
+            Follow the crew
+          </h2>
+        </Reveal>
 
-        <div className="mt-12 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-6">
-          {Array.from({ length: TILE_COUNT }).map((_, i) => (
-            <Stamped key={i} delayMs={i * 60}>
-              <a
-                href="https://www.instagram.com/"
-                target="_blank"
-                rel="noreferrer noopener"
-                aria-label="Open this post on Instagram"
-                className="group relative block"
-              >
-                <PlaceholderPhoto label={`Post ${i + 1}`} tone="dark" className="aspect-square" />
-                <span className="absolute inset-0 flex items-center justify-center bg-ink/0 opacity-0 transition-all duration-300 group-hover:bg-ink/60 group-hover:opacity-100">
-                  <IconInstagram className="h-6 w-6 text-gold" />
-                </span>
-              </a>
-            </Stamped>
-          ))}
-        </div>
+        {posts.length === 0 ? (
+          <Reveal as="p" delay={0.1} className="mt-12 font-sora text-base text-moss">
+            Posts land here once they&apos;re published from the admin panel.
+          </Reveal>
+        ) : (
+          <Stagger className="mt-12 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-6">
+            {posts.map((post, i) => (
+              <StaggerItem key={post.id}>
+                <a
+                  href={safeHref(post.permalink)}
+                  target="_blank"
+                  rel="noreferrer noopener"
+                  aria-label={`Open Zolvex Instagram post ${i + 1}`}
+                  className="group relative block overflow-hidden rounded-2xl"
+                >
+                  <Photo
+                    src={post.image}
+                    label={`Instagram post ${i + 1}`}
+                    width={360}
+                    aspect="1 / 1"
+                    className="rounded-2xl"
+                  />
+                  <span className="absolute inset-0 flex items-center justify-center bg-forest/0 opacity-0 transition-all duration-300 group-hover:bg-forest/55 group-hover:opacity-100">
+                    <IconInstagram className="h-6 w-6 text-cream" />
+                  </span>
+                </a>
+              </StaggerItem>
+            ))}
+          </Stagger>
+        )}
       </div>
     </section>
   );

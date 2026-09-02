@@ -1,76 +1,139 @@
-import { IconPhone, IconInstagram } from "./icons";
+import Link from "next/link";
+import { IconPhone, IconInstagram, IconArrow, IconWhatsApp, IconMail, IconPin } from "./icons";
+import { safeHref } from "@/lib/safe-url";
+import { CONTACT } from "@/lib/contact";
 
-export function Footer({ onBookNow }: { onBookNow: () => void }) {
+const DEFAULT_TAGLINE =
+  "Home and commercial services — cleaning, maintenance, repairs and installation. Trained, background-verified people, on schedule, every visit logged.";
+
+export function Footer({
+  onBookNow,
+  tagline,
+  instagramUrl,
+  phoneNumber,
+}: {
+  onBookNow: () => void;
+  tagline?: string;
+  instagramUrl?: string;
+  phoneNumber?: string;
+}) {
   return (
-    <footer className="punch-edge relative bg-ink px-5 pb-10 pt-16 sm:px-8 lg:px-12">
-      <div className="mx-auto max-w-[90rem]">
-        <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-4">
+    <footer className="on-forest bg-cream px-5 pt-4 sm:px-8">
+      <div className="mx-auto max-w-[80rem] overflow-hidden rounded-t-[2.5rem] bg-forest px-6 pb-10 pt-14 text-cream sm:px-12 sm:pb-12 sm:pt-16">
+        <div className="grid gap-12 lg:grid-cols-[1.4fr_1fr_1fr_1fr]">
           <div>
-            <a href="#top" className="font-display text-2xl font-semibold text-paper">
+            <Link href="/" className="font-anton text-3xl uppercase tracking-tight text-cream">
               Zolvex
-            </a>
-            <p className="mt-3 max-w-xs font-body text-sm leading-relaxed text-paper/70">
-              Commercial cleaning, logged and on time — for offices, retail,
-              and commercial spaces.
+            </Link>
+            <p className="pretty mt-4 max-w-xs font-sora text-sm leading-relaxed text-cream/70">
+              {tagline || DEFAULT_TAGLINE}
             </p>
+            <button
+              type="button"
+              onClick={onBookNow}
+              className="group mt-6 inline-flex items-center gap-2 rounded-full bg-green px-6 py-3 font-sora text-sm font-semibold text-forest transition-transform hover:-translate-y-0.5"
+            >
+              Book a visit
+              <IconArrow aria-hidden className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+            </button>
           </div>
 
-          <div>
-            <h3 className="font-stamp text-xs uppercase tracking-[0.15em] text-gold/80">
-              Company
-            </h3>
-            <ul className="mt-4 space-y-2.5 font-body text-sm text-paper/75">
-              <li><a href="#about" className="hover:text-gold">About Us</a></li>
-              <li><a href="#services" className="hover:text-gold">Services</a></li>
-              <li>
-                <button type="button" onClick={onBookNow} className="text-left hover:text-gold">
-                  Book Now
-                </button>
-              </li>
-            </ul>
-          </div>
+          <FooterCol title="Company">
+            <FooterLink href="/#about">About Us</FooterLink>
+            <FooterLink href="/#services">Services</FooterLink>
+            <li>
+              <button
+                type="button"
+                onClick={onBookNow}
+                className="text-left font-sora text-sm text-cream/75 transition-colors hover:text-green"
+              >
+                Book a visit
+              </button>
+            </li>
+          </FooterCol>
 
-          <div>
-            <h3 className="font-stamp text-xs uppercase tracking-[0.15em] text-gold/80">
-              Contact
-            </h3>
-            <ul className="mt-4 space-y-2.5 font-body text-sm text-paper/75">
+          <FooterCol title="Contact">
+            <li className="flex items-center gap-2">
+              <IconPhone className="h-4 w-4 shrink-0 text-green" />
+              <a
+                href={`tel:${phoneNumber || CONTACT.phone}`}
+                className="font-sora text-sm text-cream/75 transition-colors hover:text-green"
+              >
+                {CONTACT.phoneDisplay}
+              </a>
+            </li>
+            <li className="flex items-center gap-2">
+              <IconWhatsApp className="h-4 w-4 shrink-0 text-green" />
+              <a
+                href={`https://wa.me/${CONTACT.whatsapp.replace(/\D/g, "")}`}
+                target="_blank"
+                rel="noreferrer noopener"
+                className="font-sora text-sm text-cream/75 transition-colors hover:text-green"
+              >
+                WhatsApp
+              </a>
+            </li>
+            <li className="flex items-center gap-2">
+              <IconMail className="h-4 w-4 shrink-0 text-green" />
+              <a
+                href={`mailto:${CONTACT.email}`}
+                className="font-sora text-sm text-cream/75 transition-colors hover:text-green"
+              >
+                {CONTACT.email}
+              </a>
+            </li>
+            {instagramUrl && (
               <li className="flex items-center gap-2">
-                <IconPhone className="h-4 w-4 text-gold" />
-                <a href="tel:+10000000000" className="hover:text-gold">
-                  Call for a quote
-                </a>
-              </li>
-              <li className="flex items-center gap-2">
-                <IconInstagram className="h-4 w-4 text-gold" />
+                <IconInstagram className="h-4 w-4 shrink-0 text-green" />
                 <a
-                  href="https://www.instagram.com/"
+                  href={safeHref(instagramUrl)}
                   target="_blank"
                   rel="noreferrer noopener"
-                  className="hover:text-gold"
+                  className="font-sora text-sm text-cream/75 transition-colors hover:text-green"
                 >
                   Instagram
                 </a>
               </li>
-            </ul>
-          </div>
+            )}
+            <li className="flex items-center gap-2">
+              <IconPin className="h-4 w-4 shrink-0 text-green" />
+              <span className="font-sora text-sm text-cream/75">{CONTACT.location}</span>
+            </li>
+          </FooterCol>
 
-          <div>
-            <h3 className="font-stamp text-xs uppercase tracking-[0.15em] text-gold/80">
-              Legal
-            </h3>
-            <ul className="mt-4 space-y-2.5 font-body text-sm text-paper/75">
-              <li><a href="/terms" className="hover:text-gold">Terms & Conditions</a></li>
-              <li><a href="/privacy" className="hover:text-gold">Privacy Policy</a></li>
-            </ul>
-          </div>
+          <FooterCol title="Legal">
+            <FooterLink href="/terms">Terms &amp; Conditions</FooterLink>
+            <FooterLink href="/privacy">Privacy Policy</FooterLink>
+          </FooterCol>
         </div>
 
-        <div className="mt-14 flex flex-col items-start justify-between gap-3 border-t border-gold/10 pt-6 font-body text-xs text-paper/70 sm:flex-row sm:items-center">
+        <div className="mt-14 flex flex-col items-start justify-between gap-6 border-t border-cream/10 pt-6 font-sora text-xs text-cream/60 sm:flex-row sm:items-center">
           <span>© {new Date().getFullYear()} Zolvex. All rights reserved.</span>
-          <span className="font-stamp uppercase tracking-wide">Every visit, on the record.</span>
+          <span className="tabular">Every visit, on the record.</span>
         </div>
       </div>
     </footer>
+  );
+}
+
+function FooterCol({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <h2 className="font-anton text-sm uppercase tracking-tight text-green">{title}</h2>
+      <ul className="mt-4 space-y-2.5">{children}</ul>
+    </div>
+  );
+}
+
+function FooterLink({ href, children }: { href: string; children: React.ReactNode }) {
+  return (
+    <li>
+      <a
+        href={href}
+        className="font-sora text-sm text-cream/75 transition-colors hover:text-green"
+      >
+        {children}
+      </a>
+    </li>
   );
 }

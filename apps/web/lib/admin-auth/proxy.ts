@@ -27,6 +27,49 @@ export class UpstreamUnauthorizedError extends Error {}
  * Found during a post-merge review of Plans 3b/3c; fixed at the source
  * rather than retrofitting ~30 files, each an easy place to forget it again.
  */
+/**
+ * Exchanges the long-lived refresh-token cookie for a fresh access token,
+ * writes it to the access-token cookie, and returns it. On any failure
+ * (no refresh token, Express rejects it, malformed response) it clears
+ * BOTH session cookies and returns null — the session is over, and the
+ * next `/admin/*` navigation will hit the middleware and land on /login.
+ * Shared by `callExpress` (on a 401) and the `/admin/api/auth/me` route
+ * (which the protected layout polls on mount).
+ */
+export async function refreshAccessToken(): Promise<string | null> {
+  const refreshToken = await getRefreshToken();
+  if (!refreshToken) {
+    await clearSessionCookies();
+    return null;
+  }
+
+  let res: Response;
+  try {
+    res = await fetch(`${getApiBaseUrl()}/admin/api/auth/refresh`, {
+      method: "POST",
+      headers: { Cookie: `refresh_token=${refreshToken}` },
+    });
+  } catch {
+    // Network error reaching Express — don't nuke the session over a blip;
+    // the caller returns a 401 and the client retries on the next action.
+    return null;
+  }
+
+  if (!res.ok) {
+    await clearSessionCookies();
+    return null;
+  }
+
+  const data = (await res.json().catch(() => null)) as { accessToken?: string } | null;
+  if (!data?.accessToken) {
+    await clearSessionCookies();
+    return null;
+  }
+
+  await setAccessTokenCookie(data.accessToken);
+  return data.accessToken;
+}
+
 export async function callExpress(path: string, init: RequestInit = {}): Promise<Response> {
   const baseUrl = getApiBaseUrl();
   const accessToken = await getAccessToken();
@@ -52,33 +95,25 @@ export async function callExpress(path: string, init: RequestInit = {}): Promise
   };
 
   const firstResponse = await doFetch(accessToken);
-  // Only a 401 from a call that actually carried an access token means "this
-  // session's token expired" -- a 401 with no access token attached (login,
-  // or a pending-2FA endpoint) means "wrong password"/"wrong code" and must
-  // pass straight through, not trigger a refresh attempt (see this file's
-  // Task 3 note on why this guard exists).
-  if (firstResponse.status !== 401 || !accessToken) {
+
+  // The auth endpoints (login, 2FA verify/setup/recovery) answer a bad
+  // password or a wrong code with a 401 -- that is never a stale session, so
+  // never refresh-and-retry it; pass it straight back.
+  const isAuthEndpoint = path.startsWith("/admin/api/auth/");
+  if (firstResponse.status !== 401 || isAuthEndpoint) {
     return firstResponse;
   }
 
-  const refreshToken = await getRefreshToken();
-  if (!refreshToken) {
-    await clearSessionCookies();
+  // A 401 on a protected route: the access token is either expired or gone
+  // entirely (its cookie has a 15-minute max-age, so it's simply dropped by
+  // the browser once the admin has been idle that long, while the 30-day
+  // refresh cookie stays). Trade the refresh token for a new access token
+  // and retry the call once. refreshAccessToken() clears the session and
+  // returns null when the refresh token is also dead.
+  const freshAccessToken = await refreshAccessToken();
+  if (!freshAccessToken) {
     return unauthorizedResponse();
   }
-
-  const refreshResponse = await fetch(`${baseUrl}/admin/api/auth/refresh`, {
-    method: "POST",
-    headers: { Cookie: `refresh_token=${refreshToken}` },
-  });
-  if (!refreshResponse.ok) {
-    await clearSessionCookies();
-    return unauthorizedResponse();
-  }
-
-  const { accessToken: freshAccessToken } = (await refreshResponse.json()) as { accessToken: string };
-  await setAccessTokenCookie(freshAccessToken);
-
   return doFetch(freshAccessToken);
 }
 

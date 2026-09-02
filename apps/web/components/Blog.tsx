@@ -1,63 +1,52 @@
-import { Stamped } from "./Stamped";
-import { PlaceholderPhoto } from "./PlaceholderPhoto";
+import { Reveal, Stagger, StaggerItem } from "./motion-primitives";
+import { Photo } from "./Photo";
 import { IconArrow } from "./icons";
+import { safeHref } from "@/lib/safe-url";
 
-const POSTS = [
-  {
-    title: "What our crews actually do on a walkthrough",
-    excerpt:
-      "A behind-the-scenes look at the checklist every Zolvex site visit runs through, floor by floor.",
-    tag: "The things we do",
-  },
-  {
-    title: "Why commercial cleaning isn't optional overhead",
-    excerpt:
-      "Air quality, first impressions, and staff sick days — the real cost of an inconsistent cleaning schedule.",
-    tag: "Why it matters",
-  },
-  {
-    title: "Reading a service log like a facilities manager",
-    excerpt:
-      "What to actually check for when a vendor says a job is 'done' — and how our logs make that verifiable.",
-    tag: "The things we do",
-  },
-];
+export interface PublicBlogPost {
+  id: string;
+  title: string;
+  image: string;
+  instagramUrl: string;
+}
 
-export function Blog() {
+export function Blog({ posts }: { posts: PublicBlogPost[] }) {
   return (
-    <section className="ledger-ground-dark punch-edge relative px-5 py-24 sm:px-8 lg:px-12">
-      <div className="mx-auto max-w-[90rem]">
-        <Stamped>
-          <h2 className="max-w-lg font-display text-4xl font-semibold leading-tight text-paper sm:text-5xl">
-            From the log book.
-          </h2>
-        </Stamped>
+    <section className="bg-mist px-5 py-20 sm:px-8 sm:py-28">
+      <div className="mx-auto max-w-[80rem]">
+        <Reveal as="h2" className="font-anton text-5xl uppercase leading-[0.95] tracking-tight text-ink sm:text-6xl lg:text-7xl">
+          Fresh from
+          <br />
+          the field
+        </Reveal>
 
-        <div className="mt-14 grid gap-8 md:grid-cols-3">
-          {POSTS.map((post, i) => (
-            <Stamped key={post.title} delayMs={i * 90}>
-              <article className="group flex h-full flex-col">
-                <PlaceholderPhoto label={post.title} tone="dark" />
-                <h3 className="mt-5 font-display text-xl font-medium leading-snug text-paper">
-                  {post.title}
-                </h3>
-                <p className="mt-3 flex-1 font-body text-[0.95rem] leading-relaxed text-paper/70">
-                  {post.excerpt}
-                </p>
-                <div className="mt-4 flex items-center gap-2.5">
-                  <span className="font-stamp text-[0.72rem] uppercase tracking-[0.15em] text-gold/80">
-                    {post.tag}
+        {posts.length === 0 ? (
+          <Reveal as="p" delay={0.1} className="mt-14 font-sora text-base text-moss">
+            Posts land here once they&apos;re published from the admin panel.
+          </Reveal>
+        ) : (
+          <Stagger className="mt-14 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {posts.map((post) => (
+              <StaggerItem key={post.id}>
+                <a
+                  href={safeHref(post.instagramUrl)}
+                  target="_blank"
+                  rel="noreferrer noopener"
+                  className="group flex h-full flex-col overflow-hidden rounded-[1.75rem] bg-paper p-4 transition-[transform,box-shadow] duration-300 hover:-translate-y-1.5 hover:shadow-[0_28px_60px_-24px_rgba(12,58,44,0.3)]"
+                >
+                  <Photo src={post.image} label={post.title} width={640} className="rounded-[1.25rem]" />
+                  <h3 className="mt-5 px-1 font-anton text-xl uppercase leading-tight tracking-tight text-ink">
+                    {post.title}
+                  </h3>
+                  <span className="mt-4 inline-flex items-center gap-1.5 px-1 font-sora text-sm font-semibold text-green-ink">
+                    View on Instagram
+                    <IconArrow aria-hidden className="h-3.5 w-3.5 transition-transform group-hover:translate-x-1" />
                   </span>
-                  <span aria-hidden className="h-3 w-px bg-gold/25" />
-                  <span className="inline-flex w-fit items-center gap-1.5 font-body text-sm text-gold underline decoration-gold/30 underline-offset-4 transition-colors group-hover:decoration-gold">
-                    Read the entry
-                    <IconArrow aria-hidden className="h-3.5 w-3.5" />
-                  </span>
-                </div>
-              </article>
-            </Stamped>
-          ))}
-        </div>
+                </a>
+              </StaggerItem>
+            ))}
+          </Stagger>
+        )}
       </div>
     </section>
   );

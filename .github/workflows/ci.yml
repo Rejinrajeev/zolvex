@@ -74,6 +74,12 @@ jobs:
           CLOUDINARY_API_SECRET: ${{ secrets.CLOUDINARY_API_SECRET }}
         run: npm run test --workspace=apps/api
 
+      - name: Typecheck web
+        run: npm run typecheck --workspace=apps/web
+
+      - name: Test web
+        run: npm run test --workspace=apps/web
+
       - name: Audit dependencies
         # Non-blocking: Foundation has no dependency policy yet, so this reports
         # findings without failing the build. Tighten once a policy is agreed.

@@ -3,6 +3,9 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { ErrorBanner } from "@/components/admin/ErrorBanner";
+import { Panel, SkeletonRows } from "@/components/admin/ui";
+import { IconArrow } from "@/components/icons";
+import { adminFetch } from "@/lib/admin/fetch";
 
 interface EnquiryDetail {
   id: string;
@@ -19,13 +22,13 @@ interface EnquiryDetail {
   createdAt: string;
 }
 
-function Field({ label, value }: { label: string; value: React.ReactNode }) {
+function Row({ label, value }: { label: string; value: React.ReactNode }) {
   return (
-    <div className="border-b border-ink/10 py-3">
-      <dt className="font-stamp text-[0.65rem] uppercase tracking-wide text-slate">
+    <div className="flex flex-col gap-0.5 border-b border-ink/8 py-3 last:border-0 sm:flex-row sm:gap-6">
+      <dt className="font-sora text-xs font-semibold uppercase tracking-wide text-moss sm:w-40 sm:shrink-0">
         {label}
       </dt>
-      <dd className="mt-0.5 font-body text-sm text-ink">{value ?? "—"}</dd>
+      <dd className="font-sora text-sm text-ink">{value ?? "—"}</dd>
     </div>
   );
 }
@@ -39,7 +42,7 @@ export default function EnquiryDetailPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    fetch(`/admin/api/enquiries/${id}`)
+    adminFetch(`/admin/api/enquiries/${id}`)
       .then(async (res) => {
         if (res.status === 404) throw new Error("not_found");
         if (!res.ok) throw new Error("load_failed");
@@ -50,61 +53,60 @@ export default function EnquiryDetailPage() {
         setLoading(false);
       })
       .catch((err: Error) => {
-        setError(
-          err.message === "not_found"
-            ? "Enquiry not found."
-            : "Could not load enquiry."
-        );
+        setError(err.message === "not_found" ? "Enquiry not found." : "Could not load enquiry.");
         setLoading(false);
       });
   }, [id]);
-
-  if (loading) return <p className="font-body text-sm text-slate">Loading…</p>;
-  if (error) return <ErrorBanner message={error} />;
-  if (!enquiry) return null;
 
   return (
     <div className="max-w-xl">
       <button
         type="button"
         onClick={() => router.push("/admin/enquiries")}
-        className="mb-6 font-body text-sm text-olive-ink underline"
+        className="mb-6 inline-flex items-center gap-1.5 font-sora text-sm font-semibold text-green-ink"
       >
-        ← Back to enquiries
+        <IconArrow aria-hidden className="h-4 w-4 rotate-180" />
+        Back to enquiries
       </button>
-      <h1 className="mb-6 font-display text-3xl text-ink">Enquiry</h1>
-      <dl>
-        <Field label="Client name" value={enquiry.name} />
-        <Field label="Phone" value={enquiry.phone} />
-        <Field label="Service" value={enquiry.serviceName} />
-        <Field label="Place" value={enquiry.place} />
-        <Field
-          label="Preferred date"
-          value={
-            enquiry.preferredDate
-              ? new Date(enquiry.preferredDate).toLocaleDateString()
-              : null
-          }
-        />
-        <Field label="Status" value={enquiry.status.replace(/_/g, " ")} />
-        <Field
-          label="Submitted"
-          value={new Date(enquiry.createdAt).toLocaleString()}
-        />
-        <Field label="Attempt count" value={String(enquiry.attemptCount)} />
-        {enquiry.crmResponse != null && (
-          <div className="border-b border-ink/10 py-3">
-            <dt className="font-stamp text-[0.65rem] uppercase tracking-wide text-slate">
-              CRM response
-            </dt>
-            <dd className="mt-0.5">
-              <pre className="overflow-x-auto bg-paper-dim p-3 font-body text-xs text-ink">
-                {JSON.stringify(enquiry.crmResponse, null, 2)}
-              </pre>
-            </dd>
-          </div>
-        )}
-      </dl>
+      <h1 className="mb-6 font-sora text-2xl font-bold tracking-tight text-ink">Enquiry</h1>
+
+      {loading ? (
+        <SkeletonRows rows={5} />
+      ) : error ? (
+        <ErrorBanner message={error} />
+      ) : enquiry ? (
+        <Panel>
+          <dl>
+            <Row label="Client name" value={enquiry.name} />
+            <Row label="Phone" value={enquiry.phone} />
+            <Row label="Service" value={enquiry.serviceName} />
+            <Row label="Place" value={enquiry.place} />
+            <Row
+              label="Preferred date"
+              value={
+                enquiry.preferredDate
+                  ? new Date(enquiry.preferredDate).toLocaleDateString()
+                  : null
+              }
+            />
+            <Row label="Status" value={enquiry.status.replace(/_/g, " ")} />
+            <Row label="Submitted" value={new Date(enquiry.createdAt).toLocaleString()} />
+            <Row label="Attempts" value={String(enquiry.attemptCount)} />
+            {enquiry.crmResponse != null && (
+              <div className="border-b border-ink/8 py-3 last:border-0">
+                <dt className="font-sora text-xs font-semibold uppercase tracking-wide text-moss">
+                  CRM response
+                </dt>
+                <dd className="mt-1.5">
+                  <pre className="overflow-x-auto rounded-lg bg-mist p-3 font-mono text-xs text-ink">
+                    {JSON.stringify(enquiry.crmResponse, null, 2)}
+                  </pre>
+                </dd>
+              </div>
+            )}
+          </dl>
+        </Panel>
+      ) : null}
     </div>
   );
 }

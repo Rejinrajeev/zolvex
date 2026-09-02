@@ -18,6 +18,7 @@ import express, { type Express, type Request, type Response, type NextFunction }
 import cookieParser from "cookie-parser";
 import { prisma } from "./db/prisma.js";
 import { adminAuthRouter } from "./routes/admin/auth.routes.js";
+import { adminAccountRouter } from "./routes/admin/account.routes.js";
 import { adminSessionsRouter } from "./routes/admin/sessions.routes.js";
 import { adminUsersRouter } from "./routes/admin/users.routes.js";
 import { adminContentRouter } from "./routes/admin/content.routes.js";
@@ -28,6 +29,10 @@ import { adminDashboardRouter } from "./routes/admin/dashboard.routes.js";
 import { adminTrashRouter } from "./routes/admin/trash.routes.js";
 import { adminAuditLogRouter } from "./routes/admin/audit-log.routes.js";
 import { adminEnquiriesRouter } from "./routes/admin/enquiries.routes.js";
+import { publicContentRouter } from "./routes/public/content.routes.js";
+import { publicPagesRouter } from "./routes/public/pages.routes.js";
+import { publicPlacesRouter } from "./routes/public/places.routes.js";
+import { publicEnquiriesRouter } from "./routes/public/enquiries.routes.js";
 
 export function createApp(): Express {
   const app = express();
@@ -43,6 +48,7 @@ export function createApp(): Express {
   app.use(express.json());
   app.use(cookieParser());
   app.use("/admin/api/auth", adminAuthRouter);
+  app.use("/admin/api/account", adminAccountRouter);
   app.use("/admin/api/sessions", adminSessionsRouter);
   app.use("/admin/api/users", adminUsersRouter);
   app.use("/admin/api/content", adminContentRouter);
@@ -53,6 +59,10 @@ export function createApp(): Express {
   app.use("/admin/api/trash", adminTrashRouter);
   app.use("/admin/api/audit-log", adminAuditLogRouter);
   app.use("/admin/api/enquiries", adminEnquiriesRouter);
+  app.use("/api/content", publicContentRouter);
+  app.use("/api/pages", publicPagesRouter);
+  app.use("/api/places", publicPlacesRouter);
+  app.use("/api/enquiries", publicEnquiriesRouter);
 
   // Liveness: is the process up? Deliberately touches nothing external, so a
   // dead database never causes the process to be restarted.
