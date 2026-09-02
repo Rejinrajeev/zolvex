@@ -1,6 +1,7 @@
 import { getPageContent } from "@/lib/public-content/fetch";
 import { asString } from "@/lib/public-content/coerce";
 import { FloatingWhatsAppButton } from "@/components/FloatingWhatsAppButton";
+import { CONTACT } from "@/lib/contact";
 
 interface WhatsAppContent {
   phoneNumber?: string;
@@ -12,7 +13,7 @@ export default async function SiteLayout({ children }: { children: React.ReactNo
   return (
     <>
       {children}
-      <FloatingWhatsAppButton phoneNumber={asString(whatsapp?.phoneNumber)} />
+      <FloatingWhatsAppButton phoneNumber={asString(whatsapp?.phoneNumber) ?? CONTACT.whatsapp} />
     </>
   );
 }

@@ -1,6 +1,7 @@
 import Link from "next/link";
-import { IconPhone, IconInstagram, IconArrow } from "./icons";
+import { IconPhone, IconInstagram, IconArrow, IconWhatsApp, IconMail, IconPin } from "./icons";
 import { safeHref } from "@/lib/safe-url";
+import { CONTACT } from "@/lib/contact";
 
 const DEFAULT_TAGLINE =
   "Commercial cleaning that keeps offices and commercial spaces feeling brand new — on schedule, every visit logged.";
@@ -52,20 +53,38 @@ export function Footer({
           </FooterCol>
 
           <FooterCol title="Contact">
-            {phoneNumber && (
-              <li className="flex items-center gap-2">
-                <IconPhone className="h-4 w-4 text-green" />
-                <a
-                  href={`tel:${phoneNumber}`}
-                  className="font-sora text-sm text-cream/75 transition-colors hover:text-green"
-                >
-                  Call for a quote
-                </a>
-              </li>
-            )}
+            <li className="flex items-center gap-2">
+              <IconPhone className="h-4 w-4 shrink-0 text-green" />
+              <a
+                href={`tel:${phoneNumber || CONTACT.phone}`}
+                className="font-sora text-sm text-cream/75 transition-colors hover:text-green"
+              >
+                {CONTACT.phoneDisplay}
+              </a>
+            </li>
+            <li className="flex items-center gap-2">
+              <IconWhatsApp className="h-4 w-4 shrink-0 text-green" />
+              <a
+                href={`https://wa.me/${CONTACT.whatsapp.replace(/\D/g, "")}`}
+                target="_blank"
+                rel="noreferrer noopener"
+                className="font-sora text-sm text-cream/75 transition-colors hover:text-green"
+              >
+                WhatsApp
+              </a>
+            </li>
+            <li className="flex items-center gap-2">
+              <IconMail className="h-4 w-4 shrink-0 text-green" />
+              <a
+                href={`mailto:${CONTACT.email}`}
+                className="font-sora text-sm text-cream/75 transition-colors hover:text-green"
+              >
+                {CONTACT.email}
+              </a>
+            </li>
             {instagramUrl && (
               <li className="flex items-center gap-2">
-                <IconInstagram className="h-4 w-4 text-green" />
+                <IconInstagram className="h-4 w-4 shrink-0 text-green" />
                 <a
                   href={safeHref(instagramUrl)}
                   target="_blank"
@@ -76,6 +95,10 @@ export function Footer({
                 </a>
               </li>
             )}
+            <li className="flex items-center gap-2">
+              <IconPin className="h-4 w-4 shrink-0 text-green" />
+              <span className="font-sora text-sm text-cream/75">{CONTACT.location}</span>
+            </li>
           </FooterCol>
 
           <FooterCol title="Legal">

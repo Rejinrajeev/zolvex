@@ -162,6 +162,57 @@ textarea {
   transform: rotate(-4deg);
 }
 
+/* Long-form legal / policy copy (terms, privacy) */
+.legal-body {
+  font-size: 1.02rem;
+  line-height: 1.7;
+  color: var(--color-moss);
+}
+.legal-body p + p,
+.legal-body ul + p {
+  margin-top: 0.85rem;
+}
+.legal-body a {
+  color: var(--color-green-ink);
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.legal-body strong {
+  color: var(--color-ink);
+  font-weight: 600;
+}
+.legal-body h3 {
+  margin-top: 1.1rem;
+  font-weight: 600;
+  color: var(--color-ink);
+  font-size: 0.95rem;
+}
+.legal-body h3 + ul,
+.legal-body h3 + p {
+  margin-top: 0.4rem;
+}
+.legal-body ul {
+  margin-top: 0.65rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+.legal-body li {
+  position: relative;
+  padding-left: 1.3rem;
+}
+.legal-body li::before {
+  content: "";
+  position: absolute;
+  left: 0.05rem;
+  top: 0.62em;
+  height: 0.4rem;
+  width: 0.4rem;
+  border-radius: 9999px;
+  background: var(--color-green);
+}
+
 /* Soft organic background shape */
 .blob {
   position: absolute;

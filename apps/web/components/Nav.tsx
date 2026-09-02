@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "motion/react";
 import { IconPhone, IconMenu, IconClose } from "./icons";
+import { CONTACT } from "@/lib/contact";
 
 const LINKS = [
   { href: "/#services", label: "Services" },
@@ -55,7 +56,7 @@ export function Nav({ onBookNow }: { onBookNow: () => void }) {
             </a>
           ))}
           <a
-            href="tel:+10000000000"
+            href={`tel:${CONTACT.phone}`}
             aria-label="Call Zolvex"
             className="flex h-11 w-11 items-center justify-center rounded-full border border-ink/15 text-ink transition-colors hover:border-green hover:text-green-ink"
           >
@@ -104,7 +105,7 @@ export function Nav({ onBookNow }: { onBookNow: () => void }) {
                 </a>
               ))}
               <a
-                href="tel:+10000000000"
+                href={`tel:${CONTACT.phone}`}
                 className="flex items-center gap-2 py-3.5 font-sora text-lg font-medium text-green-ink"
               >
                 <IconPhone className="h-5 w-5" /> Call Zolvex
