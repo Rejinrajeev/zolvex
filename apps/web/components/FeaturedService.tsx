@@ -50,7 +50,7 @@ export function FeaturedService({
           {price && (
             <p className="mt-5 font-sora text-cream/75">
               Starts at{" "}
-              <span className="font-anton text-2xl uppercase tracking-tight text-cream">
+              <span className="font-anton text-2xl uppercase tracking-tight text-green">
                 {price}
               </span>
             </p>
