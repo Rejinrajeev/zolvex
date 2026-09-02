@@ -1,10 +1,32 @@
 "use client";
 
 import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
-import { motion, AnimatePresence } from "motion/react";
-import { IconClose, IconCheck, IconAlert } from "./icons";
+import { motion, AnimatePresence, type Variants } from "motion/react";
+import { IconClose, IconAlert } from "./icons";
 
 type Status = "idle" | "submitting" | "success" | "error";
+
+const EASE = [0.16, 1, 0.3, 1] as const;
+
+/*
+ * The success confirmation is the one focal moment this modal earns: it's
+ * the site's single conversion-closing event (PRODUCT.md — "the enquiry
+ * form is the single conversion-critical action"). Icon and copy fire on
+ * mount (not scroll), so they use their own variants rather than the
+ * site's scroll-triggered Reveal/Stagger.
+ */
+const successContainerV: Variants = {
+  hidden: {},
+  show: { transition: { staggerChildren: 0.1, delayChildren: 0.05 } },
+};
+const successIconV: Variants = {
+  hidden: { opacity: 0, scale: 0.5 },
+  show: { opacity: 1, scale: 1, transition: { duration: 0.45, ease: EASE } },
+};
+const successItemV: Variants = {
+  hidden: { opacity: 0, y: 14 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.45, ease: EASE } },
+};
 
 interface Place {
   id: string;
@@ -141,10 +163,11 @@ export function EnquiryModal({
             aria-modal="true"
             aria-labelledby="enquiry-title"
             onKeyDown={handleKeyDown}
+            layout
             initial={{ opacity: 0, y: 40, scale: 0.97 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 30, scale: 0.98 }}
-            transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+            transition={{ duration: 0.4, ease: EASE, layout: { duration: 0.35, ease: EASE } }}
             className="relative max-h-[92svh] w-full max-w-lg overflow-y-auto rounded-t-[2rem] bg-cream p-7 sm:rounded-[2rem] sm:p-9"
           >
             <div className="flex items-start justify-between gap-4">
@@ -169,27 +192,78 @@ export function EnquiryModal({
               </button>
             </div>
 
+            <AnimatePresence mode="wait" initial={false}>
             {status === "success" ? (
-              <div className="mt-8 flex flex-col items-start gap-4 py-6">
-                <span className="flex h-14 w-14 items-center justify-center rounded-full bg-green text-forest">
-                  <IconCheck className="h-7 w-7" />
-                </span>
-                <div>
-                  <p className="font-anton text-2xl uppercase tracking-tight text-ink">You&apos;re on the list</p>
-                  <p className="mt-2 max-w-sm font-sora text-moss">
-                    Your enquiry is logged. We&apos;ll call to confirm a time that works.
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={onClose}
-                  className="mt-2 rounded-full bg-green px-6 py-3 font-sora text-sm font-semibold text-forest"
+              <motion.div
+                key="success"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.2 }}
+                className="mt-8 py-6"
+              >
+                <motion.div
+                  variants={successContainerV}
+                  initial="hidden"
+                  animate="show"
+                  className="flex flex-col items-start gap-4"
                 >
-                  Done
-                </button>
-              </div>
+                  <motion.div
+                    variants={successIconV}
+                    className="relative flex h-14 w-14 shrink-0 items-center justify-center"
+                  >
+                    {/* one soft pulse, echoing the "sealed/logged" motif -- fires once, never loops */}
+                    <motion.span
+                      aria-hidden
+                      className="absolute inset-0 rounded-full bg-green"
+                      initial={{ opacity: 0.55, scale: 1 }}
+                      animate={{ opacity: 0, scale: 1.8 }}
+                      transition={{ duration: 0.7, ease: "easeOut", delay: 0.1 }}
+                    />
+                    <span className="relative flex h-14 w-14 items-center justify-center rounded-full bg-green text-forest">
+                      <svg
+                        viewBox="0 0 24 24"
+                        className="h-7 w-7"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth={1.5}
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <motion.path
+                          d="M5 12.5l4.5 4.5L19 7"
+                          initial={{ pathLength: 0 }}
+                          animate={{ pathLength: 1 }}
+                          transition={{ duration: 0.4, ease: "easeOut", delay: 0.3 }}
+                        />
+                      </svg>
+                    </span>
+                  </motion.div>
+                  <motion.div variants={successItemV}>
+                    <p className="font-anton text-2xl uppercase tracking-tight text-ink">You&apos;re on the list</p>
+                    <p className="mt-2 max-w-sm font-sora text-moss">
+                      Your enquiry is logged. We&apos;ll call to confirm a time that works.
+                    </p>
+                  </motion.div>
+                  <motion.button
+                    variants={successItemV}
+                    type="button"
+                    onClick={onClose}
+                    className="mt-2 rounded-full bg-green px-6 py-3 font-sora text-sm font-semibold text-forest shadow-[0_18px_36px_-14px_rgba(15,184,119,0.75)] transition-transform hover:-translate-y-0.5 active:translate-y-0"
+                  >
+                    Done
+                  </motion.button>
+                </motion.div>
+              </motion.div>
             ) : (
-              <form onSubmit={handleSubmit} noValidate className="mt-7 space-y-5">
+              <motion.form
+                key="form"
+                onSubmit={handleSubmit}
+                noValidate
+                initial={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.15 }}
+                className="mt-7 space-y-5">
                 <Field ref={firstFieldRef} name="name" label="Your name" error={errors.name} autoComplete="name" />
                 <Field name="phone" label="Phone number" type="tel" error={errors.phone} autoComplete="tel" />
                 <div>
@@ -258,8 +332,9 @@ export function EnquiryModal({
                     "Send enquiry"
                   )}
                 </button>
-              </form>
+              </motion.form>
             )}
+            </AnimatePresence>
           </motion.div>
         </motion.div>
       )}
