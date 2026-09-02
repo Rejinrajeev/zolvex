@@ -16,6 +16,7 @@ import { Reveal, Stagger, StaggerItem, Blob } from "./motion-primitives";
 import { Photo } from "./Photo";
 import { ServiceTile, type PublicService } from "./ServiceTile";
 import { IconArrow } from "./icons";
+import { formatRupees } from "@/lib/money";
 import type { PublicPlace } from "@/lib/public-content/fetch";
 
 export interface PublicServiceFull extends PublicService {
@@ -42,6 +43,7 @@ export function ServiceDetail({
 }) {
   const [bookingOpen, setBookingOpen] = useState(false);
   const openBooking = () => setBookingOpen(true);
+  const price = formatRupees(service.startingPrice);
 
   return (
     <>
@@ -71,10 +73,18 @@ export function ServiceDetail({
               <p className="pretty mt-5 max-w-lg font-sora text-lg leading-relaxed text-moss">
                 {service.fullDescription}
               </p>
+              {price && (
+                <p className="mt-6 font-sora text-moss">
+                  Starts at{" "}
+                  <span className="font-anton text-2xl uppercase tracking-tight text-ink">
+                    {price}
+                  </span>
+                </p>
+              )}
               <button
                 type="button"
                 onClick={openBooking}
-                className="group mt-8 inline-flex items-center gap-2 rounded-full bg-green px-7 py-4 font-sora text-base font-semibold text-forest shadow-[0_18px_36px_-14px_rgba(15,184,119,0.6)] transition-transform hover:-translate-y-0.5 active:translate-y-0"
+                className={`group inline-flex items-center gap-2 rounded-full bg-green px-7 py-4 font-sora text-base font-semibold text-forest shadow-[0_18px_36px_-14px_rgba(15,184,119,0.6)] transition-transform hover:-translate-y-0.5 active:translate-y-0 ${price ? "mt-4" : "mt-8"}`}
               >
                 Book this service
                 <IconArrow aria-hidden className="h-4 w-4 transition-transform group-hover:translate-x-1" />

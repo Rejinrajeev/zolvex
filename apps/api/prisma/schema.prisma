@@ -104,6 +104,8 @@ model Service {
   slug             String
   shortDescription String
   fullDescription  String
+  // Whole rupees; shown on the site as "From ₹…". Null = no price shown.
+  startingPrice    Int?
   image            String?
   icon             String?
   isHighlighted    Boolean        @default(false)
