@@ -92,8 +92,8 @@ export function ServiceDetail({
                 you are
               </h2>
               <p className="pretty mt-4 max-w-md font-sora leading-relaxed text-cream/75">
-                Book a walkthrough and we&apos;ll scope the work, confirm a time, and put it on
-                the schedule. On time, every visit logged.
+                Book a visit and we&apos;ll scope the work, confirm a time, and put it on the
+                schedule. On time, every visit logged.
               </p>
             </div>
             <button

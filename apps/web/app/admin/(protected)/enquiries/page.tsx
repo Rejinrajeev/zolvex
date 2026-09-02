@@ -59,7 +59,7 @@ function EnquiriesListInner() {
     <div>
       <PageHeader
         title="Enquiries"
-        description="Walkthrough requests submitted from the site, and how each one moved to the CRM."
+        description="Service enquiries submitted from the site, and how each one moved to the CRM."
       />
 
       <div className="mb-5 max-w-xs">

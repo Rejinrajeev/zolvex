@@ -17,8 +17,8 @@ export function Services({ services }: { services: PublicService[] }) {
           delay={0.1}
           className="mt-5 max-w-lg font-sora text-lg leading-relaxed text-moss"
         >
-          One crew for the whole building. Published from the Zolvex admin panel,
-          so this list is always the real service menu.
+          One team for the whole list — home or business. Every service here is
+          one Zolvex handles directly, with trained and verified people.
         </Reveal>
 
         {services.length === 0 ? (

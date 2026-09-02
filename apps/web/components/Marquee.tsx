@@ -1,12 +1,12 @@
 const DEFAULT_ITEMS = [
   "On time, every time",
   "Every visit logged",
-  "Offices",
-  "Retail",
-  "Post-construction",
-  "One crew, one contract",
-  "Carpet & floor care",
-  "Sanitization",
+  "Home & office cleaning",
+  "AC service & repair",
+  "Plumbing & electrical",
+  "Handyman & installs",
+  "Painting & improvement",
+  "Verified, trained people",
 ];
 
 /**

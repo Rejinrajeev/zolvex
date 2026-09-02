@@ -5,11 +5,11 @@ import { prisma } from "../../db/prisma.js";
 
 const places = new PlaceService(prisma);
 
-const DEFAULT_SERVICE_NAME = "Walkthrough request";
+const DEFAULT_SERVICE_NAME = "Website enquiry";
 
 /**
  * The single conversion-critical action on the public site: a visitor
- * submitting the "Book a walkthrough" form. Deliberately permissive on
+ * submitting the "Book a visit" form. Deliberately permissive on
  * shape (a real decision-maker filling this in on their phone should never
  * hit a wall) but strict on the two things that matter downstream: a
  * usable phone number, and a `place` that is a real, active service area

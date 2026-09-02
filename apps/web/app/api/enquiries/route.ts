@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getApiBaseUrl } from "@/lib/admin-auth/env";
 
 /**
- * Public BFF proxy for the "Book a walkthrough" form. The modal is a client
+ * Public BFF proxy for the "Book a visit" form. The modal is a client
  * component and must not talk to the Express API directly (the API base URL
  * is server-only and may be network-internal), so the browser posts here and
  * this handler forwards it on.

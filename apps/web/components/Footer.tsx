@@ -4,7 +4,7 @@ import { safeHref } from "@/lib/safe-url";
 import { CONTACT } from "@/lib/contact";
 
 const DEFAULT_TAGLINE =
-  "Commercial cleaning that keeps offices and commercial spaces feeling brand new — on schedule, every visit logged.";
+  "Home and commercial services — cleaning, maintenance, repairs and installation. Trained, background-verified people, on schedule, every visit logged.";
 
 export function Footer({
   onBookNow,
@@ -33,7 +33,7 @@ export function Footer({
               onClick={onBookNow}
               className="group mt-6 inline-flex items-center gap-2 rounded-full bg-green px-6 py-3 font-sora text-sm font-semibold text-forest transition-transform hover:-translate-y-0.5"
             >
-              Book a walkthrough
+              Book a visit
               <IconArrow aria-hidden className="h-4 w-4 transition-transform group-hover:translate-x-1" />
             </button>
           </div>
@@ -47,7 +47,7 @@ export function Footer({
                 onClick={onBookNow}
                 className="text-left font-sora text-sm text-cream/75 transition-colors hover:text-green"
               >
-                Book a walkthrough
+                Book a visit
               </button>
             </li>
           </FooterCol>

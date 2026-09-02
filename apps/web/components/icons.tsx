@@ -205,3 +205,29 @@ export function IconPin(props: SVGProps<SVGSVGElement>) {
   );
 }
 
+export function IconHome(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...base} {...props}>
+      <path d="M4 11.5 12 4l8 7.5" />
+      <path d="M6 10.5V20h12v-9.5" />
+      <path d="M10.5 20v-5h3v5" />
+    </svg>
+  );
+}
+
+export function IconWrench(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...base} {...props}>
+      <path d="M14.5 6.5a4 4 0 01-5 5L4 17l3 3 5.5-5.5a4 4 0 005-5l-2.6 2.6-2.4-.6-.6-2.4 2.6-2.6z" />
+    </svg>
+  );
+}
+
+export function IconBolt(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...base} {...props}>
+      <path d="M13 3 4 14h6l-1 7 9-11h-6l1-7z" />
+    </svg>
+  );
+}
+

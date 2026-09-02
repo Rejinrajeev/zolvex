@@ -67,7 +67,7 @@ export function Nav({ onBookNow }: { onBookNow: () => void }) {
             onClick={onBookNow}
             className="rounded-full bg-green px-5 py-2.5 font-sora text-[0.95rem] font-semibold text-forest shadow-[0_10px_24px_-12px_rgba(15,184,119,0.7)] transition-transform hover:-translate-y-0.5 active:translate-y-0"
           >
-            Book a walkthrough
+            Book a visit
           </button>
         </div>
 
@@ -118,7 +118,7 @@ export function Nav({ onBookNow }: { onBookNow: () => void }) {
                 }}
                 className="mt-3 rounded-full bg-green px-5 py-3 text-center font-sora font-semibold text-forest"
               >
-                Book a walkthrough
+                Book a visit
               </button>
             </div>
           </motion.div>

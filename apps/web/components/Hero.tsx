@@ -5,12 +5,12 @@ import { IconArrow, IconCheck } from "./icons";
 import { Seal, Blob } from "./motion-primitives";
 import { splitLastWord } from "@/lib/split-last-word";
 
-const DEFAULT_HEADLINE = "Your space, always fresh";
+const DEFAULT_HEADLINE = "Your space, well kept";
 const DEFAULT_SUBHEADLINE =
-  "Zolvex is the commercial cleaning crew that keeps offices and commercial spaces feeling brand new — on schedule, every visit logged.";
+  "Zolvex Home Services covers cleaning, maintenance, repairs and installation for homes and businesses — trained, background-verified people, on schedule, every visit logged.";
 
 const EASE = [0.16, 1, 0.3, 1] as const;
-const ZONES = ["Lobby", "Floor 2", "Kitchen", "Meeting rooms", "Restrooms", "Desks"];
+const ZONES = ["Kitchen", "Bathrooms", "Bedrooms", "Living areas", "Balcony", "Utility"];
 
 const wordV = {
   hidden: { opacity: 0, y: 40 },
@@ -80,7 +80,7 @@ export function Hero({
               onClick={onBookNow}
               className="group inline-flex items-center gap-2 rounded-full bg-green px-7 py-4 font-sora text-base font-semibold text-forest shadow-[0_18px_36px_-14px_rgba(15,184,119,0.75)] transition-transform hover:-translate-y-0.5 active:translate-y-0"
             >
-              Book a walkthrough
+              Book a visit
               <IconArrow aria-hidden className="h-4 w-4 transition-transform group-hover:translate-x-1" />
             </button>
             <a
@@ -122,7 +122,7 @@ export function Hero({
                 ))}
               </ul>
               <div className="mt-4 flex items-center justify-between rounded-xl bg-green px-4 py-3 font-sora text-sm font-semibold text-forest">
-                <span>All 6 zones cleared</span>
+                <span>All 6 areas done</span>
                 <span className="tabular font-normal text-forest/70">logged 08:12</span>
               </div>
             </div>

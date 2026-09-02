@@ -37,7 +37,7 @@ describe("POST /api/enquiries", () => {
     const row = await prisma.enquiry.findUnique({ where: { id: res.body.id } });
     expect(row?.name).toBe("Jane Buyer");
     expect(row?.place).toBe("Downtown");
-    expect(row?.serviceName).toBe("Walkthrough request");
+    expect(row?.serviceName).toBe("Website enquiry");
   });
 
   it("stores an optional preferred date", async () => {

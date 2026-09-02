@@ -2,17 +2,17 @@ import { Reveal, Stagger, StaggerItem, Seal } from "./motion-primitives";
 import { IconCheck } from "./icons";
 
 const OFFER_ITEMS = [
-  "Recurring office & commercial deep cleans",
-  "Carpet, upholstery & floor care",
-  "Window & glass detailing",
-  "Post-construction cleanup",
-  "Sanitization & disinfection",
-  "Custom schedules — daily to quarterly",
+  "Home & commercial deep cleaning",
+  "AC service, repair & annual contracts",
+  "Plumbing & electrical work",
+  "Handyman jobs & installations",
+  "Painting & home improvement",
+  "Recurring maintenance — weekly to yearly",
 ];
 
 const VALUES = [
   { word: "100% dedication", line: "The same standard on visit one and visit two hundred." },
-  { word: "Hard-working crews", line: "Trained teams who finish the checklist, not the clock." },
+  { word: "Verified people", line: "Background-checked, police-cleared, trained before they knock." },
   { word: "On time, every time", line: "Booked slots we keep — and log the moment we're done." },
 ];
 
@@ -23,16 +23,17 @@ export function WhyUs() {
         <div className="grid gap-10 lg:grid-cols-2 lg:gap-16">
           <Reveal>
             <h2 className="font-anton text-5xl uppercase leading-[0.95] tracking-tight text-ink sm:text-6xl lg:text-7xl">
-              Why teams stop
+              Why one call
               <br />
-              worrying about
+              covers the
               <br />
-              the cleaning
+              whole list
             </h2>
             <p className="pretty mt-6 max-w-md font-sora text-lg leading-relaxed text-moss">
-              You don&apos;t coordinate six vendors or chase anyone down. Zolvex
-              covers the whole building under one contract, one crew, one point
-              of contact — and every visit is checked against the same sheet.
+              You don&apos;t line up a cleaner, a plumber, an electrician and a
+              handyman separately. Zolvex covers the lot — one team, one point of
+              contact, verified people — and every visit is checked against the
+              same standard.
             </p>
           </Reveal>
 

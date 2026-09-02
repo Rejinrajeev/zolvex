@@ -150,7 +150,7 @@ export function EnquiryModal({
             <div className="flex items-start justify-between gap-4">
               <div>
                 <h2 id="enquiry-title" className="font-anton text-3xl uppercase tracking-tight text-ink">
-                  Book a walkthrough
+                  Book a visit
                 </h2>
                 {service && (
                   <p className="mt-1.5 font-sora text-sm text-moss">

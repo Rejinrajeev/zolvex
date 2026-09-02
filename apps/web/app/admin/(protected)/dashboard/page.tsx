@@ -11,7 +11,7 @@ const SHORTCUTS = [
   { label: "Blog Posts", href: "/admin/content/blog-post", hint: "Instagram-linked updates" },
   { label: "Testimonials", href: "/admin/content/testimonial", hint: "Client reviews" },
   { label: "FAQs", href: "/admin/content/faq", hint: "Questions on the site" },
-  { label: "Enquiries", href: "/admin/enquiries", hint: "Walkthrough requests" },
+  { label: "Enquiries", href: "/admin/enquiries", hint: "Service enquiries from the site" },
   { label: "Approvals", href: "/admin/approvals", hint: "Waiting for a decision" },
 ];
 

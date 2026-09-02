@@ -1,6 +1,6 @@
 ---
 name: Zolvex
-description: Fresh Start — a bright cream-and-spring-green world for a commercial cleaner. Compressed display type, fully rounded forms, drifting organic shapes and one authored scroll entrance on the marketing site; the same tokens in a dense, Sora-only Operate register for the admin panel.
+description: Fresh Start — a bright cream-and-spring-green world for a home-and-commercial services company. Compressed display type, fully rounded forms, drifting organic shapes and one authored scroll entrance on the marketing site; the same tokens in a dense, Sora-only Operate register for the admin panel.
 colors:
   cream: "#fbfaf5"
   ink: "#161b1f"
@@ -90,7 +90,7 @@ components:
 
 **Creative North Star: "Fresh Start"**
 
-Zolvex is the commercial cleaner that makes a workplace feel new again, and the site is built to feel that way on sight: a warm off-white page, one confident spring-green that carries every action, compressed display type set large and plain, fully rounded forms, and soft organic shapes drifting behind the content. It refuses the cleaning category's pastel spray-bottle clip-art and it refuses the dark, industrial "ledger" world the previous site used — a facilities buyer should read *bright, dependable, easy* in the first second, then scroll a short, legible story: what Zolvex covers, why it is reliable, the proof, book a walkthrough.
+Zolvex Home Services keeps a space clean, working and cared for — one team for cleaning, maintenance, repairs and installation across homes and businesses — and the site is built to feel that way on sight: a warm off-white page, one confident spring-green that carries every action, compressed display type set large and plain, fully rounded forms, and soft organic shapes drifting behind the content. It refuses the home-services category's spray-bottle clip-art and coupon clutter, and it refuses the dark, industrial "ledger" world the previous site used — a homeowner or business owner should read *bright, dependable, easy* in the first second, then scroll a short, legible story: what Zolvex covers, why it is reliable, the proof, book a visit.
 
 Density is generous and calm. A single `80rem` container, `py-20`–`py-28` section rhythm, and a restrained two-family type palette keep the brightness from tipping into noise. Colour is used in whole fields — a green marquee, a forest section, tinted cards — not as scattered accents on a neutral page.
 
@@ -184,7 +184,7 @@ Borders are hairlines only (`1px`, `ink/5`–`ink/15`, or `cream/10`–`cream/20
 - **Primary:** Spring-green pill, Forest text, Sora 600, `px-7 py-4` (hero/section scale) or `px-5 py-2.5` (nav). Green-tinted drop shadow. Hover lifts `-translate-y-0.5`; active returns to `0`. An `IconArrow` that slides right on hover is the standard trailing affordance.
 - **Ghost / secondary:** transparent pill, 2px Ink border, Ink text; hover inverts to Ink fill with Cream text.
 - **Icon button:** `rounded-full`, ≥44×44, hairline border, green on hover — the nav phone button.
-- **Text button:** Green-Ink, Sora 600, with a trailing chevron; used for in-rail links ("Book a walkthrough" in the FAQ).
+- **Text button:** Green-Ink, Sora 600, with a trailing chevron; used for in-rail links ("Book a visit" in the FAQ).
 
 ### Cards & panels
 - **Collection card** (services, posts): `rounded-[1.75rem]`, a cycling tint (`mist` → `sky/50` → `gold/40`), inner padding `p-4`, a `rounded-[1.25rem]` photo on top, then a small paper icon-dot, an Anton title, and a Moss line. Hover: `-translate-y-1.5` plus the standard shadow; the photo scales `1.04` inside its clip.
@@ -253,4 +253,4 @@ The `/admin` surface runs the same world in a task register (see PRODUCT.md's se
 
 ## Not canonised
 
-Three things in the build are deliberately **not** system rules: the marketing hero card's illustrative "logged 08:12 / all 6 zones cleared" copy is a one-off demonstration (not real-time data, not a repeatable pattern); the `CountUp` motion primitive in `motion-primitives.tsx` is currently unused — wire it to a real figure before relying on it; and the admin's remaining `Modal` uses (reject reason, new user, new place) are a kept legacy interaction, not an endorsement of modals over inline flows.
+Three things in the build are deliberately **not** system rules: the marketing hero card's illustrative "logged 08:12 / all 6 areas done" copy is a one-off demonstration (not real-time data, not a repeatable pattern); the `CountUp` motion primitive in `motion-primitives.tsx` is currently unused — wire it to a real figure before relying on it; and the admin's remaining `Modal` uses (reject reason, new user, new place) are a kept legacy interaction, not an endorsement of modals over inline flows.

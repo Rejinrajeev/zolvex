@@ -19,15 +19,15 @@ export function FAQ({ faqs, onBookNow }: { faqs: PublicFaq[]; onBookNow: () => v
               questions
             </h2>
             <p className="mt-5 max-w-xs font-sora text-lg leading-relaxed text-moss">
-              The things facilities managers actually ask before they book. Still
-              not sure? A walkthrough answers most of them in ten minutes.
+              The questions we get before the first visit. Still not sure? A quick
+              visit answers most of them.
             </p>
             <button
               type="button"
               onClick={onBookNow}
               className="mt-6 inline-flex items-center gap-1.5 font-sora text-sm font-semibold text-green-ink"
             >
-              Book a walkthrough
+              Book a visit
               <IconChevron className="h-4 w-4 -rotate-90" />
             </button>
           </Reveal>
