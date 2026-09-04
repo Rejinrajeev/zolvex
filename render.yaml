@@ -1,18 +1,13 @@
-# Render blueprint for the Zolvex API + database (apps/api).
+# Render blueprint for the Zolvex API (apps/api). $0 setup.
 #
 # Deploy: https://dashboard.render.com → New → Blueprint → pick this repo.
-# The public site + admin panel (apps/web) deploy separately on Vercel.
-# Full walkthrough: docs/DEPLOYMENT.md
+# The public site + admin panel (apps/web) deploy separately on Vercel; the
+# database is a free Neon project. Full walkthrough: docs/DEPLOYMENT.md
 #
-# Free tier notes: the web service sleeps after ~15 min idle (first request
-# then takes ~30s to wake); the database is dropped after 90 days. Fine for a
-# dev/preview environment, not for production.
-
-databases:
-  - name: zolvex-db
-    plan: free
-    databaseName: zolvex
-    postgresMajorVersion: "16"
+# Free tier note: this service sleeps after ~15 min idle, so the first request
+# after that takes ~30s to wake. The public site is unaffected (Vercel serves
+# cached HTML); the admin panel is the only thing that feels it. Optional
+# keep-warm cron in DEPLOYMENT.md.
 
 services:
   - type: web
@@ -30,11 +25,10 @@ services:
         value: "20"
       - key: NODE_ENV
         value: production
-      # Connection string is injected automatically from the database above.
+      # Paste the connection string from your Neon project (the direct, non-
+      # pooled one — this is a long-lived server, not serverless).
       - key: DATABASE_URL
-        fromDatabase:
-          name: zolvex-db
-          property: connectionString
+        sync: false
       # A fresh random secret is generated on first deploy. Rotating it logs
       # every admin out — fine for dev.
       - key: JWT_SECRET
