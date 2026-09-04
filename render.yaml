@@ -1,0 +1,59 @@
+# Render blueprint for the Zolvex API + database (apps/api).
+#
+# Deploy: https://dashboard.render.com → New → Blueprint → pick this repo.
+# The public site + admin panel (apps/web) deploy separately on Vercel.
+# Full walkthrough: docs/DEPLOYMENT.md
+#
+# Free tier notes: the web service sleeps after ~15 min idle (first request
+# then takes ~30s to wake); the database is dropped after 90 days. Fine for a
+# dev/preview environment, not for production.
+
+databases:
+  - name: zolvex-db
+    plan: free
+    databaseName: zolvex
+    postgresMajorVersion: "16"
+
+services:
+  - type: web
+    name: zolvex-api
+    runtime: node
+    plan: free
+    region: singapore # closest free region to India — change if you like
+    rootDir: .
+    buildCommand: npm ci && npm run build --workspace=apps/api
+    startCommand: npm run start:prod --workspace=apps/api
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: NODE_VERSION
+        value: "20"
+      - key: NODE_ENV
+        value: production
+      # Connection string is injected automatically from the database above.
+      - key: DATABASE_URL
+        fromDatabase:
+          name: zolvex-db
+          property: connectionString
+      # A fresh random secret is generated on first deploy. Rotating it logs
+      # every admin out — fine for dev.
+      - key: JWT_SECRET
+        generateValue: true
+      # 64 hex chars (32 bytes). Generate with: openssl rand -hex 32
+      - key: ADMIN_2FA_ENCRYPTION_KEY
+        sync: false
+      # Your first superadmin — the seed step in DEPLOYMENT.md uses these.
+      - key: SEED_SUPERADMIN_EMAIL
+        sync: false
+      - key: SEED_SUPERADMIN_NAME
+        sync: false
+      # From your Cloudinary dashboard (image uploads in the admin panel).
+      - key: CLOUDINARY_CLOUD_NAME
+        sync: false
+      - key: CLOUDINARY_API_KEY
+        sync: false
+      - key: CLOUDINARY_API_SECRET
+        sync: false
+      # Leave TRUST_PROXY UNSET for the Vercel-in-front-of-Render layout — the
+      # web app proxies every browser request server-side, so the API never
+      # sees a client-controlled X-Forwarded-For. See apps/api/.env.example.
