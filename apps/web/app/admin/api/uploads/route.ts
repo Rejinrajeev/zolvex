@@ -8,16 +8,16 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "invalid_upload" }, { status: 400 });
   }
 
-  // Rebuild the multipart body from the file's raw bytes rather than
-  // forwarding the FormData Next.js parsed off the *incoming* request.
-  // Re-streaming a File/Blob that belongs to one request as the body of a
-  // second, outgoing fetch() is unreliable in Vercel's serverless runtime --
-  // it worked under `next dev` but crashed the function in production
-  // (502, no error body) every time an image was uploaded.
-  const bytes = await file.arrayBuffer();
+  // A fresh FormData wrapping the *same* File/Blob reference -- not a
+  // re-encoded copy of its bytes. callExpress can retry this request once
+  // (on a 401, after refreshing the access token), and re-reading a Blob is
+  // safe repeatedly, unlike a stream, so this stays retry-safe. The actual
+  // bug was never the container; it was function memory (see vercel.json).
+  // Round-tripping the file through arrayBuffer() into a brand new Blob
+  // held three full copies of it in memory at once and crashed a 256MB
+  // function on every real upload.
   const outgoing = new FormData();
-  const filename = file instanceof File ? file.name : "upload";
-  outgoing.set("file", new Blob([bytes], { type: file.type }), filename);
+  outgoing.set("file", file, file instanceof File ? file.name : "upload");
 
   const upstream = await callExpress("/admin/api/uploads", {
     method: "POST",
