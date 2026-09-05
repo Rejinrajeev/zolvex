@@ -4,6 +4,7 @@ import { Reveal } from "./motion-primitives";
 import { Photo } from "./Photo";
 import { IconArrow } from "./icons";
 import { iconForServiceKey } from "@/lib/service-icons";
+import { formatRupees } from "@/lib/money";
 import type { PublicService } from "./Services";
 
 export interface FeaturedServiceRecord extends PublicService {
@@ -18,6 +19,7 @@ export function FeaturedService({
   onBookNow: () => void;
 }) {
   if (!service) return null;
+  const price = formatRupees(service.startingPrice);
 
   return (
     <section className="on-forest bg-forest px-5 py-20 text-cream sm:px-8 sm:py-28">
@@ -45,7 +47,13 @@ export function FeaturedService({
           <p className="pretty mt-5 max-w-lg font-sora text-lg leading-relaxed text-cream/75">
             {service.fullDescription}
           </p>
-          <div className="mt-8 flex flex-wrap items-center gap-x-6 gap-y-4">
+          {price && (
+            <p className="mt-5 inline-flex items-baseline gap-2 rounded-full bg-cream/10 px-4 py-2 font-sora text-sm text-cream/70 ring-1 ring-cream/15">
+              From
+              <span className="font-anton text-xl uppercase tracking-tight text-gold">{price}</span>
+            </p>
+          )}
+          <div className="mt-7 flex flex-wrap items-center gap-x-6 gap-y-4">
             <button
               type="button"
               onClick={onBookNow}

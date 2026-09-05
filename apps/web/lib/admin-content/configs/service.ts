@@ -7,12 +7,19 @@ export const serviceConfig: ContentTypeConfig = {
   listColumns: [
     { key: "name", label: "Name" },
     { key: "shortDescription", label: "Short description" },
+    { key: "startingPrice", label: "From ₹" },
   ],
   fields: [
     { name: "name", label: "Name", type: "text", required: true },
     { name: "slug", label: "Slug", type: "text", required: true, helpText: "URL-friendly identifier; must be unique." },
     { name: "shortDescription", label: "Short description", type: "textarea", required: true },
     { name: "fullDescription", label: "Full description", type: "textarea", required: true },
+    {
+      name: "startingPrice",
+      label: "Starting price (₹)",
+      type: "number",
+      helpText: "Whole rupees. Shown on the site as “From ₹…”. Leave blank to hide the price.",
+    },
     { name: "image", label: "Image", type: "image" },
     { name: "icon", label: "Icon name", type: "text" },
     { name: "isHighlighted", label: "Highlighted", type: "boolean" },

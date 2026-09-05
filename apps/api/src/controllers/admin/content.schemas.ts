@@ -29,6 +29,8 @@ const serviceSchema = z.object({
   slug: z.string().min(1).max(200),
   shortDescription: z.string().min(1).max(500),
   fullDescription: z.string().min(1).max(5000),
+  // Whole rupees. Shown on the site as "From ₹…"; omit to hide.
+  startingPrice: z.number().int().nonnegative().max(100_000_000).optional(),
   image: z.string().url().optional(),
   icon: z.string().max(200).optional(),
   isHighlighted: z.boolean().optional(),

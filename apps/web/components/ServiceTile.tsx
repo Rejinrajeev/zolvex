@@ -8,6 +8,7 @@ export interface PublicService {
   slug: string;
   name: string;
   shortDescription: string;
+  startingPrice?: number | null;
   icon?: string | null;
   image?: string | null;
 }
@@ -18,7 +19,8 @@ const TINTS = ["bg-mist", "bg-sky/50", "bg-gold/40"] as const;
  * One service in the compact grid — a tinted tile holding the service photo
  * (or its icon while no photo is uploaded) and the name, linking through to
  * the service's own page. Shared by the home Services section and the
- * "other services" strip on a service page.
+ * "other services" strip on a service page. Price is shown on the service
+ * page, not here.
  */
 export function ServiceTile({ service, index }: { service: PublicService; index: number }) {
   return (
