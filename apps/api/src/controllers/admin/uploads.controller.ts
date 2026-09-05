@@ -24,6 +24,13 @@ export async function upload(req: AuthedRequest & { file?: Express.Multer.File }
     res.status(200).json(result);
   } catch (error) {
     console.error(error);
-    res.status(502).json({ error: "upload_failed" });
+    // Pass the underlying reason back to the admin. A bare "upload_failed"
+    // is undebuggable once deployed -- console.error only reaches the host's
+    // log viewer, and the difference between "env vars are not set",
+    // "Invalid api_key" and a network timeout is the whole diagnosis. This
+    // route is superadmin/editor-authenticated and Cloudinary never echoes
+    // the API secret back, so the message is safe to surface here.
+    const message = error instanceof Error ? error.message : String(error);
+    res.status(502).json({ error: "upload_failed", message });
   }
 }
