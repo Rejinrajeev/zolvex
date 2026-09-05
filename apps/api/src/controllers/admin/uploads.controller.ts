@@ -1,5 +1,9 @@
 import type { Response } from "express";
-import { uploadBuffer } from "../../lib/uploads/cloudinary.js";
+import {
+  uploadBuffer,
+  CloudinaryAuthError,
+  CloudinaryNotConfiguredError,
+} from "../../lib/uploads/cloudinary.js";
 import type { AuthedRequest } from "../../lib/auth/middleware.js";
 
 const ALLOWED_MIME_TYPES = ["image/jpeg", "image/png", "image/webp"];
@@ -23,14 +27,20 @@ export async function upload(req: AuthedRequest & { file?: Express.Multer.File }
     const result = await uploadBuffer(file.buffer, "zolvex-admin");
     res.status(200).json(result);
   } catch (error) {
+    // The full error goes to the server log only. The response carries a
+    // fixed code, never raw error text -- an internal message can carry
+    // hostnames, paths or request detail the client has no business seeing.
+    // The codes still separate the two failures an operator must tell apart:
+    // credentials absent from the deployment vs. credentials that are wrong.
     console.error(error);
-    // Pass the underlying reason back to the admin. A bare "upload_failed"
-    // is undebuggable once deployed -- console.error only reaches the host's
-    // log viewer, and the difference between "env vars are not set",
-    // "Invalid api_key" and a network timeout is the whole diagnosis. This
-    // route is superadmin/editor-authenticated and Cloudinary never echoes
-    // the API secret back, so the message is safe to surface here.
-    const message = error instanceof Error ? error.message : String(error);
-    res.status(502).json({ error: "upload_failed", message });
+    if (error instanceof CloudinaryNotConfiguredError) {
+      res.status(502).json({ error: "cloudinary_not_configured" });
+      return;
+    }
+    if (error instanceof CloudinaryAuthError) {
+      res.status(502).json({ error: "cloudinary_auth_failed" });
+      return;
+    }
+    res.status(502).json({ error: "upload_failed" });
   }
 }

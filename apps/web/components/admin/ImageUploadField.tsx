@@ -43,15 +43,13 @@ export function ImageUploadField({
         file_too_large: "That file is too large (5MB max).",
         invalid_file_type: "Only JPEG, PNG and WebP images are allowed.",
         no_file: "No file was received.",
+        // Named so an operator knows which fix applies without reading logs.
+        cloudinary_not_configured:
+          "Image storage isn't set up on the server — the CLOUDINARY_* environment variables are missing.",
+        cloudinary_auth_failed:
+          "Image storage rejected the server's credentials — check the CLOUDINARY_* environment variables.",
       };
-      // For upload_failed the server sends the underlying reason (bad or
-      // missing Cloudinary credentials, a network error). Show it -- an
-      // admin can act on "Invalid api_key"; they can't act on "try again".
-      const detail = typeof data?.message === "string" ? data.message : null;
-      setError(
-        messages[data?.error] ??
-          (detail ? `Upload failed: ${detail}` : "Upload failed. Please try again.")
-      );
+      setError(messages[data?.error] ?? "Upload failed. Please try again.");
       return;
     }
     onChange(data.url);
