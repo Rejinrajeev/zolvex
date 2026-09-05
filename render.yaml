@@ -16,7 +16,11 @@ services:
     plan: free
     region: singapore # closest free region to India — change if you like
     rootDir: .
-    buildCommand: npm ci && npm run build --workspace=apps/api
+    # --include=dev is required: NODE_ENV=production below makes plain `npm ci`
+    # skip devDependencies, which is where typescript/@types/node/prisma (the
+    # CLI) live — without it the TS build fails with "Cannot find name
+    # 'process'" (missing @types/node).
+    buildCommand: npm ci --include=dev && npm run build --workspace=apps/api
     startCommand: npm run start:prod --workspace=apps/api
     healthCheckPath: /health
     autoDeploy: true
