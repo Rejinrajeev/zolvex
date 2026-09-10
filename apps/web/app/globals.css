@@ -453,3 +453,23 @@ body:has(.site-world) {
     scroll-behavior: auto;
   }
 }
+
+/* ---- The document scrollbar ----
+   `.site-world ::-webkit-scrollbar-*` only reaches scrollbars on elements
+   INSIDE the wrapper. The page's own scrollbar belongs to the root element,
+   which sits outside it, so it kept rendering the admin world's green. These
+   rules claim it for the site world without touching the admin tree. */
+html:has(.site-world) {
+  scrollbar-color: var(--color-carbon) #e2e0da; /* Firefox */
+}
+html:has(.site-world)::-webkit-scrollbar-track {
+  background: #e2e0da;
+}
+html:has(.site-world)::-webkit-scrollbar-thumb {
+  background: var(--color-carbon);
+  border: 3px solid #e2e0da;
+  border-radius: 9999px;
+}
+html:has(.site-world)::-webkit-scrollbar-thumb:hover {
+  background: var(--color-sun-ink);
+}

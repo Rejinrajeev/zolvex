@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { motion } from "motion/react";
 import { IconArrow, IconCheck, IconStar } from "./icons";
 import { cloudinaryTransform } from "./Photo";
@@ -11,6 +12,9 @@ const DEFAULT_SUBHEADLINE =
   "Zolvex Home Services covers cleaning, maintenance, repairs and installation for homes and businesses — trained, background-verified people, on schedule, every visit logged.";
 
 const EASE = [0.16, 1, 0.3, 1] as const;
+
+// Drop a cut-out PNG here (transparent background) and the hero picks it up.
+const DEFAULT_HERO_IMAGE = "/heroimg.png";
 
 // Shown in the panel only while no reviews are published. These are the
 // trades Zolvex covers (PRODUCT.md), not claims about a particular visit.
@@ -54,6 +58,11 @@ export function Hero({
 }) {
   const { rest, last } = splitLastWord(headline || DEFAULT_HEADLINE);
   const shown = reviews.slice(0, 3);
+
+  // The hero cut-out: an admin-supplied URL wins, otherwise the asset
+  // checked in at public/heroimg.png.
+  const [heroImgOk, setHeroImgOk] = useState(true);
+  const heroSrc = imageUrl ? cloudinaryTransform(imageUrl, 720) : DEFAULT_HERO_IMAGE;
 
   // The rating card is real or it is absent. A blank field in the admin
   // panel means Zolvex has no published rating yet, and inventing one is
@@ -227,15 +236,19 @@ export function Hero({
             )}
           </div>
 
-          {/* The technician slot. Empty until a real cut-out is uploaded — a
-              geometric mask faking a photographic edge reads worse than the
-              honest absence, so nothing stands in for it. */}
-          {imageUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element -- Cloudinary CDN; next/image not configured for this project
+          {/* The technician cut-out, standing in front of the panel the way
+              the reference stages it. Source order: an admin-supplied URL
+              wins, otherwise the checked-in asset. If the file is missing or
+              empty the image removes itself rather than leaving a broken
+              icon — the composition still reads without it. */}
+          {heroSrc && heroImgOk ? (
+            // eslint-disable-next-line @next/next/no-img-element -- Cloudinary CDN / static asset; next/image not configured for this project
             <img
-              src={cloudinaryTransform(imageUrl, 720)}
+              src={heroSrc}
               alt=""
-              className="pointer-events-none absolute -bottom-4 left-0 z-20 hidden w-[15rem] select-none object-contain drop-shadow-[0_28px_40px_rgba(20,18,16,0.35)] lg:block xl:w-[17rem]"
+              aria-hidden
+              onError={() => setHeroImgOk(false)}
+              className="pointer-events-none absolute -bottom-10 left-0 z-20 hidden w-[15rem] select-none object-contain object-bottom drop-shadow-[0_34px_44px_rgba(20,18,16,0.38)] md:block lg:-left-6 lg:w-[17rem] xl:-left-10 xl:w-[20rem]"
             />
           ) : null}
         </motion.div>

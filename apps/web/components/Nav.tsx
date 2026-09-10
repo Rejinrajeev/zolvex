@@ -58,7 +58,7 @@ export function Nav({ onBookNow }: { onBookNow: () => void }) {
       initial={{ y: -24, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
       transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1], delay: 0.1 }}
-      className="fixed inset-x-0 top-0 z-50"
+      className={`fixed inset-x-0 top-0 z-50 transition-[background-color,box-shadow,backdrop-filter] duration-300 ${scrolled ? "bg-bone/85 shadow-[0_10px_30px_-24px_rgba(20,18,16,0.55)] backdrop-blur-md" : "bg-transparent"}`}
     >
       <nav
         aria-label="Primary"
@@ -74,8 +74,8 @@ export function Nav({ onBookNow }: { onBookNow: () => void }) {
         <div
           className={`hidden items-center gap-1 rounded-full p-1.5 transition-[background-color,box-shadow,backdrop-filter] duration-300 md:flex ${
             scrolled
-              ? "bg-shell/90 shadow-[0_12px_30px_-18px_rgba(20,18,16,0.45)] backdrop-blur-md"
-              : "bg-shell/70 backdrop-blur-sm"
+              ? "bg-shell shadow-[0_12px_30px_-22px_rgba(20,18,16,0.4)]"
+              : "bg-shell/95 backdrop-blur-sm"
           }`}
         >
           {LINKS.map((link) => {
@@ -108,7 +108,7 @@ export function Nav({ onBookNow }: { onBookNow: () => void }) {
         <button
           type="button"
           className={`flex h-11 w-11 items-center justify-center rounded-full text-carbon transition-colors md:hidden ${
-            scrolled || open ? "bg-shell/90 backdrop-blur-md" : "bg-shell/70"
+            scrolled || open ? "bg-shell shadow-[0_10px_24px_-20px_rgba(20,18,16,0.4)]" : "bg-shell/95"
           }`}
           aria-expanded={open}
           aria-controls="mobile-nav"
