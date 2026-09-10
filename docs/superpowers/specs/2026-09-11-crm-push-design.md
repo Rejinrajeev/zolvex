@@ -134,8 +134,8 @@ Every request carries `Idempotency-Key: <enquiry.id>` (a cuid, already unique an
 
 ## Admin surface
 
-- **`POST /admin/enquiries/:id/push`**, behind `requireAuth`. This is the only route out of `needs_manual_push`. It resets `attemptCount` to 0 and clears `nextAttemptAt` and `lastError`, then dispatches immediately — so a lead rescued by hand gets a full fresh retry budget rather than failing straight back to terminal on its next hiccup. It goes through the same `SKIP LOCKED` claim path as the worker, so it can never race a tick already dispatching that row. Writes an audit row with the new `push` action and returns the resulting status.
-- **`GET /admin/enquiries/:id/crm-preview`**, behind `requireAuth`. Returns `toCrmLead(enquiry)` without sending anything. This is what makes the integration debuggable before the CRM spec exists, and produces a real sample payload to attach to correspondence with their dev team.
+- **`POST /admin/api/enquiries/:id/push`**, behind `requireAuth`. This is the only route out of `needs_manual_push`. It resets `attemptCount` to 0 and clears `nextAttemptAt` and `lastError`, then dispatches immediately — so a lead rescued by hand gets a full fresh retry budget rather than failing straight back to terminal on its next hiccup. It goes through the same `SKIP LOCKED` claim path as the worker, so it can never race a tick already dispatching that row. Writes an audit row with the new `push` action and returns the resulting status.
+- **`GET /admin/api/enquiries/:id/crm-preview`**, behind `requireAuth`. Returns `toCrmLead(enquiry)` without sending anything. This is what makes the integration debuggable before the CRM spec exists, and produces a real sample payload to attach to correspondence with their dev team.
 - The enquiry detail page gains: status, `attemptCount`, `lastError`, `nextAttemptAt`, the existing `crmResponse` viewer, and two actions — **Push to CRM now** and **Preview payload**. Calls go through the existing `adminFetch` helper.
 - The list page's status filter already covers the four statuses and needs no change.
 
@@ -162,7 +162,7 @@ Tests run against a real Postgres test database via `DATABASE_URL_TEST` (`src/te
 
 - **Unit** — `toCrmLead` output shape; the backoff schedule; failure classification for each status code and for network/timeout errors.
 - **Integration** — creating an enquiry leaves it claimable; a successful dispatch transitions to `pushed_to_crm` and stores `crmResponse`; a retryable failure increments `attemptCount` and sets a future `nextAttemptAt`; a non-retryable failure goes terminal immediately; exhaustion at six attempts goes terminal; a claimed row is not claimed twice; `claimedAt` is always cleared.
-- **Endpoints** — `POST /admin/enquiries/:id/push` rejects unauthenticated callers and writes an audit row; `GET …/crm-preview` sends nothing.
+- **Endpoints** — `POST /admin/api/enquiries/:id/push` rejects unauthenticated callers and writes an audit row; `GET …/crm-preview` sends nothing.
 - **Regression** — the two new optional fields must not break existing submissions that omit them. All 74 existing tests stay green.
 
 ## Decisions made during brainstorming (for the record)
