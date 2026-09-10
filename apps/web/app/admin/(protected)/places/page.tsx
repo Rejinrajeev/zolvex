@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { ErrorBanner } from "@/components/admin/ErrorBanner";
 import { Modal } from "@/components/admin/Modal";
+import { ConfirmDialog } from "@/components/admin/ConfirmDialog";
 import { Table } from "@/components/admin/Table";
 import {
   Button,
@@ -40,6 +41,9 @@ export default function PlacesPage() {
   const [errors, setErrors] = useState<{ name?: string; order?: string }>({});
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<Place | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   async function load() {
     setLoading(true);
@@ -107,14 +111,18 @@ export default function PlacesPage() {
     load();
   }
 
-  async function handleDelete(place: Place) {
-    if (!window.confirm(`Delete "${place.name}"? It can be restored from Trash later.`)) return;
-    const res = await adminFetch(`/admin/api/places/${place.id}`, { method: "DELETE" });
+  async function confirmDelete() {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    setDeleteError(null);
+    const res = await adminFetch(`/admin/api/places/${deleteTarget.id}`, { method: "DELETE" });
+    setDeleting(false);
     if (!res.ok) {
-      const data = await res.json();
-      setError(data?.message ?? "Could not delete.");
+      const data = await res.json().catch(() => null);
+      setDeleteError(data?.message ?? "Could not delete. Please try again.");
       return;
     }
+    setDeleteTarget(null);
     load();
   }
 
@@ -153,7 +161,10 @@ export default function PlacesPage() {
               </button>
               <button
                 type="button"
-                onClick={() => handleDelete(p)}
+                onClick={() => {
+                  setDeleteError(null);
+                  setDeleteTarget(p);
+                }}
                 className="font-sora text-sm font-semibold text-ink underline underline-offset-4 transition-colors hover:text-danger"
               >
                 Delete
@@ -209,6 +220,25 @@ export default function PlacesPage() {
           </div>
         </Modal>
       )}
+
+      <ConfirmDialog
+        open={deleteTarget !== null}
+        title="Delete place?"
+        message={
+          <>
+            Do you want to delete <strong className="font-semibold text-ink">{deleteTarget?.name}</strong>?
+            It will stop appearing in the enquiry form. You can restore it from Trash later.
+          </>
+        }
+        confirmLabel={deleting ? "Deleting…" : "Delete place"}
+        busy={deleting}
+        error={deleteError}
+        onConfirm={confirmDelete}
+        onCancel={() => {
+          setDeleteTarget(null);
+          setDeleteError(null);
+        }}
+      />
     </div>
   );
 }

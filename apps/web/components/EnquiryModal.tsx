@@ -80,11 +80,10 @@ export function EnquiryModal({
     }
   }, [open]);
 
+  // Escape deliberately does nothing: the modal closes only via the close
+  // icon or its own buttons, so a stray keypress never discards a
+  // half-filled enquiry.
   function handleKeyDown(e: KeyboardEvent<HTMLDivElement>) {
-    if (e.key === "Escape") {
-      onClose();
-      return;
-    }
     if (e.key !== "Tab" || !dialogRef.current) return;
 
     const focusable = Array.from(
@@ -153,9 +152,6 @@ export function EnquiryModal({
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.2 }}
-          onClick={(e) => {
-            if (e.target === e.currentTarget) onClose();
-          }}
         >
           <motion.div
             ref={dialogRef}

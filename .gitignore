@@ -17,3 +17,6 @@ skills-lock.json
 
 # Isolated worktrees for subagent-driven development
 .worktrees/
+
+# Neon vendors agent skill docs here via `neon skills` (per-machine, regenerated).
+.claude/skills/

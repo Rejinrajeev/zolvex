@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { ErrorBanner } from "@/components/admin/ErrorBanner";
 import { Modal } from "@/components/admin/Modal";
+import { ConfirmDialog } from "@/components/admin/ConfirmDialog";
 import { Table } from "@/components/admin/Table";
 import {
   Button,
@@ -36,6 +37,15 @@ interface CreateForm {
 
 const EMPTY_CREATE: CreateForm = { name: "", email: "", role: "editor", password: "" };
 
+/** The two confirmations this screen asks for, each carrying its subject. */
+type PendingAction =
+  | { kind: "active"; user: AdminUser }
+  | { kind: "role"; user: AdminUser };
+
+function nextRoleFor(user: AdminUser): "editor" | "superadmin" {
+  return user.role === "editor" ? "superadmin" : "editor";
+}
+
 export default function UsersPage() {
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [loading, setLoading] = useState(true);
@@ -48,6 +58,9 @@ export default function UsersPage() {
   // After a successful create: { tempPassword } if we generated one, else the
   // superadmin set it themselves.
   const [created, setCreated] = useState<{ tempPassword: string | null } | null>(null);
+  const [pending, setPending] = useState<PendingAction | null>(null);
+  const [working, setWorking] = useState(false);
+  const [pendingError, setPendingError] = useState<string | null>(null);
 
   async function load() {
     setLoading(true);
@@ -120,48 +133,40 @@ export default function UsersPage() {
     load();
   }
 
-  async function toggleActive(user: AdminUser) {
-    const next = !user.isActive;
-    if (!window.confirm(`${next ? "Reactivate" : "Deactivate"} ${user.name}?`)) return;
-    const res = await adminFetch(`/admin/api/users/${user.id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ isActive: next }),
-    });
-    if (!res.ok) {
-      const data = await res.json();
-      setError(
-        data?.error === "forbidden"
-          ? "You don't have permission to update users."
-          : data?.message ?? "Could not update user."
-      );
-      return;
-    }
-    load();
+  function ask(action: PendingAction) {
+    setPendingError(null);
+    setPending(action);
   }
 
-  async function toggleRole(user: AdminUser) {
-    const next: "editor" | "superadmin" = user.role === "editor" ? "superadmin" : "editor";
-    if (
-      !window.confirm(
-        `Change ${user.name}'s role to ${next}? This will revoke all their active sessions.`
-      )
-    )
-      return;
+  async function runPending() {
+    if (!pending) return;
+    const { kind, user } = pending;
+    const body =
+      kind === "active"
+        ? { isActive: !user.isActive }
+        : { role: nextRoleFor(user) };
+
+    setWorking(true);
+    setPendingError(null);
     const res = await adminFetch(`/admin/api/users/${user.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ role: next }),
+      body: JSON.stringify(body),
     });
+    setWorking(false);
     if (!res.ok) {
-      const data = await res.json();
-      setError(
+      const data = await res.json().catch(() => null);
+      setPendingError(
         data?.error === "forbidden"
-          ? "You don't have permission to change roles."
-          : data?.message ?? "Could not change role."
+          ? kind === "active"
+            ? "You don't have permission to update users."
+            : "You don't have permission to change roles."
+          : data?.message ??
+              (kind === "active" ? "Could not update user." : "Could not change role.")
       );
       return;
     }
+    setPending(null);
     load();
   }
 
@@ -251,17 +256,17 @@ export default function UsersPage() {
             <div className="flex justify-end gap-3">
               <button
                 type="button"
-                onClick={() => toggleActive(user)}
+                onClick={() => ask({ kind: "active", user })}
                 className="font-sora text-sm font-semibold text-ink underline underline-offset-4 transition-colors hover:text-danger"
               >
                 {user.isActive ? "Deactivate" : "Reactivate"}
               </button>
               <button
                 type="button"
-                onClick={() => toggleRole(user)}
+                onClick={() => ask({ kind: "role", user })}
                 className="font-sora text-sm font-semibold text-green-ink underline underline-offset-4 transition-colors hover:text-forest"
               >
-                Make {user.role === "editor" ? "superadmin" : "editor"}
+                Make {nextRoleFor(user)}
               </button>
             </div>
           )}
@@ -330,6 +335,58 @@ export default function UsersPage() {
             </Button>
           </div>
         </Modal>
+      )}
+
+      {pending && (
+        <ConfirmDialog
+          open
+          title={
+            pending.kind === "active"
+              ? pending.user.isActive
+                ? "Deactivate this user?"
+                : "Reactivate this user?"
+              : "Change this user's role?"
+          }
+          message={
+            pending.kind === "active" ? (
+              pending.user.isActive ? (
+                <>
+                  Do you want to deactivate{" "}
+                  <strong className="font-semibold text-ink">{pending.user.name}</strong>? They will
+                  no longer be able to sign in to the admin panel.
+                </>
+              ) : (
+                <>
+                  Do you want to reactivate{" "}
+                  <strong className="font-semibold text-ink">{pending.user.name}</strong>? They will
+                  be able to sign in again.
+                </>
+              )
+            ) : (
+              <>
+                Do you want to change{" "}
+                <strong className="font-semibold text-ink">{pending.user.name}</strong>&apos;s role to{" "}
+                <strong className="font-semibold text-ink">{nextRoleFor(pending.user)}</strong>? This
+                revokes all of their active sessions.
+              </>
+            )
+          }
+          confirmLabel={
+            pending.kind === "active"
+              ? pending.user.isActive
+                ? "Deactivate user"
+                : "Reactivate user"
+              : `Make ${nextRoleFor(pending.user)}`
+          }
+          tone={pending.kind === "active" && pending.user.isActive ? "danger" : "primary"}
+          busy={working}
+          error={pendingError}
+          onConfirm={runPending}
+          onCancel={() => {
+            setPending(null);
+            setPendingError(null);
+          }}
+        />
       )}
     </div>
   );

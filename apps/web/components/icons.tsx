@@ -122,6 +122,25 @@ export function IconClose(props: SVGProps<SVGSVGElement>) {
   );
 }
 
+export function IconEye(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...base} {...props}>
+      <path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12Z" />
+      <circle cx="12" cy="12" r="3.25" />
+    </svg>
+  );
+}
+
+export function IconEyeOff(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...base} {...props}>
+      <path d="M10.6 6.7A8.7 8.7 0 0 1 12 6.6c6 0 9.5 6.5 9.5 6.5a17 17 0 0 1-3.2 4M6.4 8.5A17.3 17.3 0 0 0 2.5 13.1s3.5 6.5 9.5 6.5a8.9 8.9 0 0 0 3.9-.9" />
+      <path d="M10.1 11.2a3.25 3.25 0 0 0 4.4 4.5" />
+      <path d="M3.5 3.5l17 17" />
+    </svg>
+  );
+}
+
 export function IconMenu(props: SVGProps<SVGSVGElement>) {
   return (
     <svg {...base} {...props}>

@@ -7,6 +7,7 @@ import { Table } from "@/components/admin/Table";
 import { StatusBadge } from "@/components/admin/StatusBadge";
 import { ErrorBanner } from "@/components/admin/ErrorBanner";
 import { Modal } from "@/components/admin/Modal";
+import { ConfirmDialog } from "@/components/admin/ConfirmDialog";
 import {
   Button,
   LinkButton,
@@ -52,6 +53,9 @@ function ContentListForType() {
   const [rejectReason, setRejectReason] = useState("");
   const [rejectError, setRejectError] = useState<string | null>(null);
   const [draggedId, setDraggedId] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<ContentRecord | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
   const isSuperadmin = role === "superadmin";
 
   const fetchRecords = useCallback(async () => {
@@ -145,23 +149,24 @@ function ContentListForType() {
     fetchRecords();
   }
 
-  async function handleDelete(record: ContentRecord) {
-    if (
-      !window.confirm(
-        `Delete this ${config?.displayName.toLowerCase()}? It can be restored from Trash later.`
-      )
-    )
-      return;
-    const res = await adminFetch(`/admin/api/content/${type}/${record.id}`, { method: "DELETE" });
+  async function confirmDelete() {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    setDeleteError(null);
+    const res = await adminFetch(`/admin/api/content/${type}/${deleteTarget.id}`, {
+      method: "DELETE",
+    });
+    setDeleting(false);
     if (!res.ok) {
-      const data = await res.json();
-      setError(
+      const data = await res.json().catch(() => null);
+      setDeleteError(
         data?.error === "forbidden"
           ? "You don't have permission for this action."
           : "Could not delete this record."
       );
       return;
     }
+    setDeleteTarget(null);
     fetchRecords();
   }
 
@@ -234,7 +239,10 @@ function ContentListForType() {
         )}
         <button
           type="button"
-          onClick={() => handleDelete(row)}
+          onClick={() => {
+            setDeleteError(null);
+            setDeleteTarget(row);
+          }}
           className="font-sora text-sm font-semibold text-ink underline underline-offset-4 transition-colors hover:text-danger"
         >
           Delete
@@ -395,6 +403,25 @@ function ContentListForType() {
           </div>
         </Modal>
       )}
+
+      <ConfirmDialog
+        open={deleteTarget !== null}
+        title={`Delete this ${config.displayName.toLowerCase()}?`}
+        message={
+          <>
+            Do you want to delete this {config.displayName.toLowerCase()}? It will stop appearing on
+            the site. You can restore it from Trash later.
+          </>
+        }
+        confirmLabel={deleting ? "Deleting…" : `Delete ${config.displayName.toLowerCase()}`}
+        busy={deleting}
+        error={deleteError}
+        onConfirm={confirmDelete}
+        onCancel={() => {
+          setDeleteTarget(null);
+          setDeleteError(null);
+        }}
+      />
     </div>
   );
 }

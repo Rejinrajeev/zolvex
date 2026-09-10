@@ -1,6 +1,9 @@
+"use client";
+
 import type { ButtonHTMLAttributes, ReactNode } from "react";
+import { useState } from "react";
 import Link from "next/link";
-import { IconAlert } from "@/components/icons";
+import { IconAlert, IconEye, IconEyeOff } from "@/components/icons";
 
 /* ============================================================
    Shared admin primitives — "Fresh Start" in an Operate register.
@@ -155,6 +158,7 @@ export function TextField({
   error,
   help,
   required,
+  type,
   className = "",
   wrapperClassName = "",
   ...props
@@ -165,6 +169,10 @@ export function TextField({
   help?: ReactNode;
   wrapperClassName?: string;
 }) {
+  // A password field carries its own reveal toggle, so the one control
+  // vocabulary covers sign-in, account and user-creation alike.
+  const isPassword = type === "password";
+  const [revealed, setRevealed] = useState(false);
   const errorId = error ? `${id}-error` : undefined;
   const helpId = help ? `${id}-help` : undefined;
   return (
@@ -172,13 +180,32 @@ export function TextField({
       <Label htmlFor={id} required={required}>
         {label}
       </Label>
-      <input
-        {...props}
-        id={id}
-        aria-invalid={Boolean(error)}
-        aria-describedby={errorId ?? helpId}
-        className={`mt-1.5 h-11 ${FIELD_BASE} ${ringFor(error)} ${className}`}
-      />
+      <div className="relative mt-1.5">
+        <input
+          {...props}
+          id={id}
+          type={isPassword && revealed ? "text" : type}
+          aria-invalid={Boolean(error)}
+          aria-describedby={errorId ?? helpId}
+          className={`h-11 ${FIELD_BASE} ${ringFor(error)} ${isPassword ? "pr-12" : ""} ${className}`}
+        />
+        {isPassword && (
+          <button
+            type="button"
+            onClick={() => setRevealed((v) => !v)}
+            aria-label={revealed ? "Hide password" : "Show password"}
+            aria-pressed={revealed}
+            title={revealed ? "Hide password" : "Show password"}
+            className="absolute inset-y-0 right-0 flex w-11 items-center justify-center rounded-r-xl text-moss transition-colors hover:text-green-ink focus-visible:outline-2 focus-visible:outline-offset-2"
+          >
+            {revealed ? (
+              <IconEyeOff aria-hidden className="h-5 w-5" />
+            ) : (
+              <IconEye aria-hidden className="h-5 w-5" />
+            )}
+          </button>
+        )}
+      </div>
       {error ? <FieldError id={errorId}>{error}</FieldError> : help ? <FieldHelp id={helpId}>{help}</FieldHelp> : null}
     </div>
   );
