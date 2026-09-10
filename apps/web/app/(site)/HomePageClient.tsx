@@ -74,7 +74,6 @@ export function HomePageClient({
           imageUrl={heroImageUrl}
           rating={googleRating}
           reviewCount={googleReviewCount}
-          reviews={testimonials}
         />
         <Marquee items={marqueeItems.length > 0 ? marqueeItems : undefined} />
         <Services services={services} />

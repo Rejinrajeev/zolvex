@@ -20,3 +20,7 @@ skills-lock.json
 
 # Neon vendors agent skill docs here via `neon skills` (per-machine, regenerated).
 .claude/skills/
+
+# Hero source art. The served asset is the optimized heroimg.webp; this is
+# the full-resolution export kept locally so it can be re-encoded later.
+apps/web/public/heroimg.png

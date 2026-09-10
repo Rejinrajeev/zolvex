@@ -2,10 +2,9 @@
 
 import { useState } from "react";
 import { motion } from "motion/react";
-import { IconArrow, IconCheck, IconStar } from "./icons";
+import { IconArrow, IconStar } from "./icons";
 import { cloudinaryTransform } from "./Photo";
 import { splitLastWord } from "@/lib/split-last-word";
-import type { PublicTestimonial } from "./Testimonials";
 
 const DEFAULT_HEADLINE = "Your space, well kept";
 const DEFAULT_SUBHEADLINE =
@@ -13,31 +12,14 @@ const DEFAULT_SUBHEADLINE =
 
 const EASE = [0.16, 1, 0.3, 1] as const;
 
-// Drop a cut-out PNG here (transparent background) and the hero picks it up.
-const DEFAULT_HERO_IMAGE = "/heroimg.png";
-
-// Shown in the panel only while no reviews are published. These are the
-// trades Zolvex covers (PRODUCT.md), not claims about a particular visit.
-const COVERAGE = ["Cleaning", "AC service", "Plumbing", "Electrical", "Handyman", "Painting"];
+// The hero artwork, served as an optimized WebP (the full-resolution PNG
+// source stays untracked alongside it). An admin-supplied URL overrides it.
+const DEFAULT_HERO_IMAGE = "/heroimg.webp";
 
 const lineV = {
   hidden: { opacity: 0, y: 40 },
   show: { opacity: 1, y: 0, transition: { duration: 0.7, ease: EASE } },
 };
-
-function Stars({ value, className = "" }: { value: number; className?: string }) {
-  const rounded = Math.round(value);
-  return (
-    <span className={`inline-flex items-center gap-0.5 ${className}`} aria-hidden>
-      {[1, 2, 3, 4, 5].map((i) => (
-        <IconStar
-          key={i}
-          className={`h-3.5 w-3.5 ${i <= rounded ? "text-sun-deep" : "text-carbon/15"}`}
-        />
-      ))}
-    </span>
-  );
-}
 
 export function Hero({
   onBookNow,
@@ -46,7 +28,6 @@ export function Hero({
   imageUrl,
   rating,
   reviewCount,
-  reviews = [],
 }: {
   onBookNow: () => void;
   headline?: string;
@@ -54,13 +35,12 @@ export function Hero({
   imageUrl?: string | null;
   rating?: string | null;
   reviewCount?: string | null;
-  reviews?: PublicTestimonial[];
 }) {
   const { rest, last } = splitLastWord(headline || DEFAULT_HEADLINE);
-  const shown = reviews.slice(0, 3);
 
-  // The hero cut-out: an admin-supplied URL wins, otherwise the asset
-  // checked in at public/heroimg.png.
+  // The hero artwork: an admin-supplied URL wins, otherwise the bundled
+  // asset. A missing or unreadable file removes the image rather than
+  // leaving a broken icon behind.
   const [heroImgOk, setHeroImgOk] = useState(true);
   const heroSrc = imageUrl ? cloudinaryTransform(imageUrl, 720) : DEFAULT_HERO_IMAGE;
 
@@ -154,101 +134,26 @@ export function Hero({
           )}
         </div>
 
-        {/* The panel is the product's own evidence: published reviews when
-            they exist, the trades covered while they do not. It is never a
-            screenshot of invented activity. */}
+        {/* The hero visual. The supplied artwork already carries the phone,
+            the review list and the technician as a single composition, so a
+            live panel here would only duplicate it. Real, admin-managed
+            testimonials still run in the Reviews section further down. */}
         <motion.div
           className="relative mt-2 lg:mt-0"
           initial={{ opacity: 0, scale: 0.94, y: 24 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           transition={{ duration: 0.9, ease: EASE, delay: 0.28 }}
         >
-          <div className="relative z-10 mx-auto max-w-[26rem] overflow-hidden rounded-[2.25rem] bg-shell shadow-[0_48px_96px_-44px_rgba(20,18,16,0.6)] lg:mr-0 lg:ml-auto">
-            <div className="flex items-center gap-3 border-b border-carbon/[0.07] px-5 py-4">
-              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-sun font-archivo-black text-base text-carbon">
-                Z
-              </span>
-              <span className="min-w-0 flex-1">
-                <span className="block truncate text-sm font-semibold text-carbon">
-                  Zolvex Home Services
-                </span>
-                {hasRating ? (
-                  <span className="mt-0.5 flex items-center gap-1.5">
-                    <Stars value={ratingValue} />
-                    <span className="tabular text-xs text-ash">
-                      {ratingValue.toFixed(1)}
-                      {reviewCount ? ` (${reviewCount})` : ""}
-                    </span>
-                  </span>
-                ) : (
-                  <span className="mt-0.5 block text-xs text-ash">
-                    Home &amp; commercial · Kerala
-                  </span>
-                )}
-              </span>
-            </div>
-
-            {shown.length > 0 ? (
-              <ul className="divide-y divide-carbon/[0.07]">
-                {shown.map((review, i) => (
-                  <motion.li
-                    key={review.id}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.45, ease: EASE, delay: 0.75 + i * 0.1 }}
-                    className="px-5 py-4"
-                  >
-                    <div className="flex items-center gap-2.5">
-                      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-bone text-xs font-semibold text-carbon">
-                        {review.name.trim().charAt(0).toUpperCase()}
-                      </span>
-                      <span className="truncate text-sm font-semibold text-carbon">
-                        {review.name}
-                      </span>
-                      <Stars value={review.rating} className="ml-auto shrink-0" />
-                    </div>
-                    <p className="mt-2 line-clamp-3 text-sm leading-relaxed text-ash">
-                      {review.message}
-                    </p>
-                  </motion.li>
-                ))}
-              </ul>
-            ) : (
-              <div className="p-5">
-                <p className="text-sm font-semibold text-carbon">One team, the whole list</p>
-                <ul className="mt-3 grid grid-cols-2 gap-2">
-                  {COVERAGE.map((item, i) => (
-                    <motion.li
-                      key={item}
-                      initial={{ opacity: 0, x: -8 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ duration: 0.4, ease: EASE, delay: 0.7 + i * 0.08 }}
-                      className="flex items-center gap-2 rounded-xl bg-bone px-3 py-2.5 text-sm font-medium text-carbon"
-                    >
-                      <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-sun text-carbon">
-                        <IconCheck className="h-3.5 w-3.5" />
-                      </span>
-                      {item}
-                    </motion.li>
-                  ))}
-                </ul>
-              </div>
-            )}
-          </div>
-
-          {/* The technician cut-out, standing in front of the panel the way
-              the reference stages it. Source order: an admin-supplied URL
-              wins, otherwise the checked-in asset. If the file is missing or
-              empty the image removes itself rather than leaving a broken
-              icon — the composition still reads without it. */}
           {heroSrc && heroImgOk ? (
-            // eslint-disable-next-line @next/next/no-img-element -- Cloudinary CDN / static asset; next/image not configured for this project
+            // eslint-disable-next-line @next/next/no-img-element -- static asset / Cloudinary CDN; next/image not configured for this project
             <img
               src={heroSrc}
-              alt=""
-              aria-hidden
+              alt="A Zolvex technician in uniform holding a mop, beside a phone showing the company's reviews"
+              width={1148}
+              height={1370}
+              fetchPriority="high"
               onError={() => setHeroImgOk(false)}
-              className="pointer-events-none absolute -bottom-10 left-0 z-20 hidden w-[15rem] select-none object-contain object-bottom drop-shadow-[0_34px_44px_rgba(20,18,16,0.38)] md:block lg:-left-6 lg:w-[17rem] xl:-left-10 xl:w-[20rem]"
+              className="pointer-events-none mx-auto block h-auto w-full max-w-[24rem] select-none object-contain drop-shadow-[0_44px_72px_rgba(20,18,16,0.3)] lg:mr-0 lg:ml-auto lg:max-w-[28rem] xl:max-w-[31rem]"
             />
           ) : null}
         </motion.div>
