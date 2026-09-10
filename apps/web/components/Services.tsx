@@ -47,7 +47,7 @@ export function Services({ services }: { services: PublicService[] }) {
 
   return (
     <section id="services" className="relative py-20 sm:py-28">
-      <div className="mx-auto grid max-w-[84rem] gap-10 px-5 sm:px-8 lg:grid-cols-[23rem_1fr] lg:items-center lg:gap-12 lg:pr-0">
+      <div className="mx-auto grid min-w-0 max-w-[84rem] gap-10 px-5 sm:px-8 lg:grid-cols-[23rem_1fr] lg:items-center lg:gap-12 lg:pr-0">
         <div>
           <Reveal
             as="h2"
@@ -94,7 +94,7 @@ export function Services({ services }: { services: PublicService[] }) {
             Services land here the moment they are published from the admin panel.
           </Reveal>
         ) : (
-          <Reveal delay={0.12}>
+          <Reveal delay={0.12} className="min-w-0">
             <div
               ref={railRef}
               className="rail -mx-5 px-5 sm:-mx-8 sm:px-8 lg:mx-0 lg:pl-0 lg:pr-8"
