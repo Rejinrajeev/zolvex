@@ -51,14 +51,17 @@ export function Hero({
   const hasRating = Number.isFinite(ratingValue) && ratingValue > 0;
 
   return (
+    // The artwork breaks out of this section on both edges — up behind the nav
+    // and down over the marquee — so the section must not clip its overflow.
+    // z-10 keeps it painting above the marquee that follows it in the flow.
     <section
       id="top"
-      className="relative overflow-hidden px-5 pb-16 pt-28 sm:px-8 sm:pb-20 sm:pt-36 lg:pb-24 lg:pt-40"
+      className="relative z-10 px-5 pb-16 pt-28 sm:px-8 sm:pb-20 sm:pt-36 lg:pb-16 lg:pt-32"
     >
-      <div className="relative mx-auto grid w-full max-w-[84rem] items-center gap-12 lg:grid-cols-[1.05fr_1fr] lg:gap-10">
+      <div className="relative mx-auto grid w-full max-w-[84rem] items-center gap-12 lg:grid-cols-[0.9fr_1.1fr] lg:gap-8">
         <div>
           <motion.h1
-            className="font-archivo-black text-[clamp(2.75rem,9vw,6rem)] uppercase leading-[0.9] tracking-[-0.03em] text-carbon"
+            className="font-archivo-black text-[clamp(2.25rem,3.6vw,3.25rem)] uppercase leading-[0.95] tracking-[-0.03em] text-carbon"
             initial="hidden"
             animate="show"
             variants={{ show: { transition: { staggerChildren: 0.1, delayChildren: 0.12 } } }}
@@ -72,7 +75,7 @@ export function Hero({
           </motion.h1>
 
           <motion.p
-            className="pretty mt-6 max-w-[34rem] text-lg leading-[1.6] text-ash sm:text-xl"
+            className="pretty mt-6 max-w-[32rem] text-base leading-[1.6] text-ash sm:text-lg"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.7, ease: EASE, delay: 0.45 }}
@@ -89,7 +92,7 @@ export function Hero({
             <button
               type="button"
               onClick={onBookNow}
-              className="group inline-flex items-center gap-2 rounded-full bg-sun px-7 py-4 text-base font-semibold text-carbon shadow-[0_18px_36px_-16px_rgba(20,18,16,0.55)] transition-[transform,background-color] duration-200 hover:-translate-y-0.5 hover:bg-sun-deep active:translate-y-0"
+              className="group inline-flex items-center gap-2 rounded-full bg-sun px-6 py-3.5 text-[0.95rem] font-semibold text-carbon shadow-[0_18px_36px_-16px_rgba(20,18,16,0.55)] transition-[transform,background-color] duration-200 hover:-translate-y-0.5 hover:bg-sun-deep active:translate-y-0"
             >
               Book a visit
               <IconArrow
@@ -99,7 +102,7 @@ export function Hero({
             </button>
             <a
               href="#services"
-              className="rounded-full border-2 border-carbon px-7 py-4 text-base font-semibold text-carbon transition-colors duration-200 hover:bg-carbon hover:text-bone"
+              className="rounded-full border-2 border-carbon px-6 py-3.5 text-[0.95rem] font-semibold text-carbon transition-colors duration-200 hover:bg-carbon hover:text-bone"
             >
               All services
             </a>
@@ -139,7 +142,7 @@ export function Hero({
             live panel here would only duplicate it. Real, admin-managed
             testimonials still run in the Reviews section further down. */}
         <motion.div
-          className="relative mt-2 lg:mt-0"
+          className="relative mt-2 lg:mt-0 lg:h-[30rem] xl:h-[34rem]"
           initial={{ opacity: 0, scale: 0.94, y: 24 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           transition={{ duration: 0.9, ease: EASE, delay: 0.28 }}
@@ -153,7 +156,7 @@ export function Hero({
               height={1370}
               fetchPriority="high"
               onError={() => setHeroImgOk(false)}
-              className="pointer-events-none mx-auto block h-auto w-full max-w-[24rem] select-none object-contain drop-shadow-[0_44px_72px_rgba(20,18,16,0.3)] lg:mr-0 lg:ml-auto lg:max-w-[28rem] xl:max-w-[31rem]"
+              className="pointer-events-none mx-auto block h-auto w-full max-w-[26rem] select-none object-contain drop-shadow-[0_44px_72px_rgba(20,18,16,0.3)] lg:absolute lg:bottom-[-5rem] lg:left-1/2 lg:w-[34rem] lg:max-w-none lg:-translate-x-1/2 xl:bottom-[-6rem] xl:w-[38rem]"
             />
           ) : null}
         </motion.div>
