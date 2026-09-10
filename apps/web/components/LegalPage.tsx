@@ -32,43 +32,43 @@ export function LegalPage({
   children?: ReactNode;
 }) {
   return (
-    <div className="flex min-h-screen flex-col bg-cream">
-      <header className="mx-auto flex h-20 w-full max-w-[80rem] items-center justify-between px-5 sm:px-8">
-        <Link href="/" className="font-anton text-2xl uppercase tracking-tight text-ink">
+    <div className="flex min-h-screen flex-col">
+      <header className="mx-auto flex h-20 w-full max-w-[84rem] items-center justify-between px-5 sm:px-8">
+        <Link href="/" className="font-archivo-black text-2xl tracking-[-0.02em] text-carbon">
           Zolvex
         </Link>
         <Link
           href="/"
-          className="group inline-flex items-center gap-1.5 font-sora text-sm font-semibold text-green-ink"
+          className="group inline-flex items-center gap-1.5 text-sm font-semibold text-sun-ink"
         >
-          <IconArrow aria-hidden className="h-4 w-4 rotate-180 transition-transform group-hover:-translate-x-1" />
+          <IconArrow
+            aria-hidden
+            className="h-4 w-4 rotate-180 transition-transform group-hover:-translate-x-1"
+          />
           Back to site
         </Link>
       </header>
 
       <main id="main" className="mx-auto w-full max-w-3xl flex-1 px-5 pb-24 pt-10 sm:px-8 sm:pt-16">
-        <h1 className="font-anton text-5xl uppercase leading-[0.95] tracking-tight text-ink sm:text-6xl">
+        <h1 className="font-archivo-black text-[clamp(2.25rem,6vw,3.5rem)] uppercase leading-[0.95] tracking-[-0.03em] text-carbon">
           {title}
         </h1>
-        {updated && (
-          <p className="mt-4 font-sora text-sm font-medium text-moss">Last updated {updated}</p>
-        )}
+        {updated && <p className="mt-4 text-sm font-medium text-ash">Last updated {updated}</p>}
 
         {intro && <div className="legal-body mt-7 text-base">{intro}</div>}
 
         {sections && sections.length > 0 && (
           <>
-            <nav
-              aria-label="On this page"
-              className="mt-10 rounded-[1.5rem] bg-mist p-6 sm:p-7"
-            >
-              <p className="font-anton text-sm uppercase tracking-tight text-ink">On this page</p>
+            <nav aria-label="On this page" className="mt-10 rounded-[1.5rem] bg-shell p-6 sm:p-7">
+              <p className="text-sm font-semibold uppercase tracking-[0.08em] text-carbon">
+                On this page
+              </p>
               <ol className="mt-3 grid gap-x-8 gap-y-1.5 sm:grid-cols-2">
                 {sections.map((section) => (
                   <li key={section.title}>
                     <a
                       href={`#${slugify(section.title)}`}
-                      className="font-sora text-sm text-moss underline decoration-transparent underline-offset-2 transition-colors hover:text-green-ink hover:decoration-green-ink"
+                      className="text-sm text-ash underline decoration-transparent underline-offset-2 transition-colors hover:text-sun-ink hover:decoration-current"
                     >
                       {section.title}
                     </a>
@@ -80,7 +80,7 @@ export function LegalPage({
             <div className="mt-12 flex flex-col gap-10">
               {sections.map((section) => (
                 <section key={section.title} id={slugify(section.title)} className="scroll-mt-24">
-                  <h2 className="font-anton text-xl uppercase tracking-tight text-ink sm:text-2xl">
+                  <h2 className="text-xl font-semibold tracking-[-0.01em] text-carbon sm:text-2xl">
                     {section.title}
                   </h2>
                   <div className="legal-body mt-3 text-base">{section.body}</div>

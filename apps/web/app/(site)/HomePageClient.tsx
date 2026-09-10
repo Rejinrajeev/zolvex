@@ -24,11 +24,14 @@ import type { PublicInstagramPost } from "@/components/InstagramFeed";
 export function HomePageClient({
   heroHeadline,
   heroSubheadline,
+  heroImageUrl,
   services,
   featuredService,
   posts,
   testimonials,
   googleReviewUrl,
+  googleRating,
+  googleReviewCount,
   faqs,
   instagramPosts,
   footerTagline,
@@ -38,11 +41,14 @@ export function HomePageClient({
 }: {
   heroHeadline?: string;
   heroSubheadline?: string;
+  heroImageUrl?: string;
   services: PublicService[];
   featuredService: FeaturedServiceRecord | null;
   posts: PublicBlogPost[];
   testimonials: PublicTestimonial[];
   googleReviewUrl?: string | null;
+  googleRating?: string | null;
+  googleReviewCount?: string | null;
   faqs: PublicFaq[];
   instagramPosts: PublicInstagramPost[];
   footerTagline?: string;
@@ -53,18 +59,35 @@ export function HomePageClient({
   const [bookingOpen, setBookingOpen] = useState(false);
   const openBooking = () => setBookingOpen(true);
 
+  // The strip carries real service names once any are published, and the
+  // trade list only until then.
+  const marqueeItems = services.map((s) => s.name).filter(Boolean);
+
   return (
     <>
       <Nav onBookNow={openBooking} />
       <main id="main">
-        <Hero onBookNow={openBooking} headline={heroHeadline} subheadline={heroSubheadline} />
-        <Marquee />
+        <Hero
+          onBookNow={openBooking}
+          headline={heroHeadline}
+          subheadline={heroSubheadline}
+          imageUrl={heroImageUrl}
+          rating={googleRating}
+          reviewCount={googleReviewCount}
+          reviews={testimonials}
+        />
+        <Marquee items={marqueeItems.length > 0 ? marqueeItems : undefined} />
         <Services services={services} />
         <WhyUs />
         <FeaturedService service={featuredService} onBookNow={openBooking} />
         <Blog posts={posts} />
         <FAQ faqs={faqs} onBookNow={openBooking} />
-        <Testimonials testimonials={testimonials} googleReviewUrl={googleReviewUrl} />
+        <Testimonials
+          testimonials={testimonials}
+          googleReviewUrl={googleReviewUrl}
+          rating={googleRating}
+          reviewCount={googleReviewCount}
+        />
         <InstagramFeed posts={instagramPosts} />
       </main>
       <Footer

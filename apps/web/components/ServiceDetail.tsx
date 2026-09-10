@@ -1,18 +1,18 @@
 "use client";
 
 /**
- * One service's own page: a lean Persuade surface in the Fresh Start world.
- * Cream detail hero (name, photo, full description, book CTA) → forest
- * reassurance band that closes the page → mist strip of the other services.
- * "Book this service" tags the enquiry with this service so it lands in the
- * admin panel already attributed.
+ * One service's own page: a lean Persuade surface in the v2 Yellow Van
+ * world. Bone detail hero (name, photo, full description, price, book CTA)
+ * → carbon reassurance band that closes the page → a grid of the other
+ * services. "Book this service" tags the enquiry with this service so it
+ * lands in the admin panel already attributed.
  */
 
 import { useState } from "react";
 import { Nav } from "./Nav";
 import { Footer } from "./Footer";
 import { EnquiryModal } from "./EnquiryModal";
-import { Reveal, Stagger, StaggerItem, Blob } from "./motion-primitives";
+import { Reveal, Stagger, StaggerItem } from "./motion-primitives";
 import { Photo } from "./Photo";
 import { ServiceTile, type PublicService } from "./ServiceTile";
 import { IconArrow } from "./icons";
@@ -49,13 +49,11 @@ export function ServiceDetail({
     <>
       <Nav onBookNow={openBooking} />
       <main id="main">
-        <section className="relative overflow-hidden bg-cream px-5 pb-20 pt-32 sm:px-8 sm:pb-28 sm:pt-40">
-          <Blob
-            color="var(--color-sky)"
-            className="right-[-10rem] top-[-6rem] h-[22rem] w-[22rem] opacity-40"
-            distance={70}
-          />
-          <div className="relative mx-auto grid max-w-[80rem] items-center gap-10 lg:grid-cols-2 lg:gap-16">
+        <section
+          id="top"
+          className="relative overflow-hidden px-5 pb-20 pt-32 sm:px-8 sm:pb-28 sm:pt-40"
+        >
+          <div className="relative mx-auto grid max-w-[84rem] items-center gap-10 lg:grid-cols-2 lg:gap-16">
             <Reveal className="group relative">
               <Photo
                 src={service.image}
@@ -63,89 +61,91 @@ export function ServiceDetail({
                 size="lg"
                 width={900}
                 aspect="5 / 4"
-                className="rounded-[2rem] shadow-[0_36px_80px_-36px_rgba(12,58,44,0.4)]"
+                className="rounded-[2rem]"
               />
             </Reveal>
             <Reveal delay={0.1}>
-              <h1 className="font-anton text-5xl uppercase leading-[0.95] tracking-tight text-ink sm:text-6xl">
+              <h1 className="font-archivo-black text-[clamp(2.5rem,6vw,4rem)] uppercase leading-[0.92] tracking-[-0.03em] text-carbon">
                 {service.name}
               </h1>
-              <p className="pretty mt-5 max-w-lg font-sora text-lg leading-relaxed text-moss">
+              <p className="pretty mt-5 max-w-lg text-lg leading-[1.6] text-ash">
                 {service.fullDescription}
               </p>
 
-              <div className="mt-8 max-w-md rounded-[1.5rem] bg-gold/25 p-6 ring-1 ring-ink/5 sm:p-7">
+              <div className="mt-8 max-w-md rounded-[1.75rem] bg-shell p-6 sm:p-7">
                 {price ? (
                   <>
                     <div className="flex items-baseline gap-2.5">
-                      <span className="font-sora text-sm font-semibold uppercase tracking-wide text-moss">
+                      <span className="text-sm font-semibold uppercase tracking-[0.08em] text-ash">
                         From
                       </span>
-                      <span className="font-anton text-4xl uppercase leading-none tracking-tight text-ink sm:text-[2.75rem]">
+                      <span className="tabular font-archivo-black text-4xl leading-none tracking-[-0.02em] text-carbon sm:text-[2.75rem]">
                         {price}
                       </span>
                     </div>
-                    <p className="mt-2.5 font-sora text-sm leading-relaxed text-moss">
-                      We confirm the full quote once we&apos;ve seen the job.
+                    <p className="mt-2.5 text-sm leading-relaxed text-ash">
+                      We confirm the full quote once we have seen the job.
                     </p>
                   </>
                 ) : (
-                  <p className="font-sora leading-relaxed text-moss">
-                    Tell us about the job and we&apos;ll come back with a quote.
+                  <p className="leading-relaxed text-ash">
+                    Tell us about the job and we will come back with a quote.
                   </p>
                 )}
                 <button
                   type="button"
                   onClick={openBooking}
-                  className="group mt-5 flex w-full items-center justify-center gap-2 rounded-full bg-green px-7 py-4 font-sora text-base font-semibold text-forest shadow-[0_16px_32px_-14px_rgba(15,184,119,0.55)] transition-transform hover:-translate-y-0.5 active:translate-y-0"
+                  className="group mt-5 flex w-full items-center justify-center gap-2 rounded-full bg-sun px-7 py-4 text-base font-semibold text-carbon shadow-[0_16px_32px_-16px_rgba(20,18,16,0.5)] transition-[transform,background-color] duration-200 hover:-translate-y-0.5 hover:bg-sun-deep active:translate-y-0"
                 >
                   Book this service
-                  <IconArrow aria-hidden className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+                  <IconArrow
+                    aria-hidden
+                    className="h-4 w-4 transition-transform group-hover:translate-x-1"
+                  />
                 </button>
               </div>
             </Reveal>
           </div>
         </section>
 
-        <section className="on-forest bg-forest px-5 py-20 text-cream sm:px-8 sm:py-24">
-          <Reveal className="mx-auto flex max-w-[80rem] flex-col items-start gap-7 sm:flex-row sm:items-center sm:justify-between">
+        <section className="px-5 py-8 sm:px-8">
+          <Reveal className="on-carbon mx-auto flex max-w-[84rem] flex-col items-start gap-7 rounded-[2.25rem] bg-carbon px-6 py-12 text-bone sm:flex-row sm:items-center sm:justify-between sm:px-12 sm:py-14">
             <div>
-              <h2 className="font-anton text-4xl uppercase leading-[0.95] tracking-tight text-cream sm:text-5xl">
-                Ready when
-                <br />
-                you are
+              <h2 className="font-archivo-black text-[clamp(1.75rem,4vw,2.75rem)] uppercase leading-[1.02] tracking-[-0.02em] text-bone">
+                Ready when you are
               </h2>
-              <p className="pretty mt-4 max-w-md font-sora leading-relaxed text-cream/75">
-                Book a visit and we&apos;ll scope the work, confirm a time, and put it on the
-                schedule. On time, every visit logged.
+              <p className="pretty mt-4 max-w-md leading-relaxed text-bone/70">
+                Book a visit and we will scope the work, confirm a time, and put it
+                on the schedule. On time, every visit logged.
               </p>
             </div>
             <button
               type="button"
               onClick={openBooking}
-              className="group inline-flex shrink-0 items-center gap-2 rounded-full bg-green px-7 py-4 font-sora text-base font-semibold text-forest shadow-[0_18px_36px_-14px_rgba(15,184,119,0.6)] transition-transform hover:-translate-y-0.5"
+              className="group inline-flex shrink-0 items-center gap-2 rounded-full bg-sun px-7 py-4 text-base font-semibold text-carbon transition-[transform,background-color] duration-200 hover:-translate-y-0.5 hover:bg-sun-deep"
             >
               Book this service
-              <IconArrow aria-hidden className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+              <IconArrow
+                aria-hidden
+                className="h-4 w-4 transition-transform group-hover:translate-x-1"
+              />
             </button>
           </Reveal>
         </section>
 
         {others.length > 0 && (
-          <section className="bg-mist px-5 py-20 sm:px-8 sm:py-28">
-            <div className="mx-auto max-w-[80rem]">
+          <section className="px-5 py-20 sm:px-8 sm:py-28">
+            <div className="mx-auto max-w-[84rem]">
               <Reveal
                 as="h2"
-                className="font-anton text-4xl uppercase leading-[0.95] tracking-tight text-ink sm:text-5xl lg:text-6xl"
+                className="text-[clamp(2rem,4.5vw,3rem)] font-semibold leading-[1.05] tracking-[-0.03em] text-carbon"
               >
-                More of what
-                <br />
-                we cover
+                More of what <span className="text-sun-ink">we cover</span>
               </Reveal>
-              <Stagger className="mt-12 grid auto-rows-fr grid-cols-3 gap-3 sm:mt-14 sm:grid-cols-4 sm:gap-4 lg:grid-cols-6">
-                {others.map((s, i) => (
+              <Stagger className="mt-12 grid auto-rows-fr gap-5 sm:grid-cols-2 lg:grid-cols-4">
+                {others.map((s) => (
                   <StaggerItem key={s.id} className="h-full">
-                    <ServiceTile service={s} index={i} />
+                    <ServiceTile service={s} />
                   </StaggerItem>
                 ))}
               </Stagger>

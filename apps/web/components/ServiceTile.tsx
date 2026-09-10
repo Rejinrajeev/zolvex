@@ -1,6 +1,7 @@
 import { createElement } from "react";
 import Link from "next/link";
 import { cloudinaryTransform } from "./Photo";
+import { IconArrow } from "./icons";
 import { iconForServiceKey } from "@/lib/service-icons";
 
 export interface PublicService {
@@ -13,26 +14,26 @@ export interface PublicService {
   image?: string | null;
 }
 
-const TINTS = ["bg-mist", "bg-sky/50", "bg-gold/40"] as const;
-
 /**
- * One service in the compact grid — a tinted tile holding the service photo
- * (or its icon while no photo is uploaded) and the name, linking through to
- * the service's own page. Shared by the home Services section and the
- * "other services" strip on a service page. Price is shown on the service
- * page, not here.
+ * One service as a card: the photo does the selling, the name sits on the
+ * baseline, and the round arrow is the affordance. While no photo has been
+ * uploaded the slot holds the service icon on Bone rather than a grey
+ * rectangle, so an unphotographed service still looks deliberate.
+ *
+ * Sized for the horizontal rail on the home page; it also sits in the plain
+ * grid on a service page, so the width is set by the parent, never here.
  */
-export function ServiceTile({ service, index }: { service: PublicService; index: number }) {
+export function ServiceTile({ service }: { service: PublicService; index?: number }) {
   return (
     <Link
       href={`/services/${service.slug}`}
-      className={`group flex h-full flex-col rounded-[1.25rem] ${TINTS[index % TINTS.length]} p-2 transition-[transform,box-shadow] duration-300 hover:-translate-y-1 hover:shadow-[0_20px_44px_-20px_rgba(12,58,44,0.35)] sm:p-2.5`}
+      className="group flex h-full flex-col rounded-[1.75rem] bg-shell p-3 transition-[transform,box-shadow] duration-300 hover:-translate-y-1.5 hover:shadow-[0_28px_56px_-28px_rgba(20,18,16,0.5)]"
     >
-      <div className="relative flex aspect-square items-center justify-center overflow-hidden rounded-[0.9rem] bg-paper/60 ring-1 ring-ink/5">
+      <div className="relative flex aspect-[4/3] items-center justify-center overflow-hidden rounded-[1.35rem] bg-bone">
         {service.image ? (
           // eslint-disable-next-line @next/next/no-img-element -- Cloudinary CDN; next/image not configured for this project
           <img
-            src={cloudinaryTransform(service.image, 360)}
+            src={cloudinaryTransform(service.image, 640)}
             alt=""
             loading="lazy"
             decoding="async"
@@ -42,13 +43,22 @@ export function ServiceTile({ service, index }: { service: PublicService; index:
           createElement(iconForServiceKey(service.icon), {
             "aria-hidden": true,
             className:
-              "h-8 w-8 text-green-ink transition-transform duration-500 group-hover:scale-110 sm:h-9 sm:w-9",
+              "h-11 w-11 text-carbon/35 transition-transform duration-500 group-hover:scale-110",
           })
         )}
       </div>
-      <h3 className="mt-2 px-1 pb-1 font-anton text-sm uppercase leading-[1.05] tracking-tight text-ink sm:text-base lg:text-lg">
-        {service.name}
-      </h3>
+
+      <div className="mt-3.5 flex items-center gap-3 px-1.5 pb-1.5">
+        <h3 className="min-w-0 flex-1 text-lg font-semibold leading-snug tracking-[-0.01em] text-carbon">
+          {service.name}
+        </h3>
+        <span
+          aria-hidden
+          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-bone text-carbon transition-colors duration-300 group-hover:bg-sun"
+        >
+          <IconArrow className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-0.5" />
+        </span>
+      </div>
     </Link>
   );
 }

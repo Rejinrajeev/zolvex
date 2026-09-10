@@ -25,20 +25,16 @@ export function PlaceholderPhoto({
     <PhotoFrame tone={tone} aspect={aspect} className={className}>
       <div className="flex flex-col items-center gap-2.5 px-6 text-center">
         <span
-          className={`flex items-center justify-center rounded-full bg-green text-forest ${
+          className={`flex items-center justify-center rounded-full bg-sun text-carbon ${
             size === "lg" ? "h-14 w-14" : "h-11 w-11"
           }`}
         >
           <IconSanitize className={size === "lg" ? "h-7 w-7" : "h-5 w-5"} />
         </span>
-        <span
-          className={`font-sora text-sm font-semibold ${isDark ? "text-cream" : "text-ink"}`}
-        >
+        <span className={`text-sm font-semibold ${isDark ? "text-bone" : "text-carbon"}`}>
           Photo coming soon
         </span>
-        <span className={`font-sora text-xs ${isDark ? "text-cream/60" : "text-moss/80"}`}>
-          {label}
-        </span>
+        <span className={`text-xs ${isDark ? "text-bone/60" : "text-ash"}`}>{label}</span>
       </div>
     </PhotoFrame>
   );

@@ -10,8 +10,6 @@ export interface PublicTestimonial {
   message: string;
 }
 
-const TINTS = ["bg-paper", "bg-sky/55", "bg-gold/45"] as const;
-
 // At or above this many reviews the wall splits into two rows running in
 // opposite directions; below it, one row (or a static cluster under ~3).
 const TWO_ROW_THRESHOLD = 6;
@@ -24,9 +22,9 @@ function Stars({ rating }: { rating: number }) {
     <div className="flex gap-0.5" aria-label={`${rating} out of 5 stars`}>
       {Array.from({ length: 5 }).map((_, i) =>
         i < rating ? (
-          <IconStar key={i} className="h-4 w-4 text-gold" />
+          <IconStar key={i} className="h-4 w-4 text-sun-deep" />
         ) : (
-          <IconStarOutline key={i} className="h-4 w-4 text-ink/20" />
+          <IconStarOutline key={i} className="h-4 w-4 text-carbon/20" />
         )
       )}
     </div>
@@ -35,25 +33,21 @@ function Stars({ rating }: { rating: number }) {
 
 function TestimonialCard({
   testimonial,
-  index,
   hidden = false,
 }: {
   testimonial: PublicTestimonial;
-  index: number;
   hidden?: boolean;
 }) {
   return (
     <figure
       aria-hidden={hidden || undefined}
-      className={`mr-4 flex h-[11.5rem] w-[16.5rem] shrink-0 flex-col rounded-[1.5rem] ${TINTS[index % TINTS.length]} p-6 sm:mr-6 sm:h-[12.5rem] sm:w-[19rem]`}
+      className="mr-4 flex h-[11.5rem] w-[16.5rem] shrink-0 flex-col rounded-[1.5rem] bg-shell p-6 sm:mr-6 sm:h-[12.5rem] sm:w-[19rem]"
     >
       <Stars rating={testimonial.rating} />
-      <blockquote className="pretty mt-3 line-clamp-3 flex-1 font-sora text-[0.95rem] leading-relaxed text-ink">
+      <blockquote className="pretty mt-3 line-clamp-3 flex-1 text-[0.95rem] leading-relaxed text-carbon">
         &ldquo;{testimonial.message}&rdquo;
       </blockquote>
-      <figcaption className="mt-4 font-anton text-sm uppercase tracking-tight text-moss">
-        {testimonial.name}
-      </figcaption>
+      <figcaption className="mt-4 text-sm font-semibold text-ash">{testimonial.name}</figcaption>
     </figure>
   );
 }
@@ -86,7 +80,6 @@ function MarqueeRow({
           <TestimonialCard
             key={`${testimonial.id}-${i}`}
             testimonial={testimonial}
-            index={i}
             hidden={i >= items.length}
           />
         ))}
@@ -98,47 +91,70 @@ function MarqueeRow({
 export function Testimonials({
   testimonials,
   googleReviewUrl,
+  rating,
+  reviewCount,
 }: {
   testimonials: PublicTestimonial[];
   googleReviewUrl?: string | null;
+  rating?: string | null;
+  reviewCount?: string | null;
 }) {
   const animated = testimonials.length >= 3;
   const twoRows = testimonials.length >= TWO_ROW_THRESHOLD;
   const split = Math.ceil(testimonials.length / 2);
 
+  const ratingValue = rating ? Number.parseFloat(rating) : NaN;
+  const hasRating = Number.isFinite(ratingValue) && ratingValue > 0;
+
   return (
-    <section className="bg-mist py-16 sm:py-24">
-      <div className="mx-auto max-w-[80rem] px-5 sm:px-8">
+    <section id="reviews" className="py-16 sm:py-24">
+      <div className="mx-auto max-w-[84rem] px-5 sm:px-8">
         <Reveal className="flex flex-wrap items-end justify-between gap-6">
-          <h2 className="font-anton text-5xl uppercase leading-[0.95] tracking-tight text-ink sm:text-6xl lg:text-7xl">
-            What clients
-            <br />
-            tell us
-          </h2>
+          <div>
+            <h2 className="text-[clamp(2.25rem,5vw,3.25rem)] font-semibold leading-[1.05] tracking-[-0.03em] text-carbon">
+              What clients <span className="text-sun-ink">tell us</span>
+            </h2>
+            {hasRating && (
+              <p className="mt-4 flex items-center gap-2 text-base text-ash">
+                <IconStar aria-hidden className="h-5 w-5 text-sun-deep" />
+                <span className="tabular font-semibold text-carbon">
+                  {ratingValue.toFixed(1)}
+                </span>
+                {reviewCount ? `average from ${reviewCount} Google reviews` : "average on Google"}
+              </p>
+            )}
+          </div>
           {googleReviewUrl && (
             <a
               href={safeHref(googleReviewUrl)}
               target="_blank"
               rel="noreferrer noopener"
-              className="group inline-flex items-center gap-2 rounded-full border-2 border-ink px-6 py-3 font-sora text-sm font-semibold text-ink transition-colors hover:bg-ink hover:text-cream"
+              className="group inline-flex items-center gap-2 rounded-full border-2 border-carbon px-6 py-3 text-sm font-semibold text-carbon transition-colors duration-200 hover:bg-carbon hover:text-bone"
             >
               Read our Google reviews
-              <IconArrow aria-hidden className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+              <IconArrow
+                aria-hidden
+                className="h-4 w-4 transition-transform group-hover:translate-x-1"
+              />
             </a>
           )}
         </Reveal>
       </div>
 
       {testimonials.length === 0 ? (
-        <div className="mx-auto max-w-[80rem] px-5 sm:px-8">
-          <Reveal as="p" delay={0.1} className="mt-14 font-sora text-base text-moss">
-            Real client reviews land here once they&apos;re published from the admin panel.
+        <div className="mx-auto max-w-[84rem] px-5 sm:px-8">
+          <Reveal
+            as="p"
+            delay={0.1}
+            className="mt-12 rounded-[1.75rem] bg-shell p-10 text-center text-base text-ash"
+          >
+            Real client reviews land here once they are published from the admin panel.
           </Reveal>
         </div>
       ) : !animated ? (
-        <div className="mx-auto mt-12 flex max-w-[80rem] flex-wrap justify-center gap-6 px-5 sm:px-8">
-          {testimonials.map((testimonial, i) => (
-            <TestimonialCard key={testimonial.id} testimonial={testimonial} index={i} />
+        <div className="mx-auto mt-12 flex max-w-[84rem] flex-wrap justify-center gap-6 px-5 sm:px-8">
+          {testimonials.map((testimonial) => (
+            <TestimonialCard key={testimonial.id} testimonial={testimonial} />
           ))}
         </div>
       ) : (

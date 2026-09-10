@@ -173,7 +173,7 @@ export function Seal({
   className = "",
   size = 140,
   filled = false,
-  discClassName = "fill-green",
+  discClassName = "fill-sun",
 }: {
   text?: string;
   className?: string;
@@ -198,7 +198,7 @@ export function Seal({
         <text
           fill="currentColor"
           style={{
-            fontFamily: "var(--font-sora), system-ui, sans-serif",
+            fontFamily: "var(--font-archivo), system-ui, sans-serif",
             fontSize: 12.5,
             fontWeight: 700,
             letterSpacing: 1.5,

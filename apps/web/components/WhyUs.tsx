@@ -1,4 +1,4 @@
-import { Reveal, Stagger, StaggerItem, Seal } from "./motion-primitives";
+import { Reveal, Stagger, StaggerItem } from "./motion-primitives";
 import { IconCheck } from "./icons";
 
 const OFFER_ITEMS = [
@@ -13,24 +13,21 @@ const OFFER_ITEMS = [
 const VALUES = [
   { word: "100% dedication", line: "The same standard on visit one and visit two hundred." },
   { word: "Verified people", line: "Background-checked, police-cleared, trained before they knock." },
-  { word: "On time, every time", line: "Booked slots we keep — and log the moment we're done." },
+  { word: "On time, every time", line: "Booked slots we keep — and log the moment we are done." },
 ];
 
 export function WhyUs() {
   return (
-    <section id="about" className="bg-cream px-5 py-20 sm:px-8 sm:py-28">
-      <div className="mx-auto max-w-[80rem]">
+    <section id="about" className="px-5 py-20 sm:px-8 sm:py-28">
+      <div className="mx-auto max-w-[84rem]">
         <div className="grid gap-10 lg:grid-cols-2 lg:gap-16">
           <Reveal>
-            <h2 className="font-anton text-5xl uppercase leading-[0.95] tracking-tight text-ink sm:text-6xl lg:text-7xl">
-              Why one call
-              <br />
-              covers the
-              <br />
-              whole list
+            <h2 className="text-[clamp(2.25rem,5vw,3.25rem)] font-semibold leading-[1.05] tracking-[-0.03em] text-carbon">
+              Why one call covers the{" "}
+              <span className="text-sun-ink">whole list</span>
             </h2>
-            <p className="pretty mt-6 max-w-md font-sora text-lg leading-relaxed text-moss">
-              You don&apos;t line up a cleaner, a plumber, an electrician and a
+            <p className="pretty mt-6 max-w-md text-lg leading-[1.6] text-ash">
+              You do not line up a cleaner, a plumber, an electrician and a
               handyman separately. Zolvex covers the lot — one team, one point of
               contact, verified people — and every visit is checked against the
               same standard.
@@ -42,37 +39,32 @@ export function WhyUs() {
               <StaggerItem
                 key={item}
                 as="li"
-                className="flex items-start gap-3 rounded-2xl bg-mist px-4 py-3.5 font-sora text-[0.95rem] font-medium text-ink"
+                className="flex items-start gap-3 rounded-2xl bg-shell px-4 py-3.5 text-[0.95rem] font-medium text-carbon"
               >
-                <IconCheck className="mt-0.5 h-5 w-5 shrink-0 text-green-ink" />
+                <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-sun text-carbon">
+                  <IconCheck className="h-3.5 w-3.5" />
+                </span>
                 {item}
               </StaggerItem>
             ))}
           </Stagger>
         </div>
 
-        <Reveal className="mt-16 overflow-hidden rounded-[2.25rem] bg-forest px-6 py-12 text-cream sm:mt-24 sm:px-12 sm:py-16">
-          <div className="on-forest relative grid gap-10 lg:grid-cols-[1fr_auto] lg:items-center lg:gap-16">
-            <div>
-              <p className="pretty max-w-2xl font-anton text-3xl uppercase leading-[1.05] tracking-tight sm:text-4xl">
-                &ldquo;Will they actually show up and do it right?&rdquo; is the only
-                question that matters. Ours is the crew you stop asking it about.
-              </p>
-              <dl className="mt-10 grid gap-6 sm:grid-cols-3">
-                {VALUES.map((v) => (
-                  <div key={v.word}>
-                    <dt className="font-anton text-lg uppercase tracking-tight text-green">
-                      {v.word}
-                    </dt>
-                    <dd className="mt-1.5 font-sora text-sm leading-relaxed text-cream/75">
-                      {v.line}
-                    </dd>
-                  </div>
-                ))}
-              </dl>
-            </div>
-            <Seal size={168} className="hidden shrink-0 text-green lg:block" />
-          </div>
+        {/* The one dark beat on the page. Carbon earns it here because this
+            is the trust claim the whole site is built to answer. */}
+        <Reveal className="on-carbon mt-16 overflow-hidden rounded-[2.25rem] bg-carbon px-6 py-12 text-bone sm:mt-24 sm:px-12 sm:py-16">
+          <p className="pretty max-w-3xl font-archivo-black text-[clamp(1.6rem,3.4vw,2.5rem)] uppercase leading-[1.08] tracking-[-0.02em]">
+            &ldquo;Will they actually show up and do it right?&rdquo; is the only
+            question that matters. Ours is the crew you stop asking it about.
+          </p>
+          <dl className="mt-10 grid gap-8 sm:grid-cols-3 sm:gap-6">
+            {VALUES.map((v) => (
+              <div key={v.word}>
+                <dt className="text-lg font-semibold tracking-[-0.01em] text-sun">{v.word}</dt>
+                <dd className="mt-1.5 text-sm leading-relaxed text-bone/70">{v.line}</dd>
+              </div>
+            ))}
+          </dl>
         </Reveal>
       </div>
     </section>

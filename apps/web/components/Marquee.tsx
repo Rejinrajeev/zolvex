@@ -1,31 +1,31 @@
+// Falls back to the trades Zolvex covers (PRODUCT.md) while no services are
+// published. Real service names take over the strip the moment they exist.
 const DEFAULT_ITEMS = [
-  "On time, every time",
-  "Every visit logged",
   "Home & office cleaning",
   "AC service & repair",
-  "Plumbing & electrical",
+  "Plumbing",
+  "Electrical",
   "Handyman & installs",
   "Painting & improvement",
-  "Verified, trained people",
+  "Property management",
 ];
 
 /**
- * A thin running strip between sections. The track is duplicated so the
- * CSS translateX(-50%) loop is seamless; it pauses on hover and freezes
- * entirely under prefers-reduced-motion (see globals.css).
+ * The Sun strip under the hero. The track holds the list twice so the CSS
+ * translateX(-50%) loop is seamless; it pauses on hover and freezes
+ * readable under prefers-reduced-motion (see globals.css).
  */
 export function Marquee({ items = DEFAULT_ITEMS }: { items?: string[] }) {
-  const row = [...items, ...items];
+  const row = items.length > 0 ? [...items, ...items] : [...DEFAULT_ITEMS, ...DEFAULT_ITEMS];
   return (
-    <div className="marquee overflow-hidden border-y border-ink/10 bg-green py-3.5" aria-hidden>
-      <div className="marquee-track">
+    <div className="marquee marquee-v2" aria-hidden>
+      <div className="marquee-track py-4 sm:py-5">
         {row.map((item, i) => (
-          <span
-            key={i}
-            className="mx-6 font-anton text-sm uppercase tracking-tight text-forest sm:text-base"
-          >
-            {item}
-            <span className="mx-6 text-forest/40">/</span>
+          <span key={i} className="flex shrink-0 items-center">
+            <span className="font-archivo-black px-7 text-lg tracking-[-0.02em] text-carbon sm:px-9 sm:text-2xl">
+              {item}
+            </span>
+            <span className="h-1.5 w-1.5 rounded-full bg-carbon/35" />
           </span>
         ))}
       </div>

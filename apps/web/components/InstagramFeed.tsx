@@ -11,20 +11,24 @@ export interface PublicInstagramPost {
 
 export function InstagramFeed({ posts }: { posts: PublicInstagramPost[] }) {
   return (
-    <section className="bg-cream px-5 py-20 sm:px-8 sm:py-28">
-      <div className="mx-auto max-w-[80rem]">
+    <section className="px-5 py-20 sm:px-8 sm:py-28">
+      <div className="mx-auto max-w-[84rem]">
         <Reveal className="flex items-center gap-3">
-          <span className="flex h-11 w-11 items-center justify-center rounded-full bg-green text-forest">
+          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-sun text-carbon">
             <IconInstagram className="h-6 w-6" />
           </span>
-          <h2 className="font-anton text-5xl uppercase leading-[0.95] tracking-tight text-ink sm:text-6xl">
+          <h2 className="text-[clamp(2rem,4.5vw,3.25rem)] font-semibold leading-[1.05] tracking-[-0.03em] text-carbon">
             Follow the crew
           </h2>
         </Reveal>
 
         {posts.length === 0 ? (
-          <Reveal as="p" delay={0.1} className="mt-12 font-sora text-base text-moss">
-            Posts land here once they&apos;re published from the admin panel.
+          <Reveal
+            as="p"
+            delay={0.1}
+            className="mt-12 rounded-[1.75rem] bg-shell p-10 text-center text-base text-ash"
+          >
+            Posts land here once they are published from the admin panel.
           </Reveal>
         ) : (
           <Stagger className="mt-12 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-6">
@@ -44,8 +48,8 @@ export function InstagramFeed({ posts }: { posts: PublicInstagramPost[] }) {
                     aspect="1 / 1"
                     className="rounded-2xl"
                   />
-                  <span className="absolute inset-0 flex items-center justify-center bg-forest/0 opacity-0 transition-all duration-300 group-hover:bg-forest/55 group-hover:opacity-100">
-                    <IconInstagram className="h-6 w-6 text-cream" />
+                  <span className="absolute inset-0 flex items-center justify-center bg-carbon/0 opacity-0 transition-all duration-300 group-hover:bg-carbon/55 group-hover:opacity-100">
+                    <IconInstagram className="h-6 w-6 text-sun" />
                   </span>
                 </a>
               </StaggerItem>

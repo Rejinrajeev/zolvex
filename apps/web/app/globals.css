@@ -38,6 +38,21 @@
   --font-body: var(--font-sora);
   --font-stamp: var(--font-sora);
 
+
+  /* ============================================================
+     v2 "Yellow Van" world — the PUBLIC SITE only.
+     Scoped under `.site-world` (see below) so the admin panel
+     keeps its Fresh Start green untouched. Nothing above this
+     block changes value; these are new names, not overrides.
+     ============================================================ */
+  --color-bone: #f1f0ec;      /* warm light grey page ground */
+  --color-shell: #ffffff;     /* cards lifting off bone */
+  --color-sun: #f7d14c;       /* THE yellow — fills only, never text on light */
+  --color-sun-deep: #efc02a;  /* pressed/edge grade of the same yellow */
+  --color-sun-ink: #8a5d00;   /* the readable grade — yellow-family TEXT on light */
+  --color-carbon: #141210;    /* near-black type, and the one dark ground */
+  --color-carbon-soft: #262220;
+  --color-ash: #65625c;       /* secondary text on bone — 4.9:1 */
   --ease-out-exp: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
@@ -66,6 +81,19 @@
   --font-display: var(--font-display);
   --font-body: var(--font-body);
   --font-stamp: var(--font-stamp);
+
+  /* v2 "Yellow Van" — public site */
+  --color-bone: var(--color-bone);
+  --color-shell: var(--color-shell);
+  --color-sun: var(--color-sun);
+  --color-sun-deep: var(--color-sun-deep);
+  --color-sun-ink: var(--color-sun-ink);
+  --color-carbon: var(--color-carbon);
+  --color-carbon-soft: var(--color-carbon-soft);
+  --color-ash: var(--color-ash);
+
+  --font-archivo: var(--font-archivo);
+  --font-archivo-black: var(--font-archivo-black);
 
   --radius-xl2: 1.75rem;
 }
@@ -315,5 +343,113 @@ textarea {
   }
   .cards-marquee-group {
     overflow-x: auto;
+  }
+}
+
+/* ============================================================
+   v2 "Yellow Van" — the public site's world.
+
+   Everything here is scoped under `.site-world`, which the
+   (site) layout puts on its wrapper. The admin panel never gets
+   that class, so it keeps the Fresh Start green system above
+   untouched — same file, two worlds, no bleed.
+   ============================================================ */
+
+.site-world {
+  background: var(--color-bone);
+  color: var(--color-carbon);
+  font-family: var(--font-archivo), system-ui, sans-serif;
+}
+
+/* The ground the browser paints outside the page (overscroll, mobile
+   rubber-band). `:has` keeps it off the admin tree. */
+body:has(.site-world) {
+  background: var(--color-bone);
+}
+
+/* ---- Browser surfaces, themed for this world ---- */
+.site-world ::selection {
+  background: var(--color-sun);
+  color: var(--color-carbon);
+}
+.site-world input,
+.site-world textarea {
+  caret-color: var(--color-carbon);
+}
+.site-world ::-webkit-scrollbar-track {
+  background: #e2e0da;
+}
+.site-world ::-webkit-scrollbar-thumb {
+  background: var(--color-carbon);
+  border: 3px solid #e2e0da;
+}
+.site-world ::-webkit-scrollbar-thumb:hover {
+  background: var(--color-sun-ink);
+}
+
+/* Yellow can't carry a focus ring on a light ground — carbon does, and it
+   is the same ink the type already uses. On carbon sections it flips to sun. */
+.site-world :focus-visible {
+  outline: 3px solid var(--color-carbon);
+  outline-offset: 3px;
+}
+.site-world .on-carbon :focus-visible,
+.on-carbon :focus-visible {
+  outline-color: var(--color-sun);
+}
+.site-world .skip-link {
+  background: var(--color-carbon);
+  color: var(--color-sun);
+  font-family: var(--font-archivo), system-ui, sans-serif;
+}
+
+/* ---- The running strip ---- */
+.marquee-v2 {
+  overflow: hidden;
+  background: var(--color-sun);
+}
+.marquee-v2 .marquee-track {
+  animation-duration: 38s;
+}
+
+/* ---- Horizontal card rail (services) ----
+   A real scroll container, so it works with a trackpad, a touch drag and
+   the keyboard, and the arrow buttons just drive scrollBy on top of it. */
+.rail {
+  display: flex;
+  gap: 1.25rem;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scroll-behavior: smooth;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  padding-bottom: 0.5rem;
+}
+.rail::-webkit-scrollbar {
+  display: none;
+}
+.rail > * {
+  scroll-snap-align: start;
+  flex: 0 0 auto;
+}
+
+/* ---- Long-form legal copy, in this world's colours ---- */
+.site-world .legal-body {
+  color: var(--color-ash);
+}
+.site-world .legal-body a {
+  color: var(--color-sun-ink);
+}
+.site-world .legal-body strong,
+.site-world .legal-body h3 {
+  color: var(--color-carbon);
+}
+.site-world .legal-body li::before {
+  background: var(--color-sun-deep);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rail {
+    scroll-behavior: auto;
   }
 }

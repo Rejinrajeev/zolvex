@@ -10,6 +10,13 @@ import type { PublicInstagramPost } from "@/components/InstagramFeed";
 interface HeroContent {
   headline?: string;
   subheadline?: string;
+  imageUrl?: string;
+}
+
+interface GoogleReviewContent {
+  url?: string;
+  rating?: string;
+  reviewCount?: string;
 }
 
 export default async function Home() {
@@ -18,7 +25,7 @@ export default async function Home() {
     getPublicContent<FeaturedServiceRecord & { isHighlighted?: boolean }>("service"),
     getPublicContent<PublicBlogPost>("blog-post"),
     getPublicContent<PublicTestimonial>("testimonial"),
-    getPageContent<{ url?: string }>("google-review"),
+    getPageContent<GoogleReviewContent>("google-review"),
     getPublicContent<PublicFaq>("faq"),
     getPublicContent<PublicInstagramPost>("instagram-post"),
     getPageContent<{ tagline?: string; instagramUrl?: string }>("footer"),
@@ -32,11 +39,14 @@ export default async function Home() {
     <HomePageClient
       heroHeadline={asString(hero?.headline)}
       heroSubheadline={asString(hero?.subheadline)}
+      heroImageUrl={asString(hero?.imageUrl)}
       services={services}
       featuredService={highlighted}
       posts={blogPosts}
       testimonials={testimonials}
       googleReviewUrl={asString(googleReview?.url)}
+      googleRating={asString(googleReview?.rating)}
+      googleReviewCount={asString(googleReview?.reviewCount)}
       faqs={faqs}
       instagramPosts={instagramPosts}
       footerTagline={asString(footer?.tagline)}

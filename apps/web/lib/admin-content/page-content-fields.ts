@@ -19,9 +19,9 @@ export interface PageContentFieldConfig {
 
 /**
  * One form config per known PageContent key, matching apps/web/lib/
- * admin-content/page-keys.ts's PAGE_KEYS and the shapes this plan's spec
- * defines: hero {headline, subheadline}, footer {tagline, instagramUrl},
- * whatsapp {phoneNumber}, google-review {url}.
+ * admin-content/page-keys.ts PAGE_KEYS and the shapes this spec
+ * defines: hero {headline, subheadline, imageUrl}, footer {tagline, instagramUrl},
+ * whatsapp {phoneNumber}, google-review {url, rating, reviewCount}.
  */
 export const PAGE_FIELD_CONFIGS: Record<string, PageContentFieldConfig[]> = {
   hero: [
@@ -36,6 +36,13 @@ export const PAGE_FIELD_CONFIGS: Record<string, PageContentFieldConfig[]> = {
       label: "Subheadline",
       kind: "text",
       help: "The one-line sentence shown under the headline. Leave blank to keep the default.",
+    },
+    {
+      name: "imageUrl",
+      label: "Hero image URL",
+      kind: "text",
+      inputType: "url",
+      help: "A cut-out photo of a technician, shown beside the homepage headline on large screens. Paste the image URL from any uploaded service image. Leave blank and the slot stays empty.",
     },
   ],
   footer: [
@@ -69,6 +76,18 @@ export const PAGE_FIELD_CONFIGS: Record<string, PageContentFieldConfig[]> = {
       kind: "text",
       inputType: "url",
       help: "Link to your Google Business Profile's review section, shown as a button next to client reviews. Leave blank to hide it.",
+    },
+    {
+      name: "rating",
+      label: "Average rating",
+      kind: "text",
+      help: "Your Google rating, e.g. 4.7. Shown on the homepage rating card. Leave blank and the whole card stays hidden — never invent a number here.",
+    },
+    {
+      name: "reviewCount",
+      label: "Number of reviews",
+      kind: "text",
+      help: "How many Google reviews that rating is based on, e.g. 65. Shown beside the rating. Leave blank and the card stays hidden.",
     },
   ],
 };

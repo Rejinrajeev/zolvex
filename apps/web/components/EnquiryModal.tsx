@@ -146,7 +146,7 @@ export function EnquiryModal({
     <AnimatePresence>
       {open && (
         <motion.div
-          className="fixed inset-0 z-[60] flex items-end justify-center bg-forest/45 backdrop-blur-[2px] sm:items-center sm:p-6"
+          className="fixed inset-0 z-[60] flex items-end justify-center bg-carbon/50 backdrop-blur-[2px] sm:items-center sm:p-6"
           role="presentation"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -164,17 +164,17 @@ export function EnquiryModal({
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 30, scale: 0.98 }}
             transition={{ duration: 0.4, ease: EASE, layout: { duration: 0.35, ease: EASE } }}
-            className="relative max-h-[92svh] w-full max-w-lg overflow-y-auto rounded-t-[2rem] bg-cream p-7 sm:rounded-[2rem] sm:p-9"
+            className="relative max-h-[92svh] w-full max-w-lg overflow-y-auto rounded-t-[2rem] bg-bone p-7 sm:rounded-[2rem] sm:p-9"
           >
             <div className="flex items-start justify-between gap-4">
               <div>
-                <h2 id="enquiry-title" className="font-anton text-3xl uppercase tracking-tight text-ink">
+                <h2 id="enquiry-title" className="font-archivo-black text-3xl uppercase tracking-[-0.02em] text-carbon">
                   Book a visit
                 </h2>
                 {service && (
-                  <p className="mt-1.5 font-sora text-sm text-moss">
+                  <p className="mt-1.5 text-sm text-ash">
                     Enquiry for{" "}
-                    <span className="font-semibold text-green-ink">{service.name}</span>
+                    <span className="font-semibold text-sun-ink">{service.name}</span>
                   </p>
                 )}
               </div>
@@ -182,7 +182,7 @@ export function EnquiryModal({
                 type="button"
                 onClick={onClose}
                 aria-label="Close"
-                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-ink transition-colors hover:bg-mist"
+                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-carbon transition-colors hover:bg-carbon/[0.06]"
               >
                 <IconClose className="h-5 w-5" />
               </button>
@@ -211,12 +211,12 @@ export function EnquiryModal({
                     {/* one soft pulse, echoing the "sealed/logged" motif -- fires once, never loops */}
                     <motion.span
                       aria-hidden
-                      className="absolute inset-0 rounded-full bg-green"
+                      className="absolute inset-0 rounded-full bg-sun"
                       initial={{ opacity: 0.55, scale: 1 }}
                       animate={{ opacity: 0, scale: 1.8 }}
                       transition={{ duration: 0.7, ease: "easeOut", delay: 0.1 }}
                     />
-                    <span className="relative flex h-14 w-14 items-center justify-center rounded-full bg-green text-forest">
+                    <span className="relative flex h-14 w-14 items-center justify-center rounded-full bg-sun text-carbon">
                       <svg
                         viewBox="0 0 24 24"
                         className="h-7 w-7"
@@ -236,8 +236,8 @@ export function EnquiryModal({
                     </span>
                   </motion.div>
                   <motion.div variants={successItemV}>
-                    <p className="font-anton text-2xl uppercase tracking-tight text-ink">You&apos;re on the list</p>
-                    <p className="mt-2 max-w-sm font-sora text-moss">
+                    <p className="font-archivo-black text-2xl uppercase tracking-[-0.02em] text-carbon">You&apos;re on the list</p>
+                    <p className="mt-2 max-w-sm text-ash">
                       Your enquiry is logged. We&apos;ll call to confirm a time that works.
                     </p>
                   </motion.div>
@@ -245,7 +245,7 @@ export function EnquiryModal({
                     variants={successItemV}
                     type="button"
                     onClick={onClose}
-                    className="mt-2 rounded-full bg-green px-6 py-3 font-sora text-sm font-semibold text-forest shadow-[0_18px_36px_-14px_rgba(15,184,119,0.75)] transition-transform hover:-translate-y-0.5 active:translate-y-0"
+                    className="mt-2 rounded-full bg-sun px-6 py-3 text-sm font-semibold text-carbon shadow-[0_18px_36px_-16px_rgba(20,18,16,0.5)] transition-transform hover:-translate-y-0.5 active:translate-y-0"
                   >
                     Done
                   </motion.button>
@@ -263,7 +263,7 @@ export function EnquiryModal({
                 <Field ref={firstFieldRef} name="name" label="Your name" error={errors.name} autoComplete="name" />
                 <Field name="phone" label="Phone number" type="tel" error={errors.phone} autoComplete="tel" />
                 <div>
-                  <label htmlFor="place" className="block font-sora text-sm font-semibold text-ink">
+                  <label htmlFor="place" className="block text-sm font-semibold text-carbon">
                     Location
                   </label>
                   <select
@@ -272,8 +272,8 @@ export function EnquiryModal({
                     defaultValue=""
                     aria-invalid={Boolean(errors.place)}
                     aria-describedby={errors.place ? "place-error" : undefined}
-                    className={`mt-1.5 h-12 w-full appearance-none rounded-xl bg-paper bg-[url('data:image/svg+xml;utf8,%3Csvg%20xmlns=%22http://www.w3.org/2000/svg%22%20viewBox=%220%200%2024%2024%22%20fill=%22none%22%20stroke=%22%23066b44%22%20stroke-width=%221.5%22%3E%3Cpath%20d=%22M6%209l6%206%206-6%22/%3E%3C/svg%3E')] bg-[length:1.1rem] bg-[right_0.9rem_center] bg-no-repeat px-4 font-sora text-ink outline-none ring-1 focus:ring-2 focus:ring-green ${
-                      errors.place ? "ring-2 ring-danger" : "ring-ink/15"
+                    className={`mt-1.5 h-12 w-full appearance-none rounded-xl bg-shell bg-[url('data:image/svg+xml;utf8,%3Csvg%20xmlns=%22http://www.w3.org/2000/svg%22%20viewBox=%220%200%2024%2024%22%20fill=%22none%22%20stroke=%22%238a5d00%22%20stroke-width=%221.5%22%3E%3Cpath%20d=%22M6%209l6%206%206-6%22/%3E%3C/svg%3E')] bg-[length:1.1rem] bg-[right_0.9rem_center] bg-no-repeat px-4 text-carbon outline-none ring-1 focus:ring-2 focus:ring-carbon ${
+                      errors.place ? "ring-2 ring-danger" : "ring-carbon/15"
                     }`}
                   >
                     <option value="" disabled>
@@ -288,21 +288,21 @@ export function EnquiryModal({
                   {errors.place && <ErrorText id="place-error">{errors.place}</ErrorText>}
                 </div>
                 <div>
-                  <label htmlFor="date" className="block font-sora text-sm font-semibold text-ink">
-                    Preferred date <span className="font-normal text-moss">(optional)</span>
+                  <label htmlFor="date" className="block text-sm font-semibold text-carbon">
+                    Preferred date <span className="font-normal text-ash">(optional)</span>
                   </label>
                   <input
                     id="date"
                     name="date"
                     type="date"
-                    className="mt-1.5 h-12 w-full rounded-xl bg-paper px-4 font-sora text-ink outline-none ring-1 ring-ink/15 focus:ring-2 focus:ring-green"
+                    className="mt-1.5 h-12 w-full rounded-xl bg-shell px-4 text-carbon outline-none ring-1 ring-carbon/15 focus:ring-2 focus:ring-carbon"
                   />
                 </div>
 
                 {status === "error" && (
                   <div
                     role="alert"
-                    className="flex items-center justify-between gap-3 rounded-xl bg-danger-soft px-4 py-3 font-sora text-sm font-medium text-danger ring-1 ring-danger/30"
+                    className="flex items-center justify-between gap-3 rounded-xl bg-danger-soft px-4 py-3 text-sm font-medium text-danger ring-1 ring-danger/30"
                   >
                     Something went wrong sending your enquiry.
                     <button type="submit" className="shrink-0 font-semibold underline underline-offset-2">
@@ -314,13 +314,13 @@ export function EnquiryModal({
                 <button
                   type="submit"
                   disabled={status === "submitting"}
-                  className="flex min-h-12 w-full items-center justify-center gap-2 rounded-full bg-green px-6 py-4 font-sora font-semibold text-forest transition-transform active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-70"
+                  className="flex min-h-12 w-full items-center justify-center gap-2 rounded-full bg-sun px-6 py-4 font-semibold text-carbon transition-transform active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-70"
                 >
                   {status === "submitting" ? (
                     <>
                       <span
                         aria-hidden
-                        className="h-4 w-4 animate-spin rounded-full border-2 border-forest/30 border-t-forest"
+                        className="h-4 w-4 animate-spin rounded-full border-2 border-carbon/30 border-t-carbon"
                       />
                       Sending…
                     </>
@@ -340,7 +340,7 @@ export function EnquiryModal({
 
 function ErrorText({ id, children }: { id: string; children: React.ReactNode }) {
   return (
-    <p id={id} role="alert" className="mt-1.5 flex items-center gap-1.5 font-sora text-sm font-semibold text-danger">
+    <p id={id} role="alert" className="mt-1.5 flex items-center gap-1.5 text-sm font-semibold text-danger">
       <IconAlert aria-hidden className="h-4 w-4 shrink-0" />
       {children}
     </p>
@@ -365,7 +365,7 @@ function Field({
   const errorId = `${name}-error`;
   return (
     <div>
-      <label htmlFor={name} className="block font-sora text-sm font-semibold text-ink">
+      <label htmlFor={name} className="block text-sm font-semibold text-carbon">
         {label}
       </label>
       <input
@@ -376,8 +376,8 @@ function Field({
         autoComplete={autoComplete}
         aria-invalid={Boolean(error)}
         aria-describedby={error ? errorId : undefined}
-        className={`mt-1.5 h-12 w-full rounded-xl bg-paper px-4 font-sora text-ink placeholder:text-moss outline-none ring-1 focus:ring-2 focus:ring-green ${
-          error ? "ring-2 ring-danger" : "ring-ink/15"
+        className={`mt-1.5 h-12 w-full rounded-xl bg-shell px-4 text-carbon placeholder:text-ash outline-none ring-1 focus:ring-2 focus:ring-carbon ${
+          error ? "ring-2 ring-danger" : "ring-carbon/15"
         }`}
       />
       {error && <ErrorText id={errorId}>{error}</ErrorText>}
