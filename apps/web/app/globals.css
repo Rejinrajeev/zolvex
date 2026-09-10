@@ -409,7 +409,7 @@ body:has(.site-world) {
   background: var(--color-sun);
 }
 .marquee-v2 .marquee-track {
-  animation-duration: 38s;
+  animation-duration: var(--marquee-duration, 38s);
 }
 
 /* ---- Horizontal card rail (services) ----
